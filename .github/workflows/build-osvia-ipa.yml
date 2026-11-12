@@ -1,6 +1,6 @@
-name: build-osvia-ipa
+name: OSVIA
 
-# Manual only: run from Actions tab -> build-osvia-ipa -> Run workflow.
+# Manual only: run from Actions tab -> OSVIA -> Run workflow.
 # Produces an UNSIGNED OSVIA.ipa for SideStore to sign on device.
 # It does NOT commit anything back to the repo and does NOT create a release.
 # Free Apple ID signing cannot happen in the cloud; SideStore signs the

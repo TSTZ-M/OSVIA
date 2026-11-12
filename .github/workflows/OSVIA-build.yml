@@ -1,12 +1,12 @@
-name: ios-build
+name: OSVIA-build
 on:
   push:
     paths:
       - 'ios/**'
-      - '.github/workflows/ios-build.yml'
+      - '.github/workflows/OSVIA-build.yml'
   workflow_dispatch:
 concurrency:
-  group: ios-build
+  group: OSVIA-build
   cancel-in-progress: true
 permissions:
   contents: write

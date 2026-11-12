@@ -95,7 +95,7 @@ jobs:
           }
 
           struct WorkbenchTab: View {
-              @State private var targetURL = URL(string: "https://frommhy-prog.github.io/iOS-AI-agent/")!
+              @State private var targetURL = URL(string: "https://tstz-m.github.io/OSVIA/")!
               @State private var statusMessage = "就绪"
               @State private var showingShare = false
               @State private var shareItems: [Any] = []
@@ -127,7 +127,7 @@ jobs:
                               Spacer()
                               
                               Button(action: {
-                                  if let url = URL(string: "https://frommhy-prog.github.io/iOS-AI-agent/") {
+                                  if let url = URL(string: "https://tstz-m.github.io/OSVIA/") {
                                       shareItems = [url]
                                       showingShare = true
                                   }
