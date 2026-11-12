@@ -6,7 +6,7 @@
   "apps": [
     {
       "name": "OSVIA",
-      "bundleIdentifier": "com.Hao-Yi-Miao.TSTZ-Agent.Live",
+      "bundleIdentifier": "com.Hao-Yi-Miao.TSTZ-Agent",
       "developerName": "OSVIA",
       "localizedDescription": "OSVIA iOS app. Unsigned IPA, signed on the device by SideStore.",
       "iconURL": "https://raw.githubusercontent.com/TSTZ-M/OSVIA/main/ios/Sources/Assets.xcassets/AppIcon.appiconset/icon.png",
