@@ -18,7 +18,7 @@
 		2200E280D764501FA8BC725A /* ScreenTranslate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006579300A03EF9DD91433BF /* ScreenTranslate.swift */; };
 		23A5FFEFF3A43747A84ECF12 /* LocalModelPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90081A66780933DAD60969F4 /* LocalModelPage.swift */; };
 		2405425FCCFE6D2C655F6357 /* KB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2278739C9AFDEB72BE37F77B /* KB.swift */; };
-		26B6FFC36C855C2723342760 /* TSTZLive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CA43F639E4E53E643A17976D /* TSTZLive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		26B6FFC36C855C2723342760 /* OSVIALive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CA43F639E4E53E643A17976D /* OSVIALive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		28A20CDFB92F271ED269FB77 /* Tasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 768C409EAE9C5BBFF33875C9 /* Tasks.swift */; };
 		2A73D636588FE06443F3389B /* BotActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = C387607AEA72EC82BAB7D840 /* BotActivity.swift */; };
 		318CEC404D0F5287F0C51ECD /* PageChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38CA3DA4AE3253250B57597B /* PageChrome.swift */; };
@@ -41,7 +41,7 @@
 		848A3B9660F305CD25EBA433 /* LocalLLM.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D4E47BE6184502B2CC9FCB /* LocalLLM.swift */; };
 		866E4E05F73F3EE3D38FA8DD /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACBF423F7B5759B73346F23C /* Agent.swift */; };
 		8F3C8295C25979991F73F8AF /* Shell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B3988D25E932C47C55B3D21 /* Shell.swift */; };
-		9E37CA693379DE9AF71C601C /* TSTZLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF218E53F50DB3F539B8391E /* TSTZLive.swift */; };
+		9E37CA693379DE9AF71C601C /* OSVIALive.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF218E53F50DB3F539B8391E /* OSVIALive.swift */; };
 		9E55A2CB312D641662E57E9B /* SettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB850DA508C86CA4750B5071 /* SettingsPage.swift */; };
 		A037DF9FAB3BED7B489873E6 /* Gallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6A09CCD0326EA3DB1C432D3 /* Gallery.swift */; };
 		A224208BC206B66FC206C333 /* LocalBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B02AC60B22F531858FDA83C /* LocalBrain.swift */; };
@@ -72,7 +72,7 @@
 			containerPortal = D2FE42AE479D2D1B634062F2 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = B643960F685F8273A2C308BB;
-			remoteInfo = TSTZLive;
+			remoteInfo = OSVIALive;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -83,7 +83,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				26B6FFC36C855C2723342760 /* TSTZLive.appex in Embed Foundation Extensions */,
+				26B6FFC36C855C2723342760 /* OSVIALive.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -107,7 +107,7 @@
 		4E7A3B5D3328EA286FF776B2 /* Convert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Convert.swift; sourceTree = "<group>"; };
 		538B1AE356CDE5429BD0C0FF /* Inputs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Inputs.swift; sourceTree = "<group>"; };
 		56A37C2E32AA205E642B78C8 /* Digest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Digest.swift; sourceTree = "<group>"; };
-		5C067C41C430F996A9787706 /* TSTZAgent.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TSTZAgent.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C067C41C430F996A9787706 /* OSVIA.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OSVIA.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5DBC500D7B8A1A97465E6D1F /* Features.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features.swift; sourceTree = "<group>"; };
 		5FEFA9DDDAD17E868ACA8C3D /* Connectors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connectors.swift; sourceTree = "<group>"; };
 		621A2DE7A16D900DCDF95AEB /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
@@ -133,7 +133,7 @@
 		C387607AEA72EC82BAB7D840 /* BotActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotActivity.swift; sourceTree = "<group>"; };
 		C4973DF07EFF3C7C67DA0C1F /* Markdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Markdown.swift; sourceTree = "<group>"; };
 		C6688134F06AB2E822C59DA9 /* CloudPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudPage.swift; sourceTree = "<group>"; };
-		CA43F639E4E53E643A17976D /* TSTZLive.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = TSTZLive.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA43F639E4E53E643A17976D /* OSVIALive.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = OSVIALive.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1BA3C44ACB60EC914078593 /* Files.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Files.swift; sourceTree = "<group>"; };
 		D3363D2C6BC5EEC53609CD8F /* ConvertUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertUI.swift; sourceTree = "<group>"; };
 		D4D4E47BE6184502B2CC9FCB /* LocalLLM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLM.swift; sourceTree = "<group>"; };
@@ -141,7 +141,7 @@
 		DFC7844A5E64B339F7DFA507 /* ConnectorUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectorUI.swift; sourceTree = "<group>"; };
 		E4C7FE1331ACC091A34C64F6 /* WebSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSearch.swift; sourceTree = "<group>"; };
 		EB0E12EE10CDB0ED7E033F3D /* BrandMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandMark.swift; sourceTree = "<group>"; };
-		EF218E53F50DB3F539B8391E /* TSTZLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TSTZLive.swift; sourceTree = "<group>"; };
+		EF218E53F50DB3F539B8391E /* OSVIALive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSVIALive.swift; sourceTree = "<group>"; };
 		F6F4D3785AFFFB8B9081D560 /* Media.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Media.swift; sourceTree = "<group>"; };
 		FB850DA508C86CA4750B5071 /* SettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -228,7 +228,7 @@
 		5D1D9F37D95BAE835CBC346E /* Live */ = {
 			isa = PBXGroup;
 			children = (
-				EF218E53F50DB3F539B8391E /* TSTZLive.swift */,
+				EF218E53F50DB3F539B8391E /* OSVIALive.swift */,
 			);
 			path = Live;
 			sourceTree = "<group>";
@@ -245,8 +245,8 @@
 		83F991EFE156CD213E0B4A68 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5C067C41C430F996A9787706 /* TSTZAgent.app */,
-				CA43F639E4E53E643A17976D /* TSTZLive.appex */,
+				5C067C41C430F996A9787706 /* OSVIA.app */,
+				CA43F639E4E53E643A17976D /* OSVIALive.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -254,9 +254,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		B643960F685F8273A2C308BB /* TSTZLive */ = {
+		B643960F685F8273A2C308BB /* OSVIALive */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C8F9F61B42C3069210F5F938 /* Build configuration list for PBXNativeTarget "TSTZLive" */;
+			buildConfigurationList = C8F9F61B42C3069210F5F938 /* Build configuration list for PBXNativeTarget "OSVIALive" */;
 			buildPhases = (
 				13F59FB9EDB1F6BEDCB2ACFF /* Sources */,
 			);
@@ -264,16 +264,16 @@
 			);
 			dependencies = (
 			);
-			name = TSTZLive;
+			name = OSVIALive;
 			packageProductDependencies = (
 			);
-			productName = TSTZLive;
-			productReference = CA43F639E4E53E643A17976D /* TSTZLive.appex */;
+			productName = OSVIALive;
+			productReference = CA43F639E4E53E643A17976D /* OSVIALive.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		DFA57580B65A1F516A648EB5 /* TSTZAgent */ = {
+		DFA57580B65A1F516A648EB5 /* OSVIA */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7F62CECD23A82244B28639B9 /* Build configuration list for PBXNativeTarget "TSTZAgent" */;
+			buildConfigurationList = 7F62CECD23A82244B28639B9 /* Build configuration list for PBXNativeTarget "OSVIA" */;
 			buildPhases = (
 				32D0FC1DAEDB465F41FA9579 /* Sources */,
 				014CD0BF14AD81E78308FEF5 /* Resources */,
@@ -285,14 +285,14 @@
 			dependencies = (
 				5B5AC5C6C7B96B25F59AE946 /* PBXTargetDependency */,
 			);
-			name = TSTZAgent;
+			name = OSVIA;
 			packageProductDependencies = (
 				6340C635C5AB5E9D3E2FA56F /* MLXLLM */,
 				F20F0B21EC9C4428F28D4CB5 /* MLXLMCommon */,
 				AD2998BE24DF30832F39FF87 /* Tokenizers */,
 			);
-			productName = TSTZAgent;
-			productReference = 5C067C41C430F996A9787706 /* TSTZAgent.app */;
+			productName = OSVIA;
+			productReference = 5C067C41C430F996A9787706 /* OSVIA.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -312,7 +312,7 @@
 					};
 				};
 			};
-			buildConfigurationList = E152BE81467005291A549107 /* Build configuration list for PBXProject "TSTZAgent" */;
+			buildConfigurationList = E152BE81467005291A549107 /* Build configuration list for PBXProject "OSVIA" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -330,8 +330,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				DFA57580B65A1F516A648EB5 /* TSTZAgent */,
-				B643960F685F8273A2C308BB /* TSTZLive */,
+				DFA57580B65A1F516A648EB5 /* OSVIA */,
+				B643960F685F8273A2C308BB /* OSVIALive */,
 			);
 		};
 /* End PBXProject section */
@@ -354,7 +354,7 @@
 			files = (
 				2A73D636588FE06443F3389B /* BotActivity.swift in Sources */,
 				4B49965E1229B38C017F8146 /* BrandMark.swift in Sources */,
-				9E37CA693379DE9AF71C601C /* TSTZLive.swift in Sources */,
+				9E37CA693379DE9AF71C601C /* OSVIALive.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -419,7 +419,7 @@
 /* Begin PBXTargetDependency section */
 		5B5AC5C6C7B96B25F59AE946 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = B643960F685F8273A2C308BB /* TSTZLive */;
+			target = B643960F685F8273A2C308BB /* OSVIALive */;
 			targetProxy = 797FA646C9A495954E8F923B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -496,7 +496,7 @@
 				);
 				MARKETING_VERSION = 0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.Hao-Yi-Miao.TSTZ-Agent.Live";
-				PRODUCT_NAME = TSTZLive;
+				PRODUCT_NAME = OSVIALive;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -515,7 +515,7 @@
 				);
 				MARKETING_VERSION = 0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.Hao-Yi-Miao.TSTZ-Agent.Live";
-				PRODUCT_NAME = TSTZLive;
+				PRODUCT_NAME = OSVIALive;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -535,7 +535,7 @@
 				);
 				MARKETING_VERSION = 0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.Hao-Yi-Miao.TSTZ-Agent";
-				PRODUCT_NAME = TSTZBot;
+				PRODUCT_NAME = OSVIA;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -620,7 +620,7 @@
 				);
 				MARKETING_VERSION = 0.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.Hao-Yi-Miao.TSTZ-Agent";
-				PRODUCT_NAME = TSTZBot;
+				PRODUCT_NAME = OSVIA;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -629,7 +629,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7F62CECD23A82244B28639B9 /* Build configuration list for PBXNativeTarget "TSTZAgent" */ = {
+		7F62CECD23A82244B28639B9 /* Build configuration list for PBXNativeTarget "OSVIA" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B9BE77631DC80F8000FF6B77 /* Debug */,
@@ -638,7 +638,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		C8F9F61B42C3069210F5F938 /* Build configuration list for PBXNativeTarget "TSTZLive" */ = {
+		C8F9F61B42C3069210F5F938 /* Build configuration list for PBXNativeTarget "OSVIALive" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9FC7BE04B7A2F5CFDCE8C95A /* Debug */,
@@ -647,7 +647,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		E152BE81467005291A549107 /* Build configuration list for PBXProject "TSTZAgent" */ = {
+		E152BE81467005291A549107 /* Build configuration list for PBXProject "OSVIA" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C00753DF1FCC3B911B99BBD6 /* Debug */,

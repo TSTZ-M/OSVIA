@@ -1,4 +1,4 @@
-name: TSTZAgent
+name: OSVIA
 options:
   bundleIdPrefix: com.Hao-Yi-Miao
   deploymentTarget:
@@ -16,14 +16,14 @@ packages:
     url: https://github.com/huggingface/swift-transformers
     from: 1.3.5
 targets:
-  TSTZAgent:
+  OSVIA:
     type: application
     platform: iOS
     sources:
       - path: Sources
       - path: Shared
     dependencies:
-      - target: TSTZLive
+      - target: OSVIALive
       - package: MLXSwiftLM
         product: MLXLLM
       - package: MLXSwiftLM
@@ -33,7 +33,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.Hao-Yi-Miao.TSTZ-Agent
-        PRODUCT_NAME: TSTZBot
+        PRODUCT_NAME: OSVIA
         MARKETING_VERSION: "0.9"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"
@@ -54,7 +54,7 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.Hao-Yi-Miao.TSTZ-Agent
             CFBundleURLSchemes:
-              - tstzbot
+              - osvia
         LSApplicationQueriesSchemes:
           - shortcuts
           - scriptable
@@ -66,7 +66,7 @@ targets:
         NSCalendarsFullAccessUsageDescription: 助理需要为你添加和回顾日程
         NSRemindersFullAccessUsageDescription: 助理需要为你添加和回顾提醒事项
         NSAlarmKitUsageDescription: 助理需要为你设置闹钟
-  TSTZLive:
+  OSVIALive:
     type: app-extension
     platform: iOS
     sources:
@@ -75,7 +75,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.Hao-Yi-Miao.TSTZ-Agent.Live
-        PRODUCT_NAME: TSTZLive
+        PRODUCT_NAME: OSVIALive
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.9"

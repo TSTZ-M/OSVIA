@@ -42,10 +42,10 @@ enum ClockBridge {
 
     private static func enc(_ s: String) -> String { s.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? s }
 
-    // 打开快捷指令运行「创建闹钟」，结果经 tstzbot://clock 回到本 App
+    // 打开快捷指令运行「创建闹钟」，结果经 osvia://clock 回到本 App
     @MainActor
     static func run(daily: Bool, at d: Date, alarmId: String, test: Bool) async -> Bool {
-        let base = "tstzbot://clock?daily=\(daily ? 1 : 0)&test=\(test ? 1 : 0)&alarm=\(alarmId)&time=\(hhmm(d))"
+        let base = "osvia://clock?daily=\(daily ? 1 : 0)&test=\(test ? 1 : 0)&alarm=\(alarmId)&time=\(hhmm(d))"
         let name = daily ? dailyName : onceName
         let link = "shortcuts://x-callback-url/run-shortcut?name=\(enc(name))&input=text&text=\(enc(hhmm(d)))"
             + "&x-success=\(enc(base + "&ok=1"))&x-cancel=\(enc(base + "&ok=0&cancel=1"))&x-error=\(enc(base + "&ok=0"))"

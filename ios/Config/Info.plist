@@ -25,7 +25,7 @@
 			<string>com.Hao-Yi-Miao.TSTZ-Agent</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>tstzbot</string>
+				<string>osvia</string>
 			</array>
 		</dict>
 	</array>

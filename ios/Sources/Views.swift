@@ -34,7 +34,7 @@ enum AppTheme {
 }
 
 @main
-struct TSTZBotApp: App {
+struct OSVIAApp: App {
     @Environment(\.scenePhase) private var phase
     @AppStorage("appearance") private var appearance = 0
 
@@ -66,11 +66,11 @@ struct TSTZBotApp: App {
     }
 }
 
-// 其他应用调用：tstzbot://ask?q=问题   tstzbot://run?name=技能名&input=内容&x-success=回调地址
-// 内部回调：tstzbot://clock（系统时钟闹钟）  tstzbot://connector（连接器结果）
+// 其他应用调用：osvia://ask?q=问题   osvia://run?name=技能名&input=内容&x-success=回调地址
+// 内部回调：osvia://clock（系统时钟闹钟）  osvia://connector（连接器结果）
 enum URLRouter {
     @MainActor static func handle(_ url: URL) {
-        guard url.scheme == "tstzbot" else { return }
+        guard url.scheme == "osvia" else { return }
         var q: [String: String] = [:]
         for i in URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? [] { q[i.name] = i.value ?? "" }
         AppState.shared.drawer = false

@@ -34,7 +34,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p ci
-          xcodebuild -project TSTZAgent.xcodeproj -scheme TSTZAgent -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ci/build.log | tail -n 5
+          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ci/build.log | tail -n 5
       - name: Summarize
         if: always()
         run: |
@@ -49,7 +49,7 @@ jobs:
           git config user.name "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
           git add -A ci
-          [ -d TSTZAgent.xcodeproj ] && git add -A TSTZAgent.xcodeproj
+          [ -d OSVIA.xcodeproj ] && git add -A OSVIA.xcodeproj
           [ -d Config ] && git add -A Config
           [ -f Sources/Assets.xcassets/AppIcon.appiconset/icon.png ] && git add -f Sources/Assets.xcassets/AppIcon.appiconset/icon.png
           git diff --cached --quiet || (git commit -m "ci: update build result [skip ci]" && git pull --rebase origin main && git push)

@@ -7,7 +7,7 @@ IPA="$1"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 REPO="TSTZ-M/OSVIA"
 TMP="$(mktemp -d)"
-unzip -p "$IPA" 'Payload/TSTZBot.app/Info.plist' > "$TMP/Info.plist"
+unzip -p "$IPA" 'Payload/OSVIA.app/Info.plist' > "$TMP/Info.plist"
 BID=$(plutil -extract CFBundleIdentifier raw "$TMP/Info.plist")
 test "$BID" = "com.Hao-Yi-Miao.TSTZ-Agent"
 VER=$(plutil -extract CFBundleShortVersionString raw "$TMP/Info.plist")

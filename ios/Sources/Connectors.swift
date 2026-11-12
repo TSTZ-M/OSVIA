@@ -175,7 +175,7 @@ enum Connectors {
         let cname = c.s("name")
         let kind = c.s("kind")
         let target = c.s("url")
-        let cb = "tstzbot://connector?name=\(enc(cname))"
+        let cb = "osvia://connector?name=\(enc(cname))"
         var link = ""
         switch kind {
         case "shortcut":
@@ -193,7 +193,7 @@ enum Connectors {
             var req = URLRequest(url: url)
             req.httpMethod = c.s("method").isEmpty ? "GET" : c.s("method")
             req.timeoutInterval = 25
-            req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) TSTZBot", forHTTPHeaderField: "User-Agent")
+            req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) OSVIA", forHTTPHeaderField: "User-Agent")
             for line in c.s("headers").split(separator: "\n") {
                 let kv = line.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
                 if kv.count == 2 { req.setValue(kv[1], forHTTPHeaderField: kv[0]) }

@@ -48,7 +48,7 @@ struct PhaseIcon: View {
     }
 }
 
-struct TSTZLiveActivity: Widget {
+struct OSVIALiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: BotActivityAttributes.self) { ctx in
             // 锁屏与通知中心：黑底，左边标志，中间 OSVIA + 状态，右边状态图标
@@ -103,6 +103,6 @@ struct TSTZLiveActivity: Widget {
 }
 
 @main
-struct TSTZLiveBundle: WidgetBundle {
-    var body: some Widget { TSTZLiveActivity() }
+struct OSVIALiveBundle: WidgetBundle {
+    var body: some Widget { OSVIALiveActivity() }
 }

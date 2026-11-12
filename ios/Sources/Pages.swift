@@ -273,7 +273,7 @@ struct SkillRunView: View {
 
     private var link: String {
         let n = name.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? name
-        return "tstzbot://run?name=\(n)&input="
+        return "osvia://run?name=\(n)&input="
     }
 
     var body: some View {
@@ -330,7 +330,7 @@ struct SkillRunView: View {
     func run() {
         hideKeyboard()
         copied = false
-        if input.hasPrefix("tstzbot://") {
+        if input.hasPrefix("osvia://") {
             ok = false
             out = "这里要填的是要处理的文字，不是调用链接。调用链接是给快捷指令或其他 App 用的。请清空后重新输入。"
             return
@@ -509,8 +509,8 @@ struct ShortcutsView: View {
                     .font(.subheadline)
             }
             Section("让其他应用调用本 App") {
-                Button { copy("tstzbot://ask?q=", "提问") } label: { Label(copied == "提问" ? "已复制提问链接" : "复制「提问」链接", systemImage: "link") }
-                Button { copy("tstzbot://run?name=", "运行") } label: { Label(copied == "运行" ? "已复制运行链接" : "复制「运行脚本」链接", systemImage: "link") }
+                Button { copy("osvia://ask?q=", "提问") } label: { Label(copied == "提问" ? "已复制提问链接" : "复制「提问」链接", systemImage: "link") }
+                Button { copy("osvia://run?name=", "运行") } label: { Label(copied == "运行" ? "已复制运行链接" : "复制「运行脚本」链接", systemImage: "link") }
             }
         }
         .navigationTitle("快捷指令")

@@ -39,7 +39,7 @@ jobs:
       - name: Build (no signing)
         run: |
           set -o pipefail
-          xcodebuild -project TSTZAgent.xcodeproj -scheme TSTZAgent -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO -derivedDataPath derivedData build
+          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO -derivedDataPath derivedData build
 
       - name: Package unsigned IPA for SideStore
         run: |
