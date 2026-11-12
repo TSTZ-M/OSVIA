@@ -23,7 +23,6 @@ targets:
       - path: Sources
       - path: Shared
     dependencies:
-      - target: OSVIALive
       - package: MLXSwiftLM
         product: MLXLLM
       - package: MLXSwiftLM
@@ -66,23 +65,3 @@ targets:
         NSCalendarsFullAccessUsageDescription: 助理需要为你添加和回顾日程
         NSRemindersFullAccessUsageDescription: 助理需要为你添加和回顾提醒事项
         NSAlarmKitUsageDescription: 助理需要为你设置闹钟
-  OSVIALive:
-    type: app-extension
-    platform: iOS
-    sources:
-      - path: Live
-      - path: Shared
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.Hao-Yi-Miao.TSTZ-Agent.Live
-        PRODUCT_NAME: OSVIALive
-        TARGETED_DEVICE_FAMILY: "1"
-        CODE_SIGN_STYLE: Automatic
-        MARKETING_VERSION: "0.9"
-        CURRENT_PROJECT_VERSION: "1"
-    info:
-      path: Config/LiveInfo.plist
-      properties:
-        CFBundleDisplayName: OSVIA
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
