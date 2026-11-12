@@ -1,0 +1,33 @@
+{
+  "name": "OSVIA",
+  "identifier": "OSVIA",
+  "subtitle": "OSVIA unsigned IPA for SideStore",
+  "nsfw": false,
+  "apps": [
+    {
+      "name": "OSVIA",
+      "bundleIdentifier": "com.Hao-Yi-Miao.TSTZ-Agent.Live",
+      "developerName": "OSVIA",
+      "localizedDescription": "OSVIA iOS app. Unsigned IPA, signed on the device by SideStore.",
+      "iconURL": "https://raw.githubusercontent.com/TSTZ-M/OSVIA/main/ios/Sources/Assets.xcassets/AppIcon.appiconset/icon.png",
+      "version": "1.0",
+      "versionDate": "2026-11-12T09:44:40Z",
+      "downloadURL": "https://github.com/TSTZ-M/OSVIA/releases/download/OSVIA-latest/OSVIA.ipa",
+      "size": 17737426,
+      "versions": [
+        {
+          "version": "1.0",
+          "buildVersion": "1",
+          "date": "2026-11-12T09:44:40Z",
+          "downloadURL": "https://github.com/TSTZ-M/OSVIA/releases/download/OSVIA-latest/OSVIA.ipa",
+          "size": 17737426
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
+    }
+  ],
+  "news": []
+}
