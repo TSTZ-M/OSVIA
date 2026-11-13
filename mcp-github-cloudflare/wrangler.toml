@@ -1,0 +1,21 @@
+# mcp-github-cloudflare — ONE custom MCP connector for Claude
+# GitHub + Cloudflare combined, full read/write, served by one Worker.
+
+name = "mcp-github-cloudflare"
+main = "src/index.ts"
+compatibility_date = "2026-11-13"
+compatibility_flags = ["nodejs_compat"]
+
+# No secrets in this file. Set them with `wrangler secret put <NAME>`:
+#   GITHUB_TOKEN            GitHub token (repo + workflow + delete_repo scopes)
+#   CLOUDFLARE_API_TOKEN    Cloudflare API token (Workers/KV/D1/R2/Pages)
+#   CLOUDFLARE_ACCOUNT_ID   Cloudflare account id (optional; tools also take account_id)
+#   MCP_AUTH_TOKEN          optional; if set, /mcp requires Authorization: Bearer <token>
+#   BARK_KEY                optional; Bark push key for the daily R2 quota warning
+#   TELEGRAM_BOT_TOKEN      optional; Telegram bot token for the daily R2 quota warning
+#   TELEGRAM_CHAT_ID        optional; Telegram chat id for the daily R2 quota warning
+
+# Daily R2 free-quota check (01:00 UTC). Notifies only at warning (80%+) or
+# critical (95%+) via Bark and/or Telegram when their secrets are set.
+[triggers]
+crons = ["0 1 * * *"]
