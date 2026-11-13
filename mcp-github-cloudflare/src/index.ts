@@ -1001,6 +1001,69 @@ function createServer(env: Env): McpServer {
   );
 
   server.registerTool(
+    "cf_r2_put_object",
+    {
+      description: "Upload an object to an R2 bucket. Content is plain text (UTF-8). For binary files, upload via the S3-compatible API instead.",
+      inputSchema: {
+        account_id: z.string().optional().describe("Defaults to CLOUDFLARE_ACCOUNT_ID"),
+        bucket: z.string(),
+        key: z.string().describe("Object key (path inside the bucket), e.g. docs/readme.txt"),
+        content: z.string().describe("Object content as text"),
+        content_type: z.string().optional().describe("e.g. text/plain, application/json"),
+      },
+    },
+    async (args) => {
+      const token = requireSecret(env, "CLOUDFLARE_API_TOKEN");
+      const res = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId(env, args.account_id)}/r2/buckets/${encodeURIComponent(args.bucket)}/objects/${encPath(args.key)}`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": args.content_type ?? "text/plain" },
+          body: args.content,
+        },
+      );
+      const text = await res.text();
+      if (!res.ok) throw new ApiError(res.status, `Cloudflare ${res.status} PUT R2 ${args.bucket}/${args.key}: ${text}`);
+      return jsonResult({ ok: true, bucket: args.bucket, key: args.key });
+    },
+  );
+
+  server.registerTool(
+    "cf_r2_get_object",
+    {
+      description: "Download an object from an R2 bucket as text. Binary objects are returned as text and may be garbled; use the S3-compatible API for binary downloads.",
+      inputSchema: {
+        account_id: z.string().optional().describe("Defaults to CLOUDFLARE_ACCOUNT_ID"),
+        bucket: z.string(),
+        key: z.string().describe("Object key (path inside the bucket)"),
+      },
+    },
+    async (args) =>
+      textResult(
+        await cfRaw(
+          env,
+          `/accounts/${accountId(env, args.account_id)}/r2/buckets/${encodeURIComponent(args.bucket)}/objects/${encPath(args.key)}`,
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "cf_r2_delete_object",
+    {
+      description: "Delete an object from an R2 bucket.",
+      inputSchema: {
+        account_id: z.string().optional().describe("Defaults to CLOUDFLARE_ACCOUNT_ID"),
+        bucket: z.string(),
+        key: z.string().describe("Object key (path inside the bucket)"),
+      },
+    },
+    async (args) => {
+      await cf(env, "DELETE", `/accounts/${accountId(env, args.account_id)}/r2/buckets/${encodeURIComponent(args.bucket)}/objects/${encPath(args.key)}`);
+      return jsonResult({ ok: true, deleted: `${args.bucket}/${args.key}` });
+    },
+  );
+
+  server.registerTool(
     "cf_pages_list_projects",
     {
       description: "List Pages projects in a Cloudflare account.",
