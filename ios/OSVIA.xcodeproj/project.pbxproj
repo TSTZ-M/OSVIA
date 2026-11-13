@@ -63,6 +63,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		000E7FBD7725FCEA749D8A56 /* OSVIA.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = OSVIA.xcconfig; sourceTree = "<group>"; };
 		0B4ED48F9A6156C397F91725 /* Files.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Files.swift; sourceTree = "<group>"; };
 		0F63F20AC69F28D3D5527E2F /* L10nUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nUI.swift; sourceTree = "<group>"; };
 		11F16D55670AC29881C6C8EF /* Convert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Convert.swift; sourceTree = "<group>"; };
@@ -130,6 +131,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0B6166A08969E7F0C767CE8B /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				000E7FBD7725FCEA749D8A56 /* OSVIA.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
 		3234F0319FDA991E5D7E3E9D /* Shared */ = {
 			isa = PBXGroup;
 			children = (
@@ -205,6 +214,7 @@
 		CBAD60C9AC34E39D077846B8 = {
 			isa = PBXGroup;
 			children = (
+				0B6166A08969E7F0C767CE8B /* Config */,
 				3234F0319FDA991E5D7E3E9D /* Shared */,
 				BB7D6E099532E5C0A9CB480B /* Sources */,
 				96429345BD685BB264645437 /* Products */,
@@ -346,6 +356,7 @@
 /* Begin XCBuildConfiguration section */
 		37D388A7AD1F56B33FF0587F /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 000E7FBD7725FCEA749D8A56 /* OSVIA.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -357,7 +368,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.9;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.Hao-Yi-Miao.TSTZ-Agent";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.Hao-Yi-Miao.TSTZ-Agent$(OSVIA_ID_SUFFIX)";
 				PRODUCT_NAME = OSVIA;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -366,6 +377,7 @@
 		};
 		618B31D8B44DC4C4AE41F8FC /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 000E7FBD7725FCEA749D8A56 /* OSVIA.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -377,7 +389,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.9;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.Hao-Yi-Miao.TSTZ-Agent";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.Hao-Yi-Miao.TSTZ-Agent$(OSVIA_ID_SUFFIX)";
 				PRODUCT_NAME = OSVIA;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
