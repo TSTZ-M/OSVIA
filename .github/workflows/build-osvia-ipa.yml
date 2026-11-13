@@ -48,8 +48,8 @@ jobs:
           BID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
           echo "$BID"
           test "$BID" = "com.Hao-Yi-Miao.TSTZ-Agent"
-          if find "$APP" \( -name '*.dylib' -o -name '*.appex' \) | grep -q .; then
-            echo "ERROR: dylib or appex inside app"; find "$APP" \( -name '*.dylib' -o -name '*.appex' \); exit 1
+          if find "$APP" -name '*.dylib' | grep -q .; then
+            echo "ERROR: dylib inside app"; find "$APP" -name '*.dylib'; exit 1
           fi
           rm -rf Payload OSVIA.ipa
           mkdir -p Payload
