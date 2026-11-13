@@ -1,0 +1,4 @@
+ios/Config/Local.xcconfig
+ios/derivedData/
+ios/Payload/
+ios/OSVIA.ipa

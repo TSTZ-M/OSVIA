@@ -1,0 +1,2 @@
+OSVIA_ID_SUFFIX =
+#include? "Local.xcconfig"

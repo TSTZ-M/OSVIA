@@ -36,23 +36,27 @@ jobs:
       - name: Generate project
         run: xcodegen generate
 
-      - name: Build (no signing)
+      - name: Build Release (no signing)
         run: |
           set -o pipefail
-          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO -derivedDataPath derivedData build
+          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO ENABLE_PREVIEWS=NO -derivedDataPath derivedData build
 
       - name: Package unsigned IPA for SideStore
         run: |
-          APP=$(find derivedData/Build/Products -maxdepth 2 -name '*.app' | head -n 1)
-          echo "Built app: $APP"
-          test -n "$APP"
-          /usr/libexec/PlistBuddy -c 'Print CFBundleDisplayName' "$APP/Info.plist"
-          /usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist"
+          APP=derivedData/Build/Products/Release-iphoneos/OSVIA.app
+          test -d "$APP"
+          BID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
+          echo "$BID"
+          test "$BID" = "com.Hao-Yi-Miao.TSTZ-Agent"
+          if find "$APP" \( -name '*.dylib' -o -name '*.appex' \) | grep -q .; then
+            echo "ERROR: dylib or appex inside app"; find "$APP" \( -name '*.dylib' -o -name '*.appex' \); exit 1
+          fi
           rm -rf Payload OSVIA.ipa
           mkdir -p Payload
           cp -R "$APP" Payload/
-          zip -r OSVIA.ipa Payload
-          unzip -l OSVIA.ipa
+          zip -qry OSVIA.ipa Payload
+          unzip -tq OSVIA.ipa
+          unzip -l OSVIA.ipa | tail -1
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -67,3 +71,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create OSVIA-latest OSVIA.ipa --title "OSVIA-latest" --notes "Unsigned OSVIA.ipa for SideStore" || gh release upload OSVIA-latest OSVIA.ipa --clobber
+
+      - name: Update OSVIA-source.json from the real IPA
+        run: bash tools/make-osvia-source.sh OSVIA.ipa
+
+      - name: Commit OSVIA-source.json
+        working-directory: .
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add OSVIA-source.json
+          git diff --cached --quiet || (git commit -m "ci: update OSVIA-source.json" && git pull --rebase origin main && git push)

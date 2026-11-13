@@ -19,6 +19,9 @@ targets:
   OSVIA:
     type: application
     platform: iOS
+    configFiles:
+      Debug: Config/OSVIA.xcconfig
+      Release: Config/OSVIA.xcconfig
     sources:
       - path: Sources
       - path: Shared
@@ -31,7 +34,7 @@ targets:
         product: Tokenizers
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.Hao-Yi-Miao.TSTZ-Agent
+        PRODUCT_BUNDLE_IDENTIFIER: com.Hao-Yi-Miao.TSTZ-Agent$(OSVIA_ID_SUFFIX)
         PRODUCT_NAME: OSVIA
         MARKETING_VERSION: "0.9"
         CURRENT_PROJECT_VERSION: "1"
