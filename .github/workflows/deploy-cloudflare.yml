@@ -34,4 +34,5 @@ jobs:
           WRANGLER_CMD: ${{ inputs.wrangler_command }}
         run: |
           if [ -n "$WORKING_DIR" ] && [ -d "$WORKING_DIR" ]; then cd "$WORKING_DIR"; fi
+          if [ -f package.json ]; then npm install --no-audit --no-fund; fi
           wrangler ${WRANGLER_CMD:-deploy}
