@@ -1,0 +1,37 @@
+name: Deploy to Cloudflare
+
+on:
+  workflow_dispatch:
+    inputs:
+      working_directory:
+        description: 'Worker directory (relative to repo root)'
+        required: false
+        default: 'workers'
+      wrangler_command:
+        description: 'Wrangler command (e.g. deploy, d1 create OSVIA, kv namespace create OSVIA)'
+        required: false
+        default: 'deploy'
+  push:
+    paths:
+      - 'workers/**'
+      - 'cloudflare/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Wrangler
+        run: npm install -g wrangler
+      - name: Run Wrangler
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: d80f55f5a83fab6dda4ef1e778caa012
+          WORKING_DIR: ${{ inputs.working_directory }}
+          WRANGLER_CMD: ${{ inputs.wrangler_command }}
+        run: |
+          if [ -n "$WORKING_DIR" ] && [ -d "$WORKING_DIR" ]; then cd "$WORKING_DIR"; fi
+          wrangler ${WRANGLER_CMD:-deploy}
