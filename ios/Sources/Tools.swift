@@ -55,7 +55,7 @@ struct Recall: Tool {
         @Guide(description: "要查的内容，一句话") var query: String
     }
     func call(arguments a: Arguments) async throws -> String {
-        let r = KB.shared.search(a.query)
+        let r = Memory.relevant(a.query, k: 5) + KB.shared.search(a.query)
         return r.isEmpty ? "知识库里没有相关内容" : r.joined(separator: "\n---\n")
     }
 }
@@ -67,7 +67,7 @@ struct Remember: Tool {
         @Guide(description: "要记住的事实") var text: String
     }
     func call(arguments a: Arguments) async throws -> String {
-        KB.shared.add("记忆", a.text)
+        Memory.add(a.text, src: "对话")
         return "已记住"
     }
 }

@@ -19,14 +19,21 @@ struct ChatView: View {
     @State private var activeConn = ""
     @State private var notice = ""
     @State private var preview: URL?
+    @State private var memCount = 0
+    @State private var mcpCount = 0
     @FocusState private var focus: Bool
 
     private let ideas: [(String, String)] = [
+        ("magnifyingglass", "今天有什么重要的科技新闻？"),
+        ("function", "房贷 120 万，30 年，利率 3.1%，月供多少？"),
         ("alarm", "明早十点叫我起床"),
-        ("calendar.badge.clock", "一周后下午三点提醒我交报告"),
-        ("sparkles", "每天早上八点总结我的待办"),
-        ("arrow.triangle.2.circlepath", "把图片转成 PDF")
+        ("calendar.badge.clock", "一周后下午三点提醒我交报告")
     ]
+
+    private func refreshCounts() {
+        memCount = Memory.count()
+        mcpCount = MCP.servers().filter { $0.i("enabled") == 1 }.count
+    }
 
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: Date())
@@ -99,7 +106,18 @@ struct ChatView: View {
                     }
                 }
                 .quickLookPreview($preview)
+                .alert(agent.confirm?.title ?? "", isPresented: Binding(
+                    get: { agent.confirm != nil },
+                    set: { if !$0 { agent.answerConfirm(false) } }
+                )) {
+                    Button("允许") { agent.answerConfirm(true) }
+                    Button("拒绝", role: .cancel) { agent.answerConfirm(false) }
+                } message: {
+                    Text(verbatim: agent.confirm?.detail ?? "")
+                }
+                .onChange(of: state.page) { _, p in if p == nil { refreshCounts() } }
                 .onAppear {
+                    refreshCounts()
                     conns = Connectors.all()
                     voice.onText = { input = $0 }
                     voice.onFinished = { t in if autoSend && !t.isEmpty { send() } }
@@ -130,35 +148,61 @@ struct ChatView: View {
 
     var emptyState: some View {
         VStack(alignment: .leading, spacing: 16) {
-            LogoMark(size: 48).padding(.top, 40)
+            LogoMark(size: 48).padding(.top, 36)
             Text("\(greeting)，我是\(Brand.name)")
                 .font(.system(size: 30, weight: .regular, design: .serif))
                 .foregroundStyle(Brand.ink)
-            Text("闹钟、提醒、文件转换、识别图片文字，都可以直接说。")
+            Text("能联网查证、读网页、精确计算，记得你的偏好，还能连接 MCP 工具。")
                 .font(Brand.serif)
                 .foregroundStyle(Brand.sub)
-            VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                featureCard("brain.head.profile", "AI 记忆",
+                            memCount > 0 ? L10n.f("已记住 {} 条", "\(memCount)") : L10n.tr("从其他 AI 带来你的记忆")) { state.page = .memory }
+                featureCard("puzzlepiece.extension", "MCP 服务",
+                            mcpCount > 0 ? L10n.f("已启用 {} 个", "\(mcpCount)") : L10n.tr("连接外部工具与数据")) { state.page = .mcp }
+            }
+            .padding(.top, 4)
+            Text("试试这样说").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Brand.sub).padding(.top, 6)
+            VStack(spacing: 8) {
                 ForEach(ideas, id: \.1) { idea in
                     Button {
                         input = idea.1
                         focus = true
                     } label: {
                         HStack(spacing: 12) {
-                            Image(systemName: idea.0).foregroundStyle(Brand.ink).frame(width: 24)
-                            Text(idea.1).foregroundStyle(Brand.ink)
-                            Spacer()
+                            Image(systemName: idea.0).font(.system(size: 15)).foregroundStyle(Brand.mint).frame(width: 24)
+                            Text(idea.1).font(.system(size: 15.5)).foregroundStyle(Brand.ink).multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
                         }
-                        .padding(14)
-                        .background(Brand.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Brand.line, lineWidth: 1))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(Brand.codeBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
             }
-            .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 18)
+    }
+
+    func featureCard(_ icon: String, _ title: String, _ sub: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Brand.mint)
+                    .frame(width: 34, height: 34)
+                    .background(Brand.mint.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                Text(title).font(.system(size: 15.5, weight: .semibold)).foregroundStyle(Brand.ink)
+                Text(verbatim: sub).font(.system(size: 12.5)).foregroundStyle(Brand.sub).multilineTextAlignment(.leading).lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
+            .padding(12)
+            .background(Brand.codeBg)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
     }
 
     // MARK: 输入卡片
@@ -222,6 +266,8 @@ struct ChatView: View {
                     Label(conns.isEmpty ? "添加连接器…" : "添加与管理…", systemImage: "slider.horizontal.3")
                 }
             } label: { Label("连接器", systemImage: "link") }
+            Button { state.page = .mcp } label: { Label("MCP 服务", systemImage: "puzzlepiece.extension") }
+            Button { state.page = .memory } label: { Label("AI 记忆", systemImage: "brain.head.profile") }
             Button { showClock = true } label: { Label("系统时钟闹钟", systemImage: "alarm") }
             Divider()
             Button { showCamera = true } label: { Label("拍照", systemImage: "camera") }
@@ -252,10 +298,11 @@ struct ChatView: View {
         } label: {
             Image(systemName: agent.busy ? "stop.fill" : (empty ? "mic.fill" : "arrow.up"))
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Brand.onAccent)
+                .foregroundStyle(empty && !agent.busy ? Brand.onAccent : Brand.onMint)
                 .frame(width: 36, height: 36)
-                .background(Brand.accent)
+                .background(empty && !agent.busy ? Brand.accent : Brand.mint)
                 .clipShape(Circle())
+                .animation(.easeOut(duration: 0.15), value: empty)
         }
     }
 
@@ -343,6 +390,7 @@ struct ChatView: View {
         let files = agent.attachments.map { $0.url }
         input = ""
         focus = false
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         if voice.listening { voice.stop() }
         if t.trimmingCharacters(in: .whitespaces) == "识别文字", !files.isEmpty, files.allSatisfy({ Files.isImage($0) }) {
             Task { await agent.recognize(files) }

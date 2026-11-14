@@ -43,9 +43,12 @@ final class DB {
         CREATE TABLE IF NOT EXISTS evo(id INTEGER PRIMARY KEY, ts REAL, summary TEXT, facts TEXT, ver INTEGER);
         CREATE TABLE IF NOT EXISTS connector(id INTEGER PRIMARY KEY, name TEXT, kind TEXT, url TEXT, method TEXT, headers TEXT, body TEXT);
         CREATE TABLE IF NOT EXISTS alarm(id TEXT PRIMARY KEY, label TEXT, due REAL, rep INTEGER);
+        CREATE TABLE IF NOT EXISTS memory(id INTEGER PRIMARY KEY, text TEXT, cat TEXT, src TEXT, ts REAL, pin INTEGER DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS mcp_server(id INTEGER PRIMARY KEY, name TEXT, url TEXT, auto INTEGER DEFAULT 0, enabled INTEGER DEFAULT 1, tools TEXT DEFAULT '', ts REAL);
         """)
         exec("ALTER TABLE msg ADD COLUMN conv INTEGER DEFAULT 0")
         exec("ALTER TABLE msg ADD COLUMN files TEXT DEFAULT ''")
+        exec("ALTER TABLE msg ADD COLUMN meta TEXT DEFAULT ''")
     }
 
     func exec(_ sql: String) {
