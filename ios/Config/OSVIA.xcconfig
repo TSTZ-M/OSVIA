@@ -1,2 +1,7 @@
-OSVIA_ID_SUFFIX =
+// 包名后缀：SideStore 签名时会把「开发者团队 ID」接在包名后面（com.Hao-Yi-Miao.TSTZ-Agent.<团队ID>）。
+// Xcode 本机编译用同样的包名，装上去就是同一个 App（覆盖安装、数据保留），不会出现两个。
+// 团队 ID 取自 Xcode 里选择的 Team，也可以写进 Local.xcconfig：DEVELOPMENT_TEAM = XXXXXXXXXX
+// CI 打无签名 IPA 时传 OSVIA_ID_SUFFIX= （空），保持原始包名，交给 SideStore 加后缀。
+// 以后上架 App Store：在 Local.xcconfig 里写 OSVIA_ID_SUFFIX = 即可使用干净的包名。
+OSVIA_ID_SUFFIX = .$(DEVELOPMENT_TEAM)
 #include? "Local.xcconfig"

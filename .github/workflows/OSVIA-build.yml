@@ -34,7 +34,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p ci
-          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ci/build.log | tail -n 5
+          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO OSVIA_ID_SUFFIX= build 2>&1 | tee ci/build.log | tail -n 5
       - name: Summarize
         if: always()
         run: |
