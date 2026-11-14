@@ -4,7 +4,7 @@ import Foundation
 extension L10nTable {
     static let all: [String: String] = {
         var d = en
-        for line in extraRaw.split(separator: "\n", omittingEmptySubsequences: true) {
+        for line in (extraRaw + "\n" + extraRaw2).split(separator: "\n", omittingEmptySubsequences: true) {
             guard let r = line.range(of: " ⇒ ") else { continue }
             let k = String(line[..<r.lowerBound]).replacingOccurrences(of: "\\n", with: "\n")
             let v = String(line[r.upperBound...]).replacingOccurrences(of: "\\n", with: "\n")

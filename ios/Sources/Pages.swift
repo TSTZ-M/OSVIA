@@ -129,6 +129,8 @@ struct ToolboxView: View {
         NavigationStack {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible())], spacing: 14) {
+                    card("AI 记忆中心", "导入其他 AI 的记忆，让助理越用越懂你", "brain.head.profile") { MemoryHubView() }
+                    card("MCP 服务", "连接外部工具与数据，让助理能做更多事", "puzzlepiece.extension") { MCPView() }
                     card("屏幕翻译", "截图一键翻译整屏，译文贴回原位", "character.bubble") { ScreenTranslateView() }
                     card("文件转换", "图片、PDF、表格、视频互相转换", "arrow.triangle.2.circlepath") { ConvertView() }
                     card("脚本技能", "一句话生成处理文字的小脚本", "wand.and.stars") { SkillsView() }
@@ -147,8 +149,8 @@ struct ToolboxView: View {
 
     func cardBody(_ t: String, _ s: String, _ icon: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: icon).font(.title2).foregroundStyle(Brand.ink)
-                .frame(width: 46, height: 46).background(Brand.userBubble)
+            Image(systemName: icon).font(.title2).foregroundStyle(Brand.mint)
+                .frame(width: 46, height: 46).background(Brand.mint.opacity(0.14))
                 .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
             Text(t).font(.headline).foregroundStyle(Brand.ink)
             Text(s).font(.subheadline).foregroundStyle(Brand.sub).multilineTextAlignment(.leading)

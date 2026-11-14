@@ -40,17 +40,13 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 }
 
 struct ThinkingView: View {
-    @State private var spin = false
-
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "sparkle")
-                .foregroundStyle(Brand.ink)
-                .rotationEffect(.degrees(spin ? 360 : 0))
-                .animation(.linear(duration: 2).repeatForever(autoreverses: false), value: spin)
+                .foregroundStyle(Brand.mint)
+                .symbolEffect(.pulse, isActive: true)
             Text("思考中…").foregroundStyle(Brand.sub)
         }
-        .onAppear { spin = true }
     }
 }
 
@@ -88,13 +84,17 @@ struct MessageView: View {
     }
 
     var assistant: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             ForEach(m.files, id: \.self) { FileCard(url: $0, preview: $preview) }
+            if !m.steps.isEmpty {
+                ProcessView(steps: m.steps, streaming: m.streaming, hasText: !m.text.isEmpty, dur: m.dur)
+            }
             if m.text.isEmpty && m.streaming {
-                ThinkingView()
+                if m.steps.isEmpty { ThinkingView() }
             } else if !m.text.isEmpty {
                 MarkdownText(text: m.text)
             }
+            if !m.sources.isEmpty && !m.text.isEmpty { SourceChips(sources: m.sources) }
             if !m.streaming && !m.text.isEmpty { actions }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

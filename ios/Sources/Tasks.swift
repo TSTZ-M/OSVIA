@@ -116,10 +116,16 @@ enum Evolve {
 
     static func log() -> [Row] { DB.shared.rows("SELECT id, ts, summary, facts, ver FROM evo ORDER BY id DESC LIMIT 30") }
 
-    // 一次性生成：云端大脑与本地大模型优先，其次系统模型
+    // 一次性生成：云端大脑、本地大模型、系统模型依次尝试
     private static func ask(_ ins: String, _ prompt: String) async -> String? {
-        if let r = await LLM.complete(instructions: ins, prompt: prompt, maxTokens: 400, temperature: 0.2) { return r }
-        return try? await LanguageModelSession(instructions: ins).respond(to: prompt).content
+        await AI.oneShot(ins, prompt, maxTokens: 400)
+    }
+
+    // 记录一次「从其他 AI 导入记忆」，在进化记录里显示
+    static func logImport(source: String, added: Int, sample: [String]) {
+        let summary = L10n.f("从 {} 导入了 {} 条记忆", source, "\(added)")
+        DB.shared.run("INSERT INTO evo(ts,summary,facts,ver) VALUES(?,?,?,?)",
+                      [Date().timeIntervalSince1970, summary, sample.prefix(5).joined(separator: "\n"), 0])
     }
 
     // 返回本次进化的摘要
@@ -136,8 +142,9 @@ enum Evolve {
         }
         var learned: [String] = []
         if facts.count > 3 && facts != "无" {
-            KB.shared.add("进化提炼", facts)
-            learned = facts.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            let lines = facts.split(separator: "\n").map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "-•*· 0123456789.、)）")) }.filter { $0.count >= 4 && $0 != "无" }
+            Memory.addMany(lines.map { MemItem(cat: "", text: $0) }, src: "对话")
+            learned = lines
         }
         DB.shared.setKV("evolve.last", String(maxId))
         DB.shared.setKV("evolve.time", String(Date().timeIntervalSince1970))

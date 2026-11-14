@@ -66,9 +66,10 @@ enum WebSearch {
     }
 
     // 给模型看的搜索结果文本
-    static func format(_ hits: [Hit]) -> String {
+    static func format(_ hits: [Hit], numbers: [Int]? = nil) -> String {
         hits.enumerated().map { i, h in
-            "[\(i + 1)] \(h.title)\n\(String(h.snippet.prefix(220)))\n\(h.url)"
+            let n = (numbers != nil && i < numbers!.count) ? numbers![i] : i + 1
+            return "[\(n)] \(h.title)\n\(String(h.snippet.prefix(220)))\n\(h.url)"
         }.joined(separator: "\n\n")
     }
 
