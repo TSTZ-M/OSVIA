@@ -39,7 +39,13 @@ jobs:
       - name: Build Release (no signing)
         run: |
           set -o pipefail
-          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO ENABLE_PREVIEWS=NO -derivedDataPath derivedData build
+          # 每次构建版本号都不同（0.9.<运行序号>，build=运行序号），SideStore 的源据此判断有更新
+          BASE=$(sed -n 's/.*MARKETING_VERSION: "\([0-9.]*\)".*/\1/p' project.yml | head -1)
+          BASE=${BASE:-0.9}
+          N=${{ github.run_number }}
+          VER="$BASE"
+          echo "version $VER.$N build $N"
+          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO OSVIA_ID_SUFFIX= MARKETING_VERSION="$VER.$N" CURRENT_PROJECT_VERSION="$N" ENABLE_DEBUG_DYLIB=NO ENABLE_PREVIEWS=NO -derivedDataPath derivedData build
 
       - name: Package unsigned IPA for SideStore
         run: |
@@ -48,6 +54,9 @@ jobs:
           BID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
           echo "$BID"
           test "$BID" = "com.Hao-Yi-Miao.TSTZ-Agent"
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP/Info.plist")" = "${{ github.run_number }}"
+          EXT=$(find "$APP/PlugIns" -name Info.plist -maxdepth 2 | head -1)
+          if [ -n "$EXT" ]; then test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$EXT")" = "com.Hao-Yi-Miao.TSTZ-Agent.Live"; fi
           if find "$APP" -name '*.dylib' | grep -q .; then
             echo "ERROR: dylib inside app"; find "$APP" -name '*.dylib'; exit 1
           fi
