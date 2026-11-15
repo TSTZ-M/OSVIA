@@ -1,0 +1,65 @@
+name: OSVIA-smoke
+on:
+  workflow_dispatch:
+concurrency:
+  group: OSVIA-smoke
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest Xcode
+        run: |
+          NEW=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$NEW" ]; then sudo xcode-select -s "$NEW/Contents/Developer"; fi
+          xcodebuild -version
+      - name: Make app icon
+        run: swift tools/make_icon.swift Sources/Assets.xcassets/AppIcon.appiconset/icon.png
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcrun simctl list devices available | grep -E "iPhone" | head -5
+          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO OSVIA_ID_SUFFIX= build 2>&1 | tail -n 5
+      - name: Launch and observe
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[0-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone" | head -1 | grep -oE "[0-9A-F-]{36}")
+          echo "UDID=$UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b || true
+          APP=$(find build/Build/Products -name "OSVIA.app" -maxdepth 3 | head -1)
+          echo "APP=$APP"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          echo "BID=$BID"
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" "$BID" | tee out/launch.txt
+          sleep 12
+          xcrun simctl io "$UDID" screenshot out/launch.png || true
+          xcrun simctl spawn "$UDID" launchctl list | grep -i osvia | tee out/alive.txt || echo "NOT RUNNING" | tee out/alive.txt
+          for u in "osvia://ask?q=hello"; do xcrun simctl openurl "$UDID" "$u" || true; done
+          sleep 6
+          xcrun simctl io "$UDID" screenshot out/after.png || true
+          xcrun simctl spawn "$UDID" launchctl list | grep -i osvia | tee -a out/alive.txt || echo "NOT RUNNING (after)" | tee -a out/alive.txt
+          DATA=$(xcrun simctl get_app_container "$UDID" "$BID" data)
+          cp "$DATA/Library/Application Support/diag.log" out/diag.log 2>/dev/null || echo "no diag.log" > out/diag.log
+          ls "$HOME/Library/Logs/DiagnosticReports" 2>/dev/null | grep -i osvia | head -5 | tee out/crashes.txt || true
+          cp "$HOME"/Library/Logs/DiagnosticReports/OSVIA* out/ 2>/dev/null || true
+          xcrun simctl spawn "$UDID" log show --last 3m --style compact --predicate 'process == "OSVIA"' 2>/dev/null | tail -n 200 > out/log.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke
+          path: ios/out
