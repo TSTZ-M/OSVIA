@@ -203,12 +203,14 @@ enum AgentTools {
         case "search_memory":
             let q = str(a, "q")
             let sid = trace.begin(.memory, "查询记忆", q)
-            let mem = Memory.relevant(q, k: 6)
+            var mem = Memory.relevant(q, k: 8)
+            let exact = !mem.isEmpty
+            if mem.isEmpty { mem = Memory.overview(14) }
             let kb = KB.shared.search(q, k: 3)
             trace.end(sid, detail: q + " · " + L10n.f("{} 条", "\(mem.count + kb.count)"))
             if mem.isEmpty && kb.isEmpty { return ToolResult(text: "记忆和知识库里没有相关内容。") }
             var t = ""
-            if !mem.isEmpty { t += "用户记忆：\n" + mem.map { "- " + $0 }.joined(separator: "\n") + "\n" }
+            if !mem.isEmpty { t += (exact ? "用户记忆：\n" : "没有精确匹配，以下是关于用户的概览：\n") + mem.map { "- " + $0 }.joined(separator: "\n") + "\n" }
             if !kb.isEmpty { t += "知识库：\n" + kb.map { "- " + String($0.prefix(300)) }.joined(separator: "\n") }
             return ToolResult(text: t)
 

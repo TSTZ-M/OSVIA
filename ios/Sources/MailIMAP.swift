@@ -92,6 +92,7 @@ final class IMAPClient {
     var validity = 0
     var exists = 0
     var uidnext = 0
+    var debug = ""        // 最近一次取信时服务器回应的开头，排查用
 
     init(host: String, port: Int) {
         s = MailStream(host: host, port: port, tls: true)
@@ -212,6 +213,7 @@ final class IMAPClient {
         guard exists > 0 else { return [] }
         let from = max(1, exists - count + 1)
         let r = try await cmd("FETCH \(from):\(exists) (UID FLAGS INTERNALDATE BODY.PEEK[]<0.\(maxBytes)>)")
+        debug = r.untagged.prefix(2).map { String($0.head.prefix(200)) }.joined(separator: " | ")
         return r.untagged.compactMap(parseFetch).sorted { $0.uid > $1.uid }
     }
 

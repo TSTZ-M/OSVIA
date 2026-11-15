@@ -30,11 +30,13 @@ enum Brain {
         s += concise ? "9. 回答简洁：先给结论，再用几句话讲依据，通常不超过 300 字；复杂问题可以展开（代码和必要的列表除外）。" : "9. 回答可以详细一些，条理清楚。"
         s += "需要列表、表格或代码时用 Markdown。\n"
         s += "你做不到的事要直说：不能操作别的 App、不能代替用户点击屏幕、不能在后台常驻运行。\n\n"
-        let mem = Memory.block(for: query, budget: 900, recent: true)
+        let mem = Memory.block(for: query, budget: 1000, recent: true, hint: true)
         if !mem.text.isEmpty {
             s += mem.text + "\n\n"
-            if mem.relevant > 0 { trace?.note(.memory, "回忆", L10n.f("用到 {} 条相关记忆", "\(mem.relevant)")) }
+            trace?.note(.memory, "回忆", L10n.f("载入 {} 条记忆，{} 条与问题相关", "\(mem.lines)", "\(mem.relevant)"))
         }
+        let prof = Evolve.profile()
+        if !prof.isEmpty { s += "用户画像与回答指引：" + prof + "\n\n" }
         s += AgentTools.doc(local: false, query: query)
         let p = Evolve.prompt()
         if p != Evolve.defaultPrompt { s += "\n用户偏好补充：" + String(p.prefix(300)) }
@@ -54,6 +56,7 @@ enum Brain {
     static func ask(history: [Turn], user: String, ctx: String, trace: Tracer,
                     onText: @escaping (String) -> Void) async -> String? {
         guard CloudLLM.ready else { return nil }
+        Diag.mark("云端对话开始：" + String(user.prefix(20)))
         var msgs: [[String: String]] = [["role": "system", "content": system(query: user, trace: trace)]]
         for h in history { msgs.append(["role": h.role, "content": h.text]) }
         msgs.append(["role": "user", "content": user + ctx])

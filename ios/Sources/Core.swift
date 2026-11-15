@@ -31,7 +31,7 @@ final class DB {
     init() {
         let dir = try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         sqlite3_open(dir.appendingPathComponent("agent.sqlite").path, &h)
-        exec("""
+        let schema = """
         CREATE TABLE IF NOT EXISTS msg(id INTEGER PRIMARY KEY, role TEXT, text TEXT, ts REAL);
         CREATE TABLE IF NOT EXISTS doc(id INTEGER PRIMARY KEY, name TEXT, ts REAL);
         CREATE TABLE IF NOT EXISTS chunk(id INTEGER PRIMARY KEY, doc INTEGER, text TEXT, vec BLOB);
@@ -48,7 +48,12 @@ final class DB {
         CREATE TABLE IF NOT EXISTS mail_account(id INTEGER PRIMARY KEY, email TEXT, name TEXT DEFAULT '', user TEXT, imap_host TEXT, imap_port INTEGER DEFAULT 993, smtp_host TEXT, smtp_port INTEGER DEFAULT 465, smtp_starttls INTEGER DEFAULT 0, provider TEXT DEFAULT '', auto INTEGER DEFAULT 0, ts REAL, last_run REAL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS mail_triage(id INTEGER PRIMARY KEY, mkey TEXT UNIQUE, acct INTEGER, uid INTEGER, validity INTEGER, from_name TEXT, from_addr TEXT, reply_to TEXT, subject TEXT, ts REAL, cat TEXT, summary TEXT, act TEXT, snippet TEXT, msgid TEXT, refs TEXT, unread INTEGER DEFAULT 1);
         CREATE TABLE IF NOT EXISTS mail_log(id INTEGER PRIMARY KEY, ts REAL, acct INTEGER, text TEXT);
-        """)
+        """
+        // 一条一条执行：某一条出错时不会连累后面的表没建出来
+        for st in schema.components(separatedBy: ";\n") {
+            let t = st.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !t.isEmpty { exec(t) }
+        }
         exec("ALTER TABLE msg ADD COLUMN conv INTEGER DEFAULT 0")
         exec("ALTER TABLE msg ADD COLUMN files TEXT DEFAULT ''")
         exec("ALTER TABLE msg ADD COLUMN meta TEXT DEFAULT ''")

@@ -332,5 +332,39 @@ Zoho 账号 → 安全 → 应用专用密码，并确认已开启 IMAP。 ⇒ Z
 登录被拒绝：请确认填的是「应用专用密码 / 授权码」而不是登录密码，并且已在邮箱设置里开启 IMAP。 ⇒ Login rejected: make sure you entered an app-specific password / authorization code (not your login password) and that IMAP is enabled in your mailbox settings.
 服务器认为这是不安全的登录。请在邮箱网页设置里开启 IMAP 并使用授权码。 ⇒ The server considers this login unsafe. Enable IMAP in your mailbox web settings and use an authorization code.
 服务器断开了连接 ⇒ The server closed the connection
+智能体 ⇒ Agents
+国内 ⇒ China
+陪伴 ⇒ Companions
+搜索 AI、智能体、Bot… ⇒ Search AIs, agents, bots…
+没有找到。可以在下面输入网址直接打开任意 AI。 ⇒ No match. Enter a URL below to open any AI directly.
+刚才复制的内容可以一键导入 ⇒ What you just copied can be imported in one tap
+正在导入… ⇒ Importing…
+助理已读取这些记忆，并更新了对你的理解，下次对话就会用上。 ⇒ Your assistant has read these memories and updated its understanding of you. It will use them from the next chat.
+撤销这次导入 ⇒ Undo this import
+① 选一个 AI，我会复制导出指令并打开它，你在那边发送\n② 复制它的回复，回来点「粘贴」，自动导入 ⇒ ① Pick an AI — I copy the export prompt and open it; send it there\n② Copy its reply, come back and tap Paste to import automatically
+选择 AI 导出 ⇒ Pick an AI to export from
+点一个 AI：导出指令会自动复制并打开它。在那边发送，等它输出，复制回复，再回到这里。 ⇒ Tap an AI: the export prompt is copied and the AI opens. Send it there, wait for the reply, copy it, then come back here.
+粘贴即导入：自动识别列表、Markdown、JSON，杂乱文字会用 AI 提炼；已有的相似内容自动跳过，导入后可撤销。也适用于没有预设的 AI。 ⇒ Paste to import: lists, Markdown and JSON are detected automatically, messy text is distilled by AI, similar existing items are skipped, and you can undo. Works for AIs not in the list too.
+助理眼中的你 ⇒ How your assistant sees you
+根据记忆重新生成 ⇒ Regenerate from memory
+由你的记忆自动总结，每次对话都会带上。 ⇒ Summarized from your memory and included in every chat.
+更多方式 ⇒ More ways
+这些内容都已经在记忆里了 ⇒ All of this is already in memory
+没有识别出可导入的内容。 ⇒ No importable content was recognized.
+需要先在设置里配置云端大脑或下载本地模型，才能从对话记录里提炼。 ⇒ Set up a cloud brain or download a local model in Settings first to distill from chat history.
+载入 {} 条记忆，{} 条与问题相关 ⇒ Loaded {} memories, {} relevant to the question
+根据 {} 条记忆更新了助理对你的理解 ⇒ Updated the assistant’s understanding of you from {} memories
+没有精确匹配，以下是关于用户的概览： ⇒ No exact match; here is an overview of the user:
+诊断 ⇒ Diagnostics
+诊断连接 ⇒ Test connection
+诊断结果 ⇒ Test results
+复制全部 ⇒ Copy all
+清除记录 ⇒ Clear records
+上次异常退出 ⇒ Last abnormal exit
+最近记录 ⇒ Recent records
+（没有记录） ⇒ (no records)
+有记录 ⇒ Has records
+遇到闪退或异常时，这里会留下线索。点「复制全部」发给开发者，就能快速定位问题。系统的崩溃报告通常在崩溃后一天内送达。 ⇒ When a crash or problem happens, clues are left here. Tap Copy all and send it to the developer to pinpoint the issue. System crash reports usually arrive within a day.
+收件箱 {} 封 · 已同步 {} 封 · 新增 {} 封 ⇒ Inbox {} · synced {} · new {}
 """#
 }

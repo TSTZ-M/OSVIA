@@ -128,9 +128,48 @@ enum Evolve {
                       [Date().timeIntervalSince1970, summary, sample.prefix(5).joined(separator: "\n"), 0])
     }
 
+    // MARK: 从记忆进化：把全部记忆提炼成一段「用户画像与回答指引」，之后每次对话（云端和本机）都会带上
+    static func profile() -> String { DB.shared.kv("evolve.profile") ?? "" }
+
+    static func memorySig() -> String {
+        let r = DB.shared.rows("SELECT COUNT(*) AS n, IFNULL(MAX(id),0) AS m, IFNULL(SUM(pin),0) AS p, IFNULL(SUM(LENGTH(text)),0) AS l FROM memory").first
+        return "\(r?.i("n") ?? 0)-\(r?.i("m") ?? 0)-\(r?.i("p") ?? 0)-\(r?.i("l") ?? 0)"
+    }
+
+    // 记忆变了（导入、新增、编辑）才重新生成；自动触发时一小时内最多一次。返回是否更新了
+    @discardableResult
+    static func refreshProfile(force: Bool = false) async -> Bool {
+        let n = Memory.count()
+        if n == 0 {
+            DB.shared.setKV("evolve.profile", "")
+            DB.shared.setKV("evolve.memsig", "")
+            return false
+        }
+        guard n >= 2 else { return false }
+        let sig = memorySig()
+        if !force {
+            if DB.shared.kv("evolve.memsig") == sig { return false }
+            if let t = Double(DB.shared.kv("evolve.profile.time") ?? ""), Date().timeIntervalSince1970 - t < 3600, !profile().isEmpty { return false }
+        }
+        let list = Memory.all().prefix(120).map { "[\($0.s("cat"))]\($0.i("pin") == 1 ? "★" : "") " + String($0.s("text").prefix(160)) }.joined(separator: "\n")
+        let ins = "你在为个人助理写「用户画像与回答指引」。根据下面关于用户的记忆，输出 3 到 5 句话（不超过 300 字）：用户是谁、做什么、所在领域；正在做的重要事项；回答时应遵循的语言、语气、详略和风格偏好；需要避免的事。直接写事实和指令，不加标题和序号；只写记忆里明确有的内容，不编造、不推测；不包含密码、证件号等机密。"
+        guard let out = await AI.oneShot(ins, String(list.prefix(6000)), maxTokens: 500, local: false) else { return false }
+        let t = out.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count >= 20 else { return false }
+        let text = String(t.prefix(420))
+        DB.shared.setKV("evolve.profile", text)
+        DB.shared.setKV("evolve.memsig", sig)
+        DB.shared.setKV("evolve.profile.time", String(Date().timeIntervalSince1970))
+        let sentences = text.components(separatedBy: CharacterSet(charactersIn: "。；\n")).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        DB.shared.run("INSERT INTO evo(ts,summary,facts,ver) VALUES(?,?,?,?)",
+                      [Date().timeIntervalSince1970, L10n.f("根据 {} 条记忆更新了助理对你的理解", "\(n)"), sentences.joined(separator: "\n"), 0])
+        return true
+    }
+
     // 返回本次进化的摘要
     @discardableResult
     static func run(force: Bool = false) async -> String {
+        await refreshProfile()
         let last = Int(DB.shared.kv("evolve.last") ?? "0") ?? 0
         let rows = DB.shared.rows("SELECT id, role, text FROM msg WHERE id > ? ORDER BY id LIMIT 20", [last])
         guard rows.count >= (force ? 2 : 6), let maxId = rows.last?.i("id") else {

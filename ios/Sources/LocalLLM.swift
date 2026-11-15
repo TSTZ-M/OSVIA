@@ -419,6 +419,8 @@ final class LocalLLM: ObservableObject {
         history: [(role: String, text: String)] = [],
         onText: @escaping (String) -> Void = { _ in }
     ) async throws -> String {
+        Diag.mark("本地模型生成开始")
+        defer { Diag.mark("本地模型生成结束") }
         let c = try await ensureLoaded()
         var gp = GenerateParameters()
         gp.maxTokens = maxTokens

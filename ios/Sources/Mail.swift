@@ -192,7 +192,7 @@ enum Mail {
                 let f = MailMIME.address(items[i].p.h("from"))
                 return "[\(j)] 发件人：\(f.name.isEmpty ? f.addr : f.name + " <" + f.addr + ">") | 主题：\(oneLine(items[i].p.h("subject"), 80)) | 正文：\(oneLine(items[i].p.text, 300))"
             }.joined(separator: "\n")
-            guard let out = await AI.oneShot(ins, payload, maxTokens: 900),
+            guard let out = await AI.oneShot(ins, payload, maxTokens: 900, local: false),
                   let a = out.firstIndex(of: "["), let b = out.lastIndex(of: "]"), a < b,
                   let arr = (try? JSONSerialization.jsonObject(with: Data(out[a...b].utf8))) as? [[String: Any]] else { continue }
             for o in arr {
@@ -211,9 +211,18 @@ enum Mail {
         guard let a = account(acct), !running.contains(acct) else { return (0, "") }
         running.insert(acct)
         defer { running.remove(acct) }
+        Diag.mark("邮件同步开始 \(a.s("email"))")
         do {
-            let (msgs, validity) = try await session(a) { c -> ([IMAPMsg], Int) in
-                (try await c.fetchRecent(count: count), c.validity)
+            let (msgs, validity, total, debug) = try await session(a) { c -> ([IMAPMsg], Int, Int, String) in
+                let m = try await c.fetchRecent(count: count)
+                return (m, c.validity, c.exists, c.debug)
+            }
+            Diag.mark("邮件取到 \(msgs.count)/\(total)")
+            if msgs.isEmpty && total > 0 {
+                let e = "收件箱有 \(total) 封邮件，但没能读取（服务器回应的格式无法识别）。请在「邮箱账号」里点「诊断连接」，把结果发给开发者。"
+                DB.shared.setKV("mail.err.\(acct)", e)
+                DB.shared.setKV("mail.dbg.\(acct)", debug)
+                return (0, e)
             }
             let db = DB.shared
             // 换了 UIDVALIDITY（服务器重建了索引）：旧缓存作废
@@ -253,10 +262,22 @@ enum Mail {
             }
             db.run("DELETE FROM mail_triage WHERE acct=? AND id NOT IN (SELECT id FROM mail_triage WHERE acct=? ORDER BY ts DESC LIMIT 300)", [acct, acct])
             db.run("UPDATE mail_account SET last_run=? WHERE id=?", [Date().timeIntervalSince1970, acct])
+            let stored = db.rows("SELECT COUNT(*) AS n FROM mail_triage WHERE acct=?", [acct]).first?.i("n") ?? 0
+            if !items.isEmpty && stored == 0 {
+                let e = "邮件已取到，但保存到本机失败。请重启 App 再试。"
+                db.setKV("mail.err.\(acct)", e)
+                return (0, e)
+            }
+            db.setKV("mail.err.\(acct)", "")
+            db.setKV("mail.stat.\(acct)", L10n.f("收件箱 {} 封 · 已同步 {} 封 · 新增 {} 封", "\(total)", "\(stored)", "\(items.count)") + " · " + stamp(Date().timeIntervalSince1970))
+            Diag.mark("邮件同步完成 新增 \(items.count)")
             if rules, a.i("auto") == 1, !items.isEmpty { await applyRules(a, items, validity) }
             return (items.count, "")
         } catch {
-            return (0, message(error))
+            let e = message(error)
+            DB.shared.setKV("mail.err.\(acct)", e)
+            Diag.mark("邮件同步失败：" + e)
+            return (0, e)
         }
     }
 
@@ -296,12 +317,47 @@ enum Mail {
         if !important.isEmpty { log(acct, "发现 \(important.count) 封需要你处理的邮件") }
     }
 
+    // 一步步测试连接，给用户和开发者看
+    static func diagnose(_ acct: Int) async -> String {
+        guard let a = account(acct) else { return "账号不存在" }
+        var out: [String] = ["服务器 \(a.s("imap_host")):\(a.i("imap_port"))，用户 \(a.s("user"))"]
+        let c = IMAPClient(host: a.s("imap_host"), port: max(a.i("imap_port"), 993))
+        let t0 = Date()
+        func ms() -> String { "\(Int(Date().timeIntervalSince(t0) * 1000)) ms" }
+        do {
+            try await c.connect(user: a.s("user"), pass: password(acct))
+            out.append("✓ 登录成功（\(ms())）")
+            out.append("  能力：" + String(c.caps.prefix(140)))
+            let fs = try await c.list()
+            out.append("✓ 文件夹 \(fs.count) 个：" + fs.prefix(8).map { $0.name }.joined(separator: "、"))
+            try await c.select("INBOX")
+            out.append("✓ 收件箱 \(c.exists) 封，UIDVALIDITY \(c.validity)")
+            let msgs = try await c.fetchRecent(count: 5, maxBytes: 4000)
+            out.append("✓ 取到最近 \(msgs.count) 封（\(ms())）")
+            if msgs.isEmpty && c.exists > 0 { out.append("⚠️ 服务器回应：" + c.debug) }
+            for m in msgs.prefix(3) {
+                let p = MailMIME.parse(m.raw)
+                out.append("  · uid \(m.uid)「\(String(p.h("subject").prefix(28)))」正文 \(p.text.count) 字，\(m.raw.count) 字节")
+            }
+            await c.logout()
+        } catch {
+            c.close()
+            out.append("✗ " + message(error))
+        }
+        if let e = DB.shared.kv("mail.err.\(acct)"), !e.isEmpty { out.append("上次同步错误：" + e) }
+        return out.joined(separator: "\n")
+    }
+
+    static func status(_ acct: Int) -> (stat: String, error: String) {
+        (DB.shared.kv("mail.stat.\(acct)") ?? "", DB.shared.kv("mail.err.\(acct)") ?? "")
+    }
+
     // 所有账号同步一遍；maxAge 秒内同步过的跳过
     @discardableResult
     static func refreshAll(maxAge: Double = 0, rules: Bool = false) async -> String {
         var err = ""
         for a in accounts() {
-            if maxAge > 0, Date().timeIntervalSince1970 - a.d("last_run") < maxAge { continue }
+            if maxAge > 0, Date().timeIntervalSince1970 - a.d("last_run") < maxAge, status(a.i("id")).error.isEmpty { continue }
             let r = await refresh(a.i("id"), rules: rules)
             if !r.error.isEmpty && err.isEmpty { err = a.s("email") + "：" + r.error }
         }

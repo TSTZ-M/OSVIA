@@ -43,6 +43,12 @@ struct MemoryHubView: View {
     @State private var showClear = false
     @State private var busy = false
     @State private var info = ""
+    @State private var importing = false
+    @State private var progress = ""
+    @State private var result: MemoryImport.QuickResult?
+    @State private var clipBanner = false
+    @State private var profile = ""
+    @Environment(\.scenePhase) private var phase
 
     var body: some View {
         List {
@@ -59,17 +65,92 @@ struct MemoryHubView: View {
                 }
             }
 
-            Section {
-                stepRow(1, "复制导出提示词，跳转到其他 AI", "ChatGPT、Claude、Gemini、豆包、Kimi 等 30 个主流 AI，也能填任意网址") {
-                    jump = JumpJob(title: "选择要导出记忆的 AI",
-                                   hint: "点一个 AI：导出提示词会自动复制并打开它。在那边发送，等它输出一个代码块，复制回复，再回来点「粘贴并导入」。",
-                                   prompt: Memory.exportPrompt, remember: true)
+            if clipBanner && !importing {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("刚才复制的内容可以一键导入", systemImage: "doc.on.clipboard.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Brand.ink)
+                        pasteButton
+                    }
+                    .padding(.vertical, 2)
                 }
-                stepRow(2, "粘贴那个 AI 的回复并导入", "自动识别列表、Markdown、JSON，导入前可逐条确认") { pasteImport() }
-            } header: {
-                Text("从其他 AI 带来记忆")
+            }
+
+            if importing {
+                Section {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text(verbatim: progress.isEmpty ? L10n.tr("正在导入…") : progress).font(.subheadline).foregroundStyle(Brand.sub)
+                    }
+                }
+            }
+
+            if let r = result {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label {
+                            Text(verbatim: L10n.f("已导入 {} 条", "\(r.ids.count)") + (r.found > r.ids.count ? L10n.f("，{} 条已存在", "\(r.found - r.ids.count)") : ""))
+                        } icon: { Image(systemName: "checkmark.circle.fill").foregroundStyle(Brand.mint) }
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("助理已读取这些记忆，并更新了对你的理解，下次对话就会用上。").font(.footnote).foregroundStyle(Brand.sub)
+                        if !r.ids.isEmpty {
+                            Button("撤销这次导入", role: .destructive) {
+                                Memory.removeMany(r.ids)
+                                result = nil
+                                reload()
+                                Task { await Evolve.refreshProfile(force: true); reload() }
+                            }
+                            .font(.footnote)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("从其他 AI 带来记忆").font(.system(size: 16, weight: .semibold)).foregroundStyle(Brand.ink)
+                    Text("① 选一个 AI，我会复制导出指令并打开它，你在那边发送\n② 复制它的回复，回来点「粘贴」，自动导入")
+                        .font(.system(size: 13.5)).foregroundStyle(Brand.sub)
+                    HStack(spacing: 10) {
+                        Button {
+                            jump = JumpJob(title: "选择要导出记忆的 AI",
+                                           hint: "点一个 AI：导出指令会自动复制并打开它。在那边发送，等它输出，复制回复，再回到这里。",
+                                           prompt: Memory.exportPrompt, remember: true)
+                        } label: {
+                            Label("选择 AI 导出", systemImage: "arrow.up.forward.app")
+                                .font(.system(size: 15, weight: .semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 9)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Brand.mint)
+                        pasteButton
+                    }
+                }
+                .padding(.vertical, 4)
             } footer: {
-                Text("也适用于任何没有预设的 AI：复制提示词，去那里发送，再把回复粘贴回来。")
+                Text("粘贴即导入：自动识别列表、Markdown、JSON，杂乱文字会用 AI 提炼；已有的相似内容自动跳过，导入后可撤销。也适用于没有预设的 AI。")
+            }
+
+            if !profile.isEmpty {
+                Section {
+                    Text(verbatim: profile).font(.system(size: 14.5)).foregroundStyle(Brand.ink)
+                    Button {
+                        busy = true
+                        Task {
+                            await Evolve.refreshProfile(force: true)
+                            busy = false
+                            reload()
+                        }
+                    } label: { Label("根据记忆重新生成", systemImage: "arrow.triangle.2.circlepath") }
+                        .disabled(busy)
+                } header: {
+                    Text("助理眼中的你")
+                } footer: {
+                    Text("由你的记忆自动总结，每次对话都会带上。")
+                }
             }
 
             Section {
@@ -77,7 +158,7 @@ struct MemoryHubView: View {
                 Button { showFile = true } label: { Label("选择文件", systemImage: "doc.badge.plus") }
                 Button { edit = MemEdit(rowId: 0, text: "", cat: "其他", pin: false) } label: { Label("手动添加一条", systemImage: "plus") }
             } header: {
-                Text("手动导入")
+                Text("更多方式")
             } footer: {
                 Text("支持 txt、md、json，也支持 ChatGPT、Claude 的对话记录导出（conversations.json，ChatGPT 导出的 zip 需先解压）。")
             }
@@ -135,6 +216,7 @@ struct MemoryHubView: View {
         .navigationTitle("AI 记忆")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: reload)
+        .onChange(of: phase) { _, p in if p == .active { checkClipboard() } }
         .sheet(item: $jump) { j in
             JumpSheet(job: j).presentationBackground(Brand.page)
         }
@@ -156,14 +238,11 @@ struct MemoryHubView: View {
                 Task {
                     let res = await Task.detached { MemoryImport.read(u) }.value
                     let name = u.deletingPathExtension().lastPathComponent
-                    if !res.chat.isEmpty {
-                        info = ""
-                        job = ImportJob(raw: "", chat: res.chat, source: name)
-                    } else if res.raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    if res.chat.isEmpty && res.raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         info = L10n.tr("这个文件里没有可识别的文字")
                     } else {
                         info = ""
-                        job = ImportJob(raw: res.raw, chat: [], source: name)
+                        runImport(raw: res.raw, chat: res.chat, source: name)
                     }
                 }
             case .failure(let e):
@@ -200,41 +279,60 @@ struct MemoryHubView: View {
         .padding(.vertical, 8)
     }
 
-    func stepRow(_ n: Int, _ title: String, _ sub: String, _ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Text(verbatim: "\(n)")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Brand.onMint)
-                    .frame(width: 24, height: 24)
-                    .background(Brand.mint)
-                    .clipShape(Circle())
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 16, weight: .medium)).foregroundStyle(Brand.ink)
-                    Text(sub).font(.system(size: 12.5)).foregroundStyle(Brand.sub).multilineTextAlignment(.leading)
-                }
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Brand.sub.opacity(0.6))
-            }
-            .padding(.vertical, 3)
-            .contentShape(Rectangle())
+    // 系统粘贴按钮：点一下读取剪贴板，不会弹「允许粘贴」
+    var pasteButton: some View {
+        PasteButton(payloadType: String.self) { strs in
+            guard let t = strs.first, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+            runImport(raw: t, chat: [], source: DB.shared.kv("memory.lastAI") ?? "其他 AI")
+        }
+        .buttonBorderShape(.capsule)
+        .tint(Brand.ink)
+        .labelStyle(.titleAndIcon)
+        .disabled(importing)
+    }
+
+    // 从其他 AI 回来后，剪贴板有新内容就提示一键导入
+    func checkClipboard() {
+        let db = DB.shared
+        guard db.kv("memory.waiting") == "1" else { return }
+        let pb = UIPasteboard.general
+        let last = Int(db.kv("memory.pbCount") ?? "") ?? -1
+        if pb.changeCount != last && pb.hasStrings {
+            db.setKV("memory.waiting", "0")
+            jump = nil
+            withAnimation { clipBanner = true }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
     }
 
-    func pasteImport() {
-        let pb = UIPasteboard.general
-        guard pb.hasStrings, let s = pb.string, !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            info = L10n.tr("剪贴板是空的：先去那个 AI 复制它的回复")
-            return
-        }
+    func runImport(raw: String, chat: [String], source: String) {
+        guard !importing else { return }
+        importing = true
+        clipBanner = false
+        result = nil
         info = ""
-        job = ImportJob(raw: s, chat: [], source: DB.shared.kv("memory.lastAI") ?? "其他 AI")
+        progress = ""
+        Task {
+            let r = await MemoryImport.quick(raw, chat: chat, source: source) { p in progress = p }
+            importing = false
+            if r.ids.isEmpty {
+                info = r.error.isEmpty ? L10n.tr("这些内容都已经在记忆里了") : L10n.tr(r.error)
+            } else {
+                withAnimation { result = r }
+            }
+            reload()
+            if !r.ids.isEmpty {
+                await Evolve.refreshProfile(force: true)
+                reload()
+            }
+        }
     }
 
     func reload() {
         count = Memory.count()
         backup = Memory.hasBackup
         exportText = count > 0 ? Memory.exportText() : ""
+        profile = Evolve.profile()
     }
 }
 
@@ -247,8 +345,11 @@ struct JumpSheet: View {
     @State private var note = ""
     @State private var showPrompt = false
 
+    @State private var query = ""
+
     private var list: [AIService] {
-        group == "全部" ? Jump.services : Jump.services.filter { $0.group == group }
+        let base = (group == "全部" || !query.isEmpty) ? Jump.services : Jump.services.filter { $0.group == group }
+        return query.isEmpty ? base : base.filter { $0.matches(query) }
     }
 
     var body: some View {
@@ -256,10 +357,38 @@ struct JumpSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(job.hint).font(.subheadline).foregroundStyle(Brand.sub)
-                    Picker("", selection: $group) {
-                        ForEach(Jump.groups, id: \.self) { g in Text(g).tag(g) }
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(Brand.sub)
+                        TextField("搜索 AI、智能体、Bot…", text: $query)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        if !query.isEmpty {
+                            Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Brand.sub) }
+                        }
                     }
-                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Brand.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Jump.groups, id: \.self) { g in
+                                Button { group = g } label: {
+                                    Text(verbatim: L10n.tr(g))
+                                        .font(.system(size: 13.5, weight: .medium))
+                                        .foregroundStyle(group == g ? Brand.onMint : Brand.ink)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 7)
+                                        .background(group == g ? Brand.mint : Brand.card)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
+                    .opacity(query.isEmpty ? 1 : 0.4)
+                    if list.isEmpty {
+                        Text("没有找到。可以在下面输入网址直接打开任意 AI。").font(.subheadline).foregroundStyle(Brand.sub)
+                    }
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible())], spacing: 10) {
                         ForEach(list) { s in cell(s) }
                     }
@@ -319,9 +448,15 @@ struct JumpSheet: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // 记下「正在等用户从那个 AI 复制回复」，回来时提示一键导入
+    func armWaiting() {
+        DB.shared.setKV("memory.waiting", "1")
+        DB.shared.setKV("memory.pbCount", "\(UIPasteboard.general.changeCount)")
+    }
+
     func openCustom() {
         if Jump.openCustom(custom, prompt: job.prompt) {
-            if job.remember { DB.shared.setKV("memory.lastAI", custom.trimmingCharacters(in: .whitespaces)) }
+            if job.remember { DB.shared.setKV("memory.lastAI", custom.trimmingCharacters(in: .whitespaces)); armWaiting() }
             note = L10n.tr("已复制提示词并打开。到输入框长按粘贴并发送")
         } else {
             note = L10n.tr("网址不正确")
@@ -331,7 +466,7 @@ struct JumpSheet: View {
     func cell(_ s: AIService) -> some View {
         Button {
             let pre = Jump.open(s, prompt: job.prompt)
-            if job.remember { DB.shared.setKV("memory.lastAI", s.name) }
+            if job.remember { DB.shared.setKV("memory.lastAI", s.name); armWaiting() }
             note = pre
                 ? L10n.f("已打开 {}，提示词已填好，直接发送即可", s.name)
                 : L10n.f("已复制提示词。打开 {} 后，在输入框长按粘贴并发送", s.name)

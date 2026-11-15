@@ -112,9 +112,14 @@ struct MailView: View {
                     stat("\(items.count)", "已分拣", Brand.sub)
                 }
                 .padding(.vertical, 4)
-                if !info.isEmpty {
-                    Label { Text(verbatim: info) } icon: { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
-                        .font(.footnote)
+                ForEach(accounts, id: \.rid) { a in
+                    let st = Mail.status(a.i("id"))
+                    if !st.error.isEmpty {
+                        Label { Text(verbatim: a.s("email") + "：" + L10n.tr(st.error)) } icon: { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
+                            .font(.footnote)
+                    } else if !st.stat.isEmpty {
+                        Text(verbatim: st.stat).font(.footnote).foregroundStyle(Brand.sub)
+                    }
                 }
             }
 
@@ -466,6 +471,8 @@ struct MailAccountsView: View {
     @State private var accounts: [Row] = []
     @State private var logs: [Row] = []
     @State private var removing: Int?
+    @State private var diagnosing: Int?
+    @State private var report = ""
 
     var body: some View {
         List {
@@ -479,6 +486,20 @@ struct MailAccountsView: View {
                         Text(verbatim: a.d("last_run") > 0 ? Mail.stamp(a.d("last_run")) : L10n.tr("还没有")).foregroundStyle(Brand.sub)
                     }
                     .font(.subheadline)
+                    Button {
+                        diagnosing = id
+                        report = ""
+                        Task {
+                            report = await Mail.diagnose(id)
+                            diagnosing = nil
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if diagnosing == id { ProgressView() }
+                            Label(diagnosing == id ? "正在诊断…" : "诊断连接", systemImage: "stethoscope")
+                        }
+                    }
+                    .disabled(diagnosing != nil)
                     Button("移除这个邮箱", role: .destructive) { removing = id }
                 } header: {
                     Text(verbatim: a.s("email"))
@@ -493,6 +514,13 @@ struct MailAccountsView: View {
                 }
             } footer: {
                 Text("开启「自动处理」后，每次打开 OSVIA（系统允许时也会在后台）会：把订阅与营销邮件标为已读并归到「OSVIA-Newsletters」文件夹；紧急和待回复的邮件发通知。不会自动回复、删除或发送任何邮件。iOS 不允许应用一直在后台运行，所以后台处理只是尽力而为。")
+            }
+
+            if !report.isEmpty {
+                Section("诊断结果") {
+                    Text(verbatim: report).font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
+                    Button { UIPasteboard.general.string = report } label: { Label("复制", systemImage: "doc.on.doc") }
+                }
             }
 
             if !logs.isEmpty {
