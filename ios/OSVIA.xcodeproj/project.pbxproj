@@ -76,6 +76,7 @@
 		E04DDD39256DAD38346738CA /* BotActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1FE275EA3CB62B3390FAE0 /* BotActivity.swift */; };
 		E4B3848D4025F3A6C18EE46D /* Sys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E6FEA2C297024FA08F11B9E /* Sys.swift */; };
 		E6FD7FA6781E3D17BDC532F2 /* WebSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6ECB48DAE81978A2DF10345 /* WebSearch.swift */; };
+		E87D661954C92F7D2CC16FA0 /* Diag.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC6137101BE75E7208EF94B0 /* Diag.swift */; };
 		EACCDBEEF25F354E01252C9F /* Connectors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B343B947A6B1EFDA0D538B9 /* Connectors.swift */; };
 		EFF379EB9DAFA6825C3FBEAB /* Markdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35B06AA3B230109AB8223DF7 /* Markdown.swift */; };
 		F62F3D1A40BFFEC54557D63F /* KB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48743BBEBF59DC6285EE3B6B /* KB.swift */; };
@@ -174,6 +175,7 @@
 		DE1D20BEED090BA644D407DF /* OSVIALive.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = OSVIALive.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DFAD0B2A860DCA1B9228EDF6 /* AgentExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentExt.swift; sourceTree = "<group>"; };
 		E6ECB48DAE81978A2DF10345 /* WebSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSearch.swift; sourceTree = "<group>"; };
+		EC6137101BE75E7208EF94B0 /* Diag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diag.swift; sourceTree = "<group>"; };
 		F1EE660C9505756B897B07D8 /* Gallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gallery.swift; sourceTree = "<group>"; };
 		F5AA26DFFC633BB4831AD0C9 /* MCP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCP.swift; sourceTree = "<group>"; };
 		F5E17C30F6F56FA06C933112 /* Nlp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Nlp.swift; sourceTree = "<group>"; };
@@ -251,6 +253,7 @@
 				11F16D55670AC29881C6C8EF /* Convert.swift */,
 				2938617CCBEE62C33163F03E /* ConvertUI.swift */,
 				B9BC70B91880117EF16B3D4B /* Core.swift */,
+				EC6137101BE75E7208EF94B0 /* Diag.swift */,
 				D5E8D0FFB6FF17F96C1469F1 /* Digest.swift */,
 				BC8AFB834A4A6D1C92CB04D9 /* Features.swift */,
 				0B4ED48F9A6156C397F91725 /* Files.swift */,
@@ -443,6 +446,7 @@
 				130EC51C0C03E248A3386DE4 /* Convert.swift in Sources */,
 				5C35642E6F271B34026E29A3 /* ConvertUI.swift in Sources */,
 				12E91576FD7ADE711765BF87 /* Core.swift in Sources */,
+				E87D661954C92F7D2CC16FA0 /* Diag.swift in Sources */,
 				A5FAE91F59AD652373ED7B34 /* Digest.swift in Sources */,
 				47D1CA09C0038E9A97534CBD /* Features.swift in Sources */,
 				DA6918DD96BD2CA269B90C1E /* Files.swift in Sources */,
@@ -526,6 +530,7 @@
 		};
 		5F7C8EF572A5A661F4C7856B /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 000E7FBD7725FCEA749D8A56 /* OSVIA.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -599,6 +604,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -631,6 +637,7 @@
 		};
 		89420C890EE246C3DCA1FA7D /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 000E7FBD7725FCEA749D8A56 /* OSVIA.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -683,6 +690,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
