@@ -30,7 +30,7 @@ private final class JSBox: @unchecked Sendable {
 enum Hands {
     // MARK: 给模型看的说明（云端大脑给全套，本机模型只给天气）
     static func doc(local: Bool) -> String {
-        var s = "- weather {\"city\":\"城市\"}：当前天气和未来 3 天预报（比搜索快、准）\n"
+        var s = "- weather {\"city\":\"城市（不填就用用户当前位置）\"}：当前天气和未来 3 天预报（比搜索快、准）\n"
         if local { return s }
         s += "- plan {\"steps\":[\"步骤1\",\"步骤2\"],\"done\":0}：多步任务开始时先列计划，每完成几步再调用一次更新 done。界面会显示进度\n"
         s += "- run_js {\"code\":\"JavaScript\"}：沙盒里运行代码，console.log 输出，最后一个表达式的值也会返回；可用 httpGet(url) 同步取网页/接口文本。计算、日期推算、数据整理、统计排序、格式转换、解析 JSON 都写代码做，不要心算\n"
@@ -46,6 +46,7 @@ enum Hands {
         s += "- run_shortcut {\"name\":\"快捷指令名\",\"input\":\"文本\"}：运行用户的快捷指令（会先问用户），能做到 App 之外的各种事\n"
         s += "- confirm_action {\"title\":\"要做的事\",\"detail\":\"细节\"}：做对外有影响或不可撤销的事之前先向用户确认，返回允许或拒绝\n"
         s += "- device {}：电量、存储、系统版本、低电量模式；torch {\"on\":true}：手电筒；copy_text {\"text\":\"…\"}：复制到剪贴板\n"
+        s += DeviceTools.doc()
         return s
     }
 
@@ -78,7 +79,7 @@ enum Hands {
             trace.note(.phone, "复制到剪贴板", String(t.prefix(40)))
             return ToolResult(text: "已复制到剪贴板。")
         default:
-            return nil
+            return await DeviceTools.run(c, trace: trace, cloud: cloud)
         }
     }
 
@@ -146,19 +147,34 @@ enum Hands {
     private static func num(_ v: Any?) -> Double? { (v as? NSNumber)?.doubleValue }
 
     private static func weather(_ city: String, _ trace: Tracer) async -> ToolResult {
-        guard !city.isEmpty else { return ToolResult(text: "没有城市名。", ok: false) }
-        let sid = trace.begin(.weather, "查询天气", city)
-        guard let g = await getJSON("https://geocoding-api.open-meteo.com/v1/search?name=\(enc(city))&count=1&language=zh&format=json"),
-              let res = (g["results"] as? [[String: Any]])?.first,
-              let lat = num(res["latitude"]), let lon = num(res["longitude"]) else {
-            trace.end(sid, ok: false, detail: city + " · " + L10n.tr("没找到这个地点"))
-            return ToolResult(text: "没找到「\(city)」这个地点，可以换个写法（比如加上省份或国家）。", ok: false)
+        var lat = 0.0
+        var lon = 0.0
+        var place = ""
+        let sid = trace.begin(.weather, "查询天气", city.isEmpty ? L10n.tr("当前位置") : city)
+        if city.isEmpty || ["当前位置", "我这里", "这里", "本地", "here"].contains(city.lowercased()) {
+            let (fix, err) = await LocationService.shared.current()
+            guard let f = fix else {
+                trace.end(sid, ok: false, detail: L10n.tr(err))
+                return ToolResult(text: err + " 也可以直接告诉我城市名。", ok: false)
+            }
+            lat = f.lat
+            lon = f.lon
+            place = f.place.isEmpty ? L10n.tr("当前位置") : f.place
+        } else {
+            guard let g = await getJSON("https://geocoding-api.open-meteo.com/v1/search?name=\(enc(city))&count=1&language=zh&format=json"),
+                  let res = (g["results"] as? [[String: Any]])?.first,
+                  let la = num(res["latitude"]), let lo = num(res["longitude"]) else {
+                trace.end(sid, ok: false, detail: city + " · " + L10n.tr("没找到这个地点"))
+                return ToolResult(text: "没找到「\(city)」这个地点，可以换个写法（比如加上省份或国家）。", ok: false)
+            }
+            lat = la
+            lon = lo
+            var parts: [String] = []
+            for k in ["name", "admin1", "country"] {
+                if let v = res[k] as? String, !v.isEmpty, !parts.contains(v) { parts.append(v) }
+            }
+            place = parts.joined(separator: " · ")
         }
-        var parts: [String] = []
-        for k in ["name", "admin1", "country"] {
-            if let v = res[k] as? String, !v.isEmpty, !parts.contains(v) { parts.append(v) }
-        }
-        let place = parts.joined(separator: " · ")
         let url = "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lon)&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=4"
         guard let f = await getJSON(url), let cur = f["current"] as? [String: Any] else {
             trace.end(sid, ok: false, detail: city + " · " + L10n.tr("没有结果"))
@@ -509,7 +525,7 @@ enum Hands {
         return ToolResult(text: ok ? (to.isEmpty ? L10n.f("已在地图里搜索「{}」。", label) : L10n.f("已在地图里打开去「{}」的路线，点开始即可导航。", label)) : "地图没能打开。", final: ok, ok: ok)
     }
 
-    private static let apps: [(names: [String], url: String)] = [
+    static let apps: [(names: [String], url: String)] = [
         (["微信", "wechat", "weixin"], "weixin://"), (["支付宝", "alipay"], "alipay://"), (["淘宝", "taobao"], "taobao://"),
         (["京东", "jd"], "openapp.jdmobile://"), (["拼多多"], "pinduoduo://"), (["美团"], "imeituan://"), (["饿了么"], "eleme://"),
         (["抖音", "douyin", "tiktok"], "snssdk1128://"), (["微博", "weibo"], "sinaweibo://"), (["小红书", "xiaohongshu"], "xhsdiscover://"),
@@ -520,8 +536,33 @@ enum Hands {
         (["日历", "calendar"], "calshow://"), (["提醒事项", "reminders"], "x-apple-reminderkit://"), (["邮件", "mail"], "message://"),
         (["信息", "短信", "messages"], "sms:"), (["电话", "phone"], "tel:"), (["地图", "maps"], "maps://"), (["快捷指令", "shortcuts"], "shortcuts://"),
         (["天气", "weather"], "weather://"), (["健康", "health"], "x-apple-health://"), (["钱包", "wallet"], "shoebox://"),
-        (["app store", "应用商店"], "itms-apps://"), (["facetime"], "facetime://")
+        (["app store", "应用商店"], "itms-apps://"), (["facetime"], "facetime://"),
+        (["obsidian"], "obsidian://"), (["notion"], "notion://"), (["bear"], "bear://"), (["things"], "things:///"),
+        (["pages"], "pages://"), (["numbers"], "numbers://"), (["keynote"], "keynote://"), (["word"], "ms-word://"),
+        (["excel"], "ms-excel://"), (["telegram"], "tg://"), (["whatsapp"], "whatsapp://"), (["chatgpt"], "chatgpt://"),
+        (["gmail"], "googlegmail://"), (["outlook"], "ms-outlook://"), (["spotify"], "spotify://"), (["youtube"], "youtube://"),
+        (["谷歌地图", "google maps"], "comgooglemaps://")
     ]
+
+    // 这些 App 的自带 scheme 无需检测，一定存在
+    private static let builtin: Set<String> = ["photos-redirect://", "music://", "mobilenotes://", "calshow://", "x-apple-reminderkit://", "message://", "sms:", "tel:", "maps://", "shortcuts://", "weather://", "x-apple-health://", "shoebox://", "itms-apps://", "facetime://"]
+
+    // 能检测到的已安装 App（系统只允许检测 Info.plist 里声明过的 scheme）
+    static func installedApps() -> [String] {
+        let declared = Set((Bundle.main.infoDictionary?["LSApplicationQueriesSchemes"] as? [String]) ?? [])
+        var out: [String] = []
+        for a in apps where !builtin.contains(a.url) {
+            let scheme = (a.url.components(separatedBy: ":").first ?? "")
+            guard declared.contains(scheme), let u = URL(string: a.url), UIApplication.shared.canOpenURL(u) else { continue }
+            out.append(a.names[0])
+        }
+        return out
+    }
+
+    static func workspaceURL(_ rawName: String) -> URL? {
+        let u = work.appendingPathComponent(safeName(rawName))
+        return FileManager.default.fileExists(atPath: u.path) ? u : nil
+    }
 
     private static func openApp(_ a: [String: Any], _ trace: Tracer) async -> ToolResult {
         let urlStr = str(a, "url")

@@ -113,7 +113,7 @@ struct MessageView: View {
             Button { speaker.toggle(m.text, id: m.id) } label: {
                 Image(systemName: speaker.speakingId == m.id ? "speaker.slash" : "speaker.wave.2")
             }
-            ShareLink(item: m.text) { Image(systemName: "square.and.arrow.up") }
+            ExportMenu(text: m.text)
             if isLast {
                 Button { onRegenerate() } label: { Image(systemName: "arrow.clockwise") }
             }

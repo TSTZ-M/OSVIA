@@ -72,6 +72,46 @@ targets:
         LSApplicationQueriesSchemes:
           - shortcuts
           - scriptable
+          - weixin
+          - alipay
+          - taobao
+          - openapp.jdmobile
+          - pinduoduo
+          - imeituan
+          - eleme
+          - snssdk1128
+          - sinaweibo
+          - xhsdiscover
+          - bilibili
+          - mqq
+          - iosamap
+          - baidumap
+          - orpheus
+          - qqmusic
+          - zhihu
+          - diditaxi
+          - dingtalk
+          - lark
+          - wxwork
+          - obsidian
+          - notion
+          - bear
+          - things
+          - pages
+          - numbers
+          - keynote
+          - ms-word
+          - ms-excel
+          - tg
+          - whatsapp
+          - chatgpt
+          - googlegmail
+          - ms-outlook
+          - spotify
+          - youtube
+          - comgooglemaps
+        NSLocationWhenInUseUsageDescription: 助理需要你的位置来回答附近、本地天气和路线相关的问题（只在你提问时使用）
+        NSContactsUsageDescription: 助理在你要求时查询联系人的电话和邮箱（每次都会先征求你的同意）
         NSMicrophoneUsageDescription: 语音输入需要使用麦克风
         NSSpeechRecognitionUsageDescription: 语音输入需要语音识别
         NSCameraUsageDescription: 拍照后让助理识别文字或转换格式

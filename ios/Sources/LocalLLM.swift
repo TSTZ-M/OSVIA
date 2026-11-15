@@ -255,6 +255,8 @@ final class LocalLLM: ObservableObject {
         LocalModel(id: "mlx-community/Qwen3-4B-Instruct-2507-4bit", name: "Qwen3 4B 2507", gb: "2.3", note: "推荐：目前手机上最聪明的一档，中文与指令遵循最强"),
         LocalModel(id: "mlx-community/Qwen2.5-3B-Instruct-4bit", name: "Qwen2.5 3B", gb: "1.8", note: "速度与质量均衡，占内存较少"),
         LocalModel(id: "mlx-community/Qwen2.5-1.5B-Instruct-4bit", name: "Qwen2.5 1.5B", gb: "0.9", note: "轻量，速度快，占内存少"),
+        LocalModel(id: "droyster/Qwen3.5-4B-Text-MLX-4bit", name: "Qwen3.5 4B（新）", gb: "2.4", note: "新一代 Qwen3.5，推理与工具调用更强；社区转换的纯文本版，若加载失败请换回默认"),
+        LocalModel(id: "augible/qwen3.5-2b-4bit-text-mlx", name: "Qwen3.5 2B（新）", gb: "1.1", note: "新一代小模型，比 Qwen2.5 1.5B 聪明且更省内存；社区转换的纯文本版"),
         LocalModel(id: "mlx-community/Qwen3-4B-4bit", name: "Qwen3 4B（旧）", gb: "2.3", note: "旧版混合思考模型，不再推荐")
     ]
 

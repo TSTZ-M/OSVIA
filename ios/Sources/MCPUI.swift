@@ -18,6 +18,11 @@ struct MCPView: View {
         return MCP.presets.filter { !have.contains($0.url) }
     }
 
+    private var oauthPresets: [MCPPreset] {
+        let have = Set(rows.map { $0.s("url") })
+        return MCP.oauthPresets.filter { !have.contains($0.url) }
+    }
+
     var body: some View {
         List {
             Section {
@@ -87,6 +92,33 @@ struct MCPView: View {
                 }
             }
 
+            if !oauthPresets.isEmpty {
+                Section {
+                    ForEach(oauthPresets) { p in
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(verbatim: p.name).font(.system(size: 16, weight: .medium)).foregroundStyle(Brand.ink)
+                                Text(p.about).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
+                            }
+                            Spacer(minLength: 8)
+                            if adding == p.name {
+                                ProgressView()
+                            } else {
+                                Button("登录") { addPreset(p) }
+                                    .buttonStyle(.bordered)
+                                    .tint(Brand.mint)
+                                    .disabled(!adding.isEmpty)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                } header: {
+                    Text("官方服务（网页登录）")
+                } footer: {
+                    Text("点「登录」会打开系统登录页，授权一次后自动连接，令牌只保存在这台手机的钥匙串里。")
+                }
+            }
+
             Section {
                 NavigationLink {
                     AddMCPView(onAdded: reload)
@@ -94,7 +126,7 @@ struct MCPView: View {
                     Label("添加自定义服务器", systemImage: "plus.circle")
                 }
             } footer: {
-                Text("支持 Streamable HTTP（新旧版本协议自动适配）。需要登录的服务请填访问令牌；暂不支持 OAuth 网页登录和旧式 SSE 地址。")
+                Text("支持 Streamable HTTP（新旧版本协议自动适配）和 OAuth 网页登录；也可以手动填访问令牌。暂不支持旧式 SSE 地址。")
             }
         }
         .navigationTitle("MCP 服务")
@@ -117,7 +149,7 @@ struct MCPView: View {
     func addPreset(_ p: MCPPreset) {
         adding = p.name
         info = ""
-        let r = MCP.add(name: p.name, url: p.url, token: "", headers: "", auto: true)
+        let r = MCP.add(name: p.name, url: p.url, token: "", headers: "", auto: !p.oauth)
         if r.id == 0 {
             info = L10n.tr(r.error)
             adding = ""
@@ -125,6 +157,16 @@ struct MCPView: View {
         }
         reload()
         Task {
+            if p.oauth, let u = URL(string: p.url) {
+                let e = await MCPOAuth.login(r.id, url: u)
+                if !e.isEmpty {
+                    adding = ""
+                    reload()
+                    info = L10n.f("{} 已添加，但登录未完成：{}", p.name, L10n.tr(e))
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    return
+                }
+            }
             let err = await MCP.refresh(r.id)
             adding = ""
             reload()
@@ -270,6 +312,12 @@ struct MCPDetailView: View {
             }
 
             Section("访问授权") {
+                Button {
+                    login()
+                } label: {
+                    Label(MCPOAuth.isAuthorized(id) ? "重新登录授权" : "网页登录授权", systemImage: "person.badge.key")
+                }
+                .disabled(busy)
                 SecureField("访问令牌", text: $token)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -341,6 +389,25 @@ struct MCPDetailView: View {
             busy = false
             load()
             info = err.isEmpty ? L10n.f("已连接，{} 个工具可用", "\(tools.count)") : L10n.tr(err)
+        }
+    }
+
+    func login() {
+        guard let u = URL(string: row?.s("url") ?? "") else { return }
+        busy = true
+        info = ""
+        Task {
+            let e = await MCPOAuth.login(id, url: u)
+            if e.isEmpty {
+                let err = await MCP.refresh(id)
+                busy = false
+                load()
+                info = err.isEmpty ? L10n.f("已连接，{} 个工具可用", "\(tools.count)") : L10n.tr(err)
+            } else {
+                busy = false
+                load()
+                info = L10n.tr(e)
+            }
         }
     }
 }

@@ -231,7 +231,7 @@ actor MCPClient {
 
     private func finish(_ out: Out, id: Int, allowFallback: Bool) throws -> [String: Any] {
         if out.status == 401 || out.status == 403 {
-            throw MCPError.msg("服务器要求授权（HTTP \(out.status)）。请在服务器设置里填写访问令牌或请求头。")
+            throw MCPError.msg("服务器要求授权（HTTP \(out.status)）。请在服务器设置里点「网页登录授权」，或填写访问令牌。")
         }
         let msgs = MCPClient.messages(out)
         let rpc = msgs.first(where: { ($0["id"] as? Int) == id }) ?? msgs.first(where: { $0["result"] != nil || $0["error"] != nil })
@@ -304,6 +304,7 @@ struct MCPPreset: Identifiable {
     let name: String
     let url: String
     let about: String
+    var oauth = false
     var id: String { name }
 }
 
@@ -316,6 +317,19 @@ enum MCP {
         MCPPreset(name: "Microsoft Learn", url: "https://learn.microsoft.com/api/mcp", about: "检索微软官方技术文档与示例代码"),
         MCPPreset(name: "Cloudflare Docs", url: "https://docs.mcp.cloudflare.com/mcp", about: "检索 Cloudflare 官方文档"),
         MCPPreset(name: "Context7", url: "https://mcp.context7.com/mcp", about: "查询各种开发库的最新文档")
+    ]
+
+    // 需要网页登录（OAuth）的官方服务：添加后会跳出系统登录页，授权一次即可
+    static let oauthPresets: [MCPPreset] = [
+        MCPPreset(name: "Notion", url: "https://mcp.notion.com/mcp", about: "搜索、读取、创建你的 Notion 页面和数据库", oauth: true),
+        MCPPreset(name: "Linear", url: "https://mcp.linear.app/mcp", about: "查看和创建 Linear 的任务、项目", oauth: true),
+        MCPPreset(name: "GitHub", url: "https://api.githubcopilot.com/mcp/", about: "仓库、Issue、PR、代码搜索", oauth: true),
+        MCPPreset(name: "Atlassian（Jira / Confluence）", url: "https://mcp.atlassian.com/v2/mcp", about: "Jira 工单与 Confluence 文档", oauth: true),
+        MCPPreset(name: "Asana", url: "https://mcp.asana.com/v2/mcp", about: "任务与项目管理", oauth: true),
+        MCPPreset(name: "Stripe", url: "https://mcp.stripe.com", about: "查询收款、客户和订阅", oauth: true),
+        MCPPreset(name: "HubSpot", url: "https://mcp.hubspot.com", about: "客户与销售数据", oauth: true),
+        MCPPreset(name: "Cloudflare", url: "https://mcp.cloudflare.com/mcp", about: "管理 Workers、D1、KV、R2 等 Cloudflare 资源", oauth: true),
+        MCPPreset(name: "Box", url: "https://mcp.box.com", about: "搜索和读取 Box 里的文件", oauth: true)
     ]
 
     static func servers() -> [Row] { DB.shared.rows("SELECT id, name, url, auto, enabled, tools, ts FROM mcp_server ORDER BY id") }
@@ -342,6 +356,7 @@ enum MCP {
         DB.shared.run("DELETE FROM mcp_server WHERE id=?", [id])
         SecretStore.set("mcp.token.\(id)", "")
         SecretStore.set("mcp.headers.\(id)", "")
+        MCPOAuth.forget(id)
         DB.shared.run("DELETE FROM kv WHERE k=?", ["mcp.mode.\(id)"])
         clients[id] = nil
     }
@@ -384,6 +399,7 @@ enum MCP {
 
     // 连接并刷新工具列表。返回错误文字；空串表示成功
     static func refresh(_ id: Int) async -> String {
+        await MCPOAuth.ensureFresh(id)
         guard let r = row(id), let c = client(r) else { return "服务器地址不正确。" }
         do {
             let list = try await c.tools()
@@ -433,6 +449,7 @@ enum MCP {
 
     // 调用工具。返回（是否成功，文字）
     static func call(_ r: Row, tool: String, args: [String: Any]) async -> (ok: Bool, text: String) {
+        await MCPOAuth.ensureFresh(r.i("id"))
         guard let c = client(r) else { return (false, "服务器地址不正确。") }
         do {
             let (text, isErr) = try await c.call(tool, args)
