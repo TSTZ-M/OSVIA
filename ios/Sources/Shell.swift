@@ -2,7 +2,7 @@ import SwiftUI
 import Translation
 
 enum AppPage: String, Identifiable {
-    case kb, tools, tasks, digest, evolve, settings, translate, memory, mcp
+    case kb, tools, tasks, digest, evolve, settings, translate, memory, mcp, mail
     var id: String { rawValue }
 }
 
@@ -109,6 +109,7 @@ struct DrawerView: View {
                         state.drawer = false
                     }
                     item("brain.head.profile", "AI 记忆") { open(.memory) }
+                    item("envelope", "邮箱") { open(.mail) }
                     item("puzzlepiece.extension", "MCP 服务") { open(.mcp) }
                     item("books.vertical", "知识库") { open(.kb) }
                     item("square.grid.2x2", "工具箱") { open(.tools) }
@@ -211,6 +212,7 @@ struct PageSheet: View {
             case .translate: NavigationStack { ScreenTranslateView() }
             case .memory: MemoryHome()
             case .mcp: MCPHome()
+            case .mail: MailHome()
             }
         }
         .environment(\.isPageRoot, true)

@@ -94,7 +94,7 @@ struct StepRow: View {
                     Text(verbatim: step.detail)
                         .font(.system(size: 12.5))
                         .foregroundStyle(Brand.sub)
-                        .lineLimit(2)
+                        .lineLimit(step.kind == .plan ? 10 : 2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

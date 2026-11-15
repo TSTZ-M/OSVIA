@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: 回答过程：每一步（回忆、搜索、读网页、计算、调用 MCP……）都记录下来，对话里以时间线显示
 enum StepKind: String, Codable {
-    case memory, think, search, read, calc, mcp, skill, action, connector, time
+    case memory, think, search, read, calc, mcp, skill, action, connector, time, plan, weather, code, file, map, phone, mail
 
     var icon: String {
         switch self {
@@ -17,6 +17,13 @@ enum StepKind: String, Codable {
         case .action: return "checkmark.seal"
         case .connector: return "link"
         case .time: return "clock"
+        case .plan: return "list.bullet.clipboard"
+        case .weather: return "cloud.sun"
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .file: return "doc.badge.plus"
+        case .map: return "map"
+        case .phone: return "iphone"
+        case .mail: return "envelope"
         }
     }
 }

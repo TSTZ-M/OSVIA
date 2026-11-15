@@ -97,6 +97,11 @@ enum AgentTools {
         return s
     }
 
+    // 需要用户确认、或会改变外部状态的工具：顺序执行，不并行
+    nonisolated static func sequential(_ name: String) -> Bool {
+        ["mcp_call", "http_request", "delete_file", "run_shortcut", "confirm_action", "mail_send", "mail_act", "connector", "open_app", "maps", "compose"].contains(name)
+    }
+
     // MARK: 给模型看的工具说明
     static func doc(local: Bool, query: String) -> String {
         var s = "可用工具：\n"
@@ -111,6 +116,8 @@ enum AgentTools {
             s += "- add_reminder {\"time\":\"yyyy-MM-dd'T'HH:mm\",\"title\":\"内容\",\"repeat\":\"none|daily|weekly\"}：添加提醒事项\n"
             s += "- add_event {\"time\":\"yyyy-MM-dd'T'HH:mm\",\"title\":\"标题\"}：添加日历日程\n"
         }
+        s += Hands.doc(local: local)
+        if !local { s += Mail.doc() }
         let skills = Skills.list().map { $0.s("name") }
         if !skills.isEmpty { s += "- run_skill {\"name\":\"技能名\",\"input\":\"输入\"}：运行用户的脚本技能，可用：" + skills.prefix(12).joined(separator: "、") + "\n" }
         let conns = Connectors.all().map { $0.s("name") }
@@ -278,6 +285,8 @@ enum AgentTools {
             return ToolResult(text: r, final: true)
 
         default:
+            if let r = await Hands.run(c, trace: trace, cloud: cloud) { return r }
+            if let r = await Mail.run(c, trace: trace, cloud: cloud) { return r }
             return ToolResult(text: "没有「\(c.name)」这个工具，请只使用工具列表里的。", ok: false)
         }
     }

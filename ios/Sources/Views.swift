@@ -40,6 +40,7 @@ struct OSVIAApp: App {
 
     init() {
         L10n.bootstrap()
+        Mail.registerBG()
         UNUserNotificationCenter.current().delegate = NotifDelegate.shared
         // 主题只保留「跟随系统 / 浅色 / 深色」，升级后默认恢复为跟随系统
         let ud = UserDefaults.standard
@@ -60,7 +61,7 @@ struct OSVIAApp: App {
         .onChange(of: phase) { _, p in
             if p == .active {
                 AppTheme.apply(appearance)
-                Task { await Tasks.refresh(); await Evolve.run() }
+                Task { await Tasks.refresh(); await Evolve.run(); await Mail.autoRunIfDue() }
             }
         }
     }

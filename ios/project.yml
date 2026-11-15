@@ -53,6 +53,10 @@ targets:
           - UIInterfaceOrientationPortrait
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+        UIBackgroundModes:
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.Hao-Yi-Miao.TSTZ-Agent.mail
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         NSSupportsLiveActivities: true
