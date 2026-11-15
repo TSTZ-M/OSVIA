@@ -10,17 +10,17 @@
       "developerName": "OSVIA",
       "localizedDescription": "OSVIA iOS app. Unsigned IPA, signed on the device by SideStore.",
       "iconURL": "https://raw.githubusercontent.com/TSTZ-M/OSVIA/main/ios/Sources/Assets.xcassets/AppIcon.appiconset/icon.png",
-      "version": "0.9.8",
-      "versionDate": "2026-11-14T16:33:03Z",
+      "version": "0.9.9",
+      "versionDate": "2026-11-15T05:13:41Z",
       "downloadURL": "https://github.com/TSTZ-M/OSVIA/releases/download/OSVIA-latest/OSVIA.ipa",
-      "size": 10857522,
+      "size": 11191658,
       "versions": [
         {
-          "version": "0.9.8",
-          "buildVersion": "8",
-          "date": "2026-11-14T16:33:03Z",
+          "version": "0.9.9",
+          "buildVersion": "9",
+          "date": "2026-11-15T05:13:41Z",
           "downloadURL": "https://github.com/TSTZ-M/OSVIA/releases/download/OSVIA-latest/OSVIA.ipa",
-          "size": 10857522
+          "size": 11191658
         }
       ],
       "appPermissions": { "entitlements": [], "privacy": {} }
