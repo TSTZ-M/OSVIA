@@ -366,5 +366,46 @@ Zoho 账号 → 安全 → 应用专用密码，并确认已开启 IMAP。 ⇒ Z
 有记录 ⇒ Has records
 遇到闪退或异常时，这里会留下线索。点「复制全部」发给开发者，就能快速定位问题。系统的崩溃报告通常在崩溃后一天内送达。 ⇒ When a crash or problem happens, clues are left here. Tap Copy all and send it to the developer to pinpoint the issue. System crash reports usually arrive within a day.
 收件箱 {} 封 · 已同步 {} 封 · 新增 {} 封 ⇒ Inbox {} · synced {} · new {}
+备忘录 / 其他 App… ⇒ Notes / other apps…
+存为文件（Markdown） ⇒ Save as file (Markdown)
+以文件发送到 Pages / Word… ⇒ Send as file to Pages / Word…
+当前位置 ⇒ Current location
+获取当前位置 ⇒ Getting current location
+查通讯录 ⇒ Searching contacts
+查看通讯录：{} ⇒ View contacts: {}
+助理想读取这个联系人的电话和邮箱，用来完成你的请求。 ⇒ Your assistant wants to read this contact’s phone number and email to complete your request.
+没有通讯录权限 ⇒ No contacts permission
+{} 位联系人 ⇒ {} contacts
+检查已安装的 App ⇒ Checking installed apps
+读取剪贴板 ⇒ Reading clipboard
+存到「文件」 ⇒ Save to Files
+打开分享面板 ⇒ Open share sheet
+已取消 ⇒ Cancelled
+没有定位权限。请到「设置 › OSVIA › 位置」里选择「使用 App 期间」。 ⇒ No location permission. Go to Settings › OSVIA › Location and choose While Using the App.
+暂时定位不到，请确认定位服务已开启，并到室外或窗边再试。 ⇒ Can’t get a fix right now. Make sure Location Services is on and try near a window or outdoors.
+官方服务（网页登录） ⇒ Official services (web sign-in)
+点「登录」会打开系统登录页，授权一次后自动连接，令牌只保存在这台手机的钥匙串里。 ⇒ Tap Sign in to open the system sign-in page. Authorize once and it connects automatically; tokens are kept only in this phone’s Keychain.
+网页登录授权 ⇒ Sign in with web
+重新登录授权 ⇒ Sign in again
+{} 已添加，但登录未完成：{} ⇒ {} was added but sign-in did not finish: {}
+支持 Streamable HTTP（新旧版本协议自动适配）和 OAuth 网页登录；也可以手动填访问令牌。暂不支持旧式 SSE 地址。 ⇒ Supports Streamable HTTP (old and new protocol versions are adapted automatically) and OAuth web sign-in; you can also enter an access token manually. Legacy SSE URLs are not supported.
+服务器要求授权（HTTP {}）。请在服务器设置里点「网页登录授权」，或填写访问令牌。 ⇒ The server requires authorization (HTTP {}). Tap Sign in with web in the server settings, or enter an access token.
+已取消登录。 ⇒ Sign-in cancelled.
+这个服务没有公开标准的网页登录入口。请在「访问授权」里手动填写访问令牌。 ⇒ This service has no standard web sign-in. Enter an access token under Access.
+这个服务不支持自动注册登录。请在「访问授权」里手动填写访问令牌。 ⇒ This service doesn’t support automatic sign-in registration. Enter an access token under Access.
+服务器拒绝了自动注册。请在「访问授权」里手动填写访问令牌。 ⇒ The server refused automatic registration. Enter an access token under Access.
+搜索、读取、创建你的 Notion 页面和数据库 ⇒ Search, read and create your Notion pages and databases
+查看和创建 Linear 的任务、项目 ⇒ View and create Linear issues and projects
+仓库、Issue、PR、代码搜索 ⇒ Repositories, issues, PRs and code search
+Jira 工单与 Confluence 文档 ⇒ Jira tickets and Confluence docs
+任务与项目管理 ⇒ Tasks and project management
+查询收款、客户和订阅 ⇒ Look up payments, customers and subscriptions
+客户与销售数据 ⇒ Customer and sales data
+管理 Workers、D1、KV、R2 等 Cloudflare 资源 ⇒ Manage Cloudflare resources such as Workers, D1, KV and R2
+搜索和读取 Box 里的文件 ⇒ Search and read files in Box
+Qwen3.5 4B（新） ⇒ Qwen3.5 4B (new)
+Qwen3.5 2B（新） ⇒ Qwen3.5 2B (new)
+新一代 Qwen3.5，推理与工具调用更强；社区转换的纯文本版，若加载失败请换回默认 ⇒ Next-gen Qwen3.5 with stronger reasoning and tool use; a community text-only conversion — switch back to the default if it fails to load
+新一代小模型，比 Qwen2.5 1.5B 聪明且更省内存；社区转换的纯文本版 ⇒ Next-gen small model, smarter than Qwen2.5 1.5B and light on memory; a community text-only conversion
 """#
 }
