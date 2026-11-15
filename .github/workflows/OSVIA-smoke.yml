@@ -1,5 +1,7 @@
 name: OSVIA-smoke
 on:
+  push:
+    branches: [ci/smoke]
   workflow_dispatch:
 concurrency:
   group: OSVIA-smoke
