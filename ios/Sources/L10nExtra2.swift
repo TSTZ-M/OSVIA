@@ -199,5 +199,138 @@ MCP 错误： ⇒ MCP error:
 国际 ⇒ International
 中国 ⇒ China
 其他地区 ⇒ Other regions
+制定计划 ⇒ Making a plan
+查询天气 ⇒ Checking weather
+运行代码 ⇒ Running code
+创建技能 ⇒ Creating skill
+调用接口 ⇒ Calling API
+生成文件 ⇒ Creating file
+读取文件 ⇒ Reading file
+查看工作区 ⇒ Viewing workspace
+删除文件 ⇒ Deleting file
+查看日程 ⇒ Checking schedule
+设置倒计时 ⇒ Setting timer
+地图导航 ⇒ Map directions
+地图搜索 ⇒ Map search
+打开应用 ⇒ Opening app
+打开网页 ⇒ Opening web page
+短信草稿 ⇒ Message draft
+邮件草稿 ⇒ Email draft
+拨号 ⇒ Dialing
+运行快捷指令 ⇒ Running shortcut
+查看设备状态 ⇒ Checking device status
+打开手电筒 ⇒ Turning on flashlight
+关闭手电筒 ⇒ Turning off flashlight
+复制到剪贴板 ⇒ Copying to clipboard
+没找到这个地点 ⇒ Couldn’t find that place
+没有安装或无法打开 ⇒ Not installed or can’t be opened
+没有结果 ⇒ No results
+允许发送网络请求？ ⇒ Allow this network request?
+允许删除文件？ ⇒ Allow deleting this file?
+允许运行快捷指令？ ⇒ Allow running this shortcut?
+{} 个文件 ⇒ {} files
+未来 {} 天 ⇒ Next {} days
+邮箱 ⇒ Mail
+需要你处理 ⇒ Needs your attention
+了解即可 ⇒ For your information
+通知 ⇒ Notifications
+订阅与营销 ⇒ Newsletters & promotions
+需要处理 ⇒ To handle
+未读 ⇒ Unread
+已分拣 ⇒ Sorted
+紧急 ⇒ Urgent
+待回复 ⇒ Awaiting reply
+订阅 ⇒ Newsletter
+了解 ⇒ FYI
+连接你的邮箱，助理帮你盯收件箱： ⇒ Connect your mailbox and let the assistant watch your inbox:
+按紧急程度分拣，每封一句话摘要 ⇒ Sorted by urgency, one-line summary for each
+按你的意思起草回复，确认后才发送 ⇒ Drafts replies your way; sends only after you confirm
+订阅和营销邮件自动归档（可选） ⇒ Auto-files newsletters and promotions (optional)
+直接在对话里说：「看看有什么要紧邮件」 ⇒ Or just say in chat: “Check my important emails”
+添加邮箱 ⇒ Add mailbox
+支持 Gmail、iCloud、QQ、网易 163 / 126 / yeah、阿里、新浪、139、Yahoo、Zoho、Fastmail，以及任何支持 IMAP 的邮箱。使用「应用专用密码 / 授权码」登录，不会接触你的登录密码。 ⇒ Works with Gmail, iCloud, QQ, NetEase 163 / 126 / yeah, Aliyun, Sina, 139, Yahoo, Zoho, Fastmail and any IMAP mailbox. Sign in with an app-specific password / authorization code — your real password is never used.
+收件箱里还没有同步到邮件。下拉刷新试试。 ⇒ No mail synced yet. Pull down to refresh.
+邮箱账号与自动处理 ⇒ Accounts & auto-processing
+分拣和摘要会把每封邮件开头的内容发给你设置的 AI 模型；想完全留在本机，请在设置里使用本机模型。 ⇒ Sorting and summaries send the beginning of each email to the AI model you configured. To keep everything on this device, use the on-device model in Settings.
+（无主题） ⇒ (No subject)
+建议： ⇒ Suggestion: 
+正在读取邮件… ⇒ Loading email…
+（这封邮件没有可显示的文字内容） ⇒ (This email has no displayable text)
+删除这封邮件？ ⇒ Delete this email?
+收件人 ⇒ To
+主题 ⇒ Subject
+想怎么回？一句话，如「同意，周四下午可以」 ⇒ How to reply? One line, e.g. “Yes, Thursday afternoon works”
+AI 起草回复 ⇒ Draft reply with AI
+正在起草… ⇒ Drafting…
+原邮件的内容会发给你设置的 AI 模型。起草的内容请先看一遍再发。 ⇒ The original email is sent to your configured AI model. Review the draft before sending.
+正文 ⇒ Body
+回复 ⇒ Reply
+发送 ⇒ Send
+发送给 {}？ ⇒ Send to {}?
+{} 之前没有和你往来过，请确认地址无误。 ⇒ You haven’t corresponded with {} before. Please double-check the address.
+没能起草。请检查 AI 模型设置后再试，或直接手写。 ⇒ Couldn’t draft. Check your AI model settings and try again, or write it yourself.
+收件人地址不正确。 ⇒ The recipient address isn’t valid.
+自动处理 ⇒ Auto-process
+上次同步 ⇒ Last synced
+还没有 ⇒ Never
+移除这个邮箱 ⇒ Remove this mailbox
+开启「自动处理」后，每次打开 OSVIA（系统允许时也会在后台）会：把订阅与营销邮件标为已读并归到「OSVIA-Newsletters」文件夹；紧急和待回复的邮件发通知。不会自动回复、删除或发送任何邮件。iOS 不允许应用一直在后台运行，所以后台处理只是尽力而为。 ⇒ With “Auto-process” on, each time you open OSVIA (and in the background when the system allows) it marks newsletters and promotions as read and files them into the “OSVIA-Newsletters” folder, and notifies you of urgent mail and mail awaiting a reply. It never replies to, deletes or sends any mail automatically. iOS doesn’t let apps run in the background continuously, so background processing is best-effort.
+自动处理记录 ⇒ Auto-processing log
+邮箱账号 ⇒ Mail accounts
+移除这个邮箱？ ⇒ Remove this mailbox?
+移除 ⇒ Remove
+只会删除这台设备上保存的账号和缓存，邮箱里的邮件不受影响。 ⇒ Only the account and cache stored on this device are removed. Mail in your mailbox is not affected.
+邮箱地址 ⇒ Email address
+显示名称（可选，写在发出的邮件上） ⇒ Display name (optional, shown on sent mail)
+没有这个邮箱的预设，请在下面手动填写服务器（在邮箱网页的设置里能找到 IMAP / SMTP 服务器地址）。 ⇒ No preset for this mailbox. Enter the servers below (IMAP / SMTP addresses are in your mailbox’s web settings).
+密码 / 授权码 ⇒ Password / authorization code
+只保存在这台设备的系统钥匙串里，只用来连接你的邮箱服务器。 ⇒ Stored only in this device’s Keychain and used only to connect to your mail server.
+IMAP 服务器，如 imap.example.com ⇒ IMAP server, e.g. imap.example.com
+SMTP 服务器，如 smtp.example.com ⇒ SMTP server, e.g. smtp.example.com
+SMTP 端口（465 或 587） ⇒ SMTP port (465 or 587)
+服务器 ⇒ Servers
+IMAP 使用 993 端口（SSL）。SMTP 465 为 SSL，587 为 STARTTLS。 ⇒ IMAP uses port 993 (SSL). SMTP 465 is SSL, 587 is STARTTLS.
+正在连接… ⇒ Connecting…
+连接并保存 ⇒ Connect and save
+邮箱地址不正确。 ⇒ The email address isn’t valid.
+打开 {} 的设置页 ⇒ Open {} settings
+应用专用密码 ⇒ App-specific password
+应用密码 ⇒ App password
+授权码 ⇒ Authorization code
+登录密码或授权码 ⇒ Password or authorization code
+查看邮件 ⇒ Checking mail
+阅读邮件 ⇒ Reading email
+搜索邮件 ⇒ Searching mail
+标为已读 ⇒ Marking as read
+标为未读 ⇒ Marking as unread
+加星标 ⇒ Starring
+取消星标 ⇒ Removing star
+归档邮件 ⇒ Archiving email
+删除邮件 ⇒ Deleting email
+移到垃圾邮件 ⇒ Moving to spam
+整理邮件 ⇒ Organizing email
+发送邮件 ⇒ Sending email
+发送这封邮件？ ⇒ Send this email?
+{} 封 ⇒ {} emails
+打开 OSVIA 查看 ⇒ Open OSVIA to view
+紧急邮件 ·  ⇒ Urgent mail · 
+待回复 ·  ⇒ Awaiting reply · 
+做一份本周学习计划，导出成 PDF ⇒ Make a study plan for this week and export it as a PDF
+看看有什么要紧的邮件，该回的帮我起草 ⇒ Check my important emails and draft replies where needed
+Gmail ⇒ Gmail
+先在 Google 账号里开启两步验证，再生成「应用专用密码」（16 位），填到下面。 ⇒ Turn on 2-Step Verification in your Google account, then generate a 16-character “App password” and enter it below.
+登录 Apple 账户 → 登录与安全 → 应用专用密码，生成一个填到下面。 ⇒ Sign in to your Apple Account → Sign-In & Security → App-Specific Passwords, generate one and enter it below.
+微软正在逐步停用个人邮箱的密码登录。如果提示登录失败，说明你的账号已强制使用 OAuth，暂时无法连接。 ⇒ Microsoft is phasing out password sign-in for personal mailboxes. If login fails, your account requires OAuth, which isn’t supported yet.
+网页版 QQ 邮箱 → 设置 → 账号 → 开启「IMAP/SMTP 服务」，按提示生成授权码。 ⇒ QQ Mail web → Settings → Account → turn on “IMAP/SMTP service” and generate an authorization code.
+网页版 → 设置 → POP3/SMTP/IMAP → 开启 IMAP，并设置「客户端授权码」。 ⇒ Web mail → Settings → POP3/SMTP/IMAP → turn on IMAP and set a “client authorization code”.
+确认邮箱已开启 IMAP；若开启了二次验证，请使用授权码。 ⇒ Make sure IMAP is enabled; if two-step verification is on, use an authorization code.
+网页版 → 设置 → 客户端 POP/IMAP/SMTP，开启 IMAP 并获取授权码。 ⇒ Web mail → Settings → Client POP/IMAP/SMTP, turn on IMAP and get an authorization code.
+网页版 → 设置 → 邮箱设置 → 客户端设置，开启 IMAP 并获取授权码。 ⇒ Web mail → Settings → Mailbox settings → Client settings, turn on IMAP and get an authorization code.
+Yahoo 账号安全页 → 生成应用密码，填到下面。 ⇒ Yahoo account security page → generate an app password and enter it below.
+Zoho 账号 → 安全 → 应用专用密码，并确认已开启 IMAP。 ⇒ Zoho account → Security → App-Specific Passwords, and make sure IMAP is enabled.
+设置 → 密码与安全 → 应用密码，权限选「邮件（IMAP/SMTP）」。 ⇒ Settings → Password & Security → App passwords, choose “Mail (IMAP/SMTP)” access.
+登录被拒绝：请确认填的是「应用专用密码 / 授权码」而不是登录密码，并且已在邮箱设置里开启 IMAP。 ⇒ Login rejected: make sure you entered an app-specific password / authorization code (not your login password) and that IMAP is enabled in your mailbox settings.
+服务器认为这是不安全的登录。请在邮箱网页设置里开启 IMAP 并使用授权码。 ⇒ The server considers this login unsafe. Enable IMAP in your mailbox web settings and use an authorization code.
+服务器断开了连接 ⇒ The server closed the connection
 """#
 }

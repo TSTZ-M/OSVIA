@@ -45,6 +45,9 @@ final class DB {
         CREATE TABLE IF NOT EXISTS alarm(id TEXT PRIMARY KEY, label TEXT, due REAL, rep INTEGER);
         CREATE TABLE IF NOT EXISTS memory(id INTEGER PRIMARY KEY, text TEXT, cat TEXT, src TEXT, ts REAL, pin INTEGER DEFAULT 0);
         CREATE TABLE IF NOT EXISTS mcp_server(id INTEGER PRIMARY KEY, name TEXT, url TEXT, auto INTEGER DEFAULT 0, enabled INTEGER DEFAULT 1, tools TEXT DEFAULT '', ts REAL);
+        CREATE TABLE IF NOT EXISTS mail_account(id INTEGER PRIMARY KEY, email TEXT, name TEXT DEFAULT '', user TEXT, imap_host TEXT, imap_port INTEGER DEFAULT 993, smtp_host TEXT, smtp_port INTEGER DEFAULT 465, smtp_starttls INTEGER DEFAULT 0, provider TEXT DEFAULT '', auto INTEGER DEFAULT 0, ts REAL, last_run REAL DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS mail_triage(id INTEGER PRIMARY KEY, mkey TEXT UNIQUE, acct INTEGER, uid INTEGER, validity INTEGER, from_name TEXT, from_addr TEXT, reply_to TEXT, subject TEXT, ts REAL, cat TEXT, summary TEXT, act TEXT, snippet TEXT, msgid TEXT, refs TEXT, unread INTEGER DEFAULT 1);
+        CREATE TABLE IF NOT EXISTS mail_log(id INTEGER PRIMARY KEY, ts REAL, acct INTEGER, text TEXT);
         """)
         exec("ALTER TABLE msg ADD COLUMN conv INTEGER DEFAULT 0")
         exec("ALTER TABLE msg ADD COLUMN files TEXT DEFAULT ''")

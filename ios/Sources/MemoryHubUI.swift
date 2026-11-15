@@ -337,12 +337,7 @@ struct JumpSheet: View {
                 : L10n.f("已复制提示词。打开 {} 后，在输入框长按粘贴并发送", s.name)
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: s.icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Brand.mint)
-                    .frame(width: 28, height: 28)
-                    .background(Brand.mint.opacity(0.14))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                AIIcon(service: s, size: 34)
                 Text(verbatim: s.name)
                     .font(.system(size: 14.5, weight: .medium))
                     .foregroundStyle(Brand.ink)

@@ -27,7 +27,8 @@ struct ChatView: View {
         ("magnifyingglass", "今天有什么重要的科技新闻？"),
         ("function", "房贷 120 万，30 年，利率 3.1%，月供多少？"),
         ("alarm", "明早十点叫我起床"),
-        ("calendar.badge.clock", "一周后下午三点提醒我交报告")
+        ("wand.and.stars", "做一份本周学习计划，导出成 PDF"),
+        ("envelope", "看看有什么要紧的邮件，该回的帮我起草")
     ]
 
     private func refreshCounts() {
@@ -266,6 +267,7 @@ struct ChatView: View {
                     Label(conns.isEmpty ? "添加连接器…" : "添加与管理…", systemImage: "slider.horizontal.3")
                 }
             } label: { Label("连接器", systemImage: "link") }
+            Button { state.page = .mail } label: { Label("邮箱", systemImage: "envelope") }
             Button { state.page = .mcp } label: { Label("MCP 服务", systemImage: "puzzlepiece.extension") }
             Button { state.page = .memory } label: { Label("AI 记忆", systemImage: "brain.head.profile") }
             Button { showClock = true } label: { Label("系统时钟闹钟", systemImage: "alarm") }
