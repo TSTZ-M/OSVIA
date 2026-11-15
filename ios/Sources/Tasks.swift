@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import UIKit
 import FoundationModels
 
 // 定时任务：计算与送达分离。打开 App 时提前生成内容，到点由系统通知准时送达。
@@ -43,7 +44,8 @@ enum Tasks {
             + (data.isEmpty ? "需要资料时先调用工具。" : "只依据下面给出的资料，不要编造。")
             + L10n.replyDirective + "当前时间：" + Sys.fmtFull(Date())
         let prompt = data + "任务：" + instr
-        if let r = await LLM.complete(instructions: ins, prompt: prompt, maxTokens: 300, temperature: 0.4) { return r }
+        if await UIApplication.shared.applicationState == .active,
+           let r = await LLM.complete(instructions: ins, prompt: prompt, maxTokens: 300, temperature: 0.4) { return r }
         if !weatherText.isEmpty { return weatherText }
         let s = LanguageModelSession(tools: [Recall(), FetchURL()], instructions: ins)
         return (try? await s.respond(to: prompt).content) ?? ""
@@ -117,8 +119,9 @@ enum Evolve {
     static func log() -> [Row] { DB.shared.rows("SELECT id, ts, summary, facts, ver FROM evo ORDER BY id DESC LIMIT 30") }
 
     // 一次性生成：云端大脑、本地大模型、系统模型依次尝试
-    private static func ask(_ ins: String, _ prompt: String) async -> String? {
-        await AI.oneShot(ins, prompt, maxTokens: 400)
+    // auto=true（回到前台自动触发）只用云端：本地模型占内存多、用户一切走就会被系统中断，不能在用户没要求时自动跑
+    private static func ask(_ ins: String, _ prompt: String, auto: Bool) async -> String? {
+        await AI.oneShot(ins, prompt, maxTokens: 400, local: !auto)
     }
 
     // 记录一次「从其他 AI 导入记忆」，在进化记录里显示
@@ -138,7 +141,7 @@ enum Evolve {
 
     // 记忆变了（导入、新增、编辑）才重新生成；自动触发时一小时内最多一次。返回是否更新了
     @discardableResult
-    static func refreshProfile(force: Bool = false) async -> Bool {
+    static func refreshProfile(force: Bool = false, local: Bool = false) async -> Bool {
         let n = Memory.count()
         if n == 0 {
             DB.shared.setKV("evolve.profile", "")
@@ -153,10 +156,14 @@ enum Evolve {
         }
         let list = Memory.all().prefix(120).map { "[\($0.s("cat"))]\($0.i("pin") == 1 ? "★" : "") " + String($0.s("text").prefix(160)) }.joined(separator: "\n")
         let ins = "你在为个人助理写「用户画像与回答指引」。根据下面关于用户的记忆，输出 3 到 5 句话（不超过 300 字）：用户是谁、做什么、所在领域；正在做的重要事项；回答时应遵循的语言、语气、详略和风格偏好；需要避免的事。直接写事实和指令，不加标题和序号；只写记忆里明确有的内容，不编造、不推测；不包含密码、证件号等机密。"
-        guard let out = await AI.oneShot(ins, String(list.prefix(6000)), maxTokens: 500, local: false) else { return false }
-        let t = out.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard t.count >= 20 else { return false }
-        let text = String(t.prefix(420))
+        // 云端优先；用户主动点「重新生成」时允许本地模型；否则（没有云端）用规则从记忆直接整理，保证没有云端也一定能「读到」
+        var text = ""
+        if let out = await AI.oneShot(ins, String(list.prefix(6000)), maxTokens: 500, local: local) {
+            let t = out.trimmingCharacters(in: .whitespacesAndNewlines)
+            if t.count >= 20 { text = String(t.prefix(420)) }
+        }
+        if text.isEmpty { text = Memory.digest(maxChars: 420) }
+        guard !text.isEmpty else { return false }
         DB.shared.setKV("evolve.profile", text)
         DB.shared.setKV("evolve.memsig", sig)
         DB.shared.setKV("evolve.profile.time", String(Date().timeIntervalSince1970))
@@ -169,14 +176,21 @@ enum Evolve {
     // 返回本次进化的摘要
     @discardableResult
     static func run(force: Bool = false) async -> String {
-        await refreshProfile()
+        await refreshProfile(force: force, local: force)
+        // 自动触发的进化最多每 6 小时一次，避免每次回到前台都重复（失败时尤其不能反复）
+        if !force {
+            guard CloudLLM.ready else { return "" }
+            if let t = Double(DB.shared.kv("evolve.try") ?? ""), Date().timeIntervalSince1970 - t < 6 * 3600 { return "" }
+        }
+        DB.shared.setKV("evolve.try", String(Date().timeIntervalSince1970))
         let last = Int(DB.shared.kv("evolve.last") ?? "0") ?? 0
         let rows = DB.shared.rows("SELECT id, role, text FROM msg WHERE id > ? ORDER BY id LIMIT 20", [last])
         guard rows.count >= (force ? 2 : 6), let maxId = rows.last?.i("id") else {
             return force ? "还没有足够的新对话可供进化。" : ""
         }
         let logs = String(rows.map { $0.s("role") + ": " + String($0.s("text").prefix(150)) }.joined(separator: "\n").suffix(1200))
-        guard let facts = await ask("反思引擎，只输出结果，不闲聊", "提炼不超过5条关于用户的长期事实或偏好，每行一条；没有就只输出“无”：\n" + logs) else {
+        Diag.mark("进化：分析 \(rows.count) 条新对话（\(force ? "手动" : "自动")）")
+        guard let facts = await ask("反思引擎，只输出结果，不闲聊", "提炼不超过5条关于用户的长期事实或偏好，每行一条；没有就只输出“无”：\n" + logs, auto: !force) else {
             return force ? "进化时模型没有返回结果，稍后再试。" : ""
         }
         var learned: [String] = []

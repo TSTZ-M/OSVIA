@@ -239,9 +239,28 @@ enum Memory {
             round += 1
         }
         if lines.isEmpty { return ("", 0, 0) }
-        var t = "关于用户的已知信息（自然地运用，只在相关时提及，不要逐条复述，更不要说「根据你的记忆」）：\n" + lines.joined(separator: "\n")
+        var t = "【用户本人的资料】下面是用户自己导入或告诉过你的信息。用户问到自己（我是谁、我的…、你了解我什么）或需要个性化建议时，必须依据这些资料回答；无关时不要提及，也不要说「根据你的记忆」：\n" + lines.joined(separator: "\n")
         if hint && rows.count > lines.count { t += "\n（共 \(rows.count) 条记忆，以上是节选；要查更多细节调用 search_memory。）" }
         return (t, rel.count, lines.count)
+    }
+
+    // 不用任何模型，直接把记忆按类别整理成一段话（用户画像的保底版本）
+    static func digest(maxChars: Int) -> String {
+        let rows = all()
+        var parts: [String] = []
+        var used = 0
+        for c in ["个人", "工作", "偏好", "项目", "人际", "其他"] {
+            var items: [String] = []
+            for r in rows where r.s("cat") == c || (c == "其他" && !cats.contains(r.s("cat"))) {
+                let t = r.s("text").trimmingCharacters(in: .whitespacesAndNewlines)
+                if t.isEmpty { continue }
+                if used + t.count + 2 > maxChars { break }
+                items.append(t)
+                used += t.count + 2
+            }
+            if !items.isEmpty { parts.append(c + "：" + items.joined(separator: "；")) }
+        }
+        return parts.joined(separator: "。")
     }
 
     // MARK: 导出

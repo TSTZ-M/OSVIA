@@ -1,5 +1,26 @@
 import SwiftUI
 import MetricKit
+import Darwin
+
+// 崩溃现场：Swift 运行时陷阱（SIGTRAP）等信号发生时，把调用栈（含函数名）直接写进文件。
+// 信号处理函数里只做最基本的写文件，写完恢复默认处理并重新抛出，让系统照常生成崩溃报告。
+private var crashFD: Int32 = -1
+private let crashFrames = UnsafeMutablePointer<UnsafeMutableRawPointer?>.allocate(capacity: 64)
+
+private func crashHandler(_ sig: Int32) {
+    if crashFD >= 0 {
+        var head: [UInt8] = Array("\n=== SIGNAL ".utf8)
+        head.append(UInt8(48 + (sig / 10) % 10))
+        head.append(UInt8(48 + sig % 10))
+        head.append(10)
+        _ = head.withUnsafeBufferPointer { write(crashFD, $0.baseAddress, $0.count) }
+        let n = backtrace(crashFrames, 64)
+        backtrace_symbols_fd(crashFrames, n, crashFD)
+        fsync(crashFD)
+    }
+    signal(sig, SIG_DFL)
+    raise(sig)
+}
 
 // MARK: 诊断：记录关键步骤（崩溃后能看到最后做了什么）+ 接收系统的崩溃报告（MetricKit，次日送达）
 enum Diag {
@@ -42,12 +63,31 @@ enum Diag {
     private static let activeKey = "diag.active"
     static var lastAbnormal: String { UserDefaults.standard.string(forKey: "diag.abnormal") ?? "" }
 
+    private static var traceURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("crash-trace.txt")
+    }
+
+    // 上一次崩溃留下的调用栈（没有就是空串）
+    static func trace() -> String {
+        guard let t = try? String(contentsOf: traceURL, encoding: .utf8) else { return "" }
+        return String(t.suffix(6000))
+    }
+
+    private static func installCrashHandler() {
+        let u = traceURL
+        // 保留上一次的现场，满 20KB 就重新开始
+        if let a = try? FileManager.default.attributesOfItem(atPath: u.path), (a[.size] as? Int ?? 0) > 20_000 { try? FileManager.default.removeItem(at: u) }
+        crashFD = open(u.path, O_WRONLY | O_CREAT | O_APPEND, 0o644)
+        for s in [SIGTRAP, SIGABRT, SIGSEGV, SIGBUS, SIGILL, SIGFPE] { signal(s, crashHandler) }
+    }
+
     static func launch() {
         let ud = UserDefaults.standard
         if ud.bool(forKey: activeKey) {
             let t = tail(14)
             ud.set(stamp.string(from: Date()) + " 上次在前台异常结束，最后的记录：\n" + t, forKey: "diag.abnormal")
         }
+        installCrashHandler()
         ud.set(false, forKey: activeKey)
         trimLog()
         mark("—— 启动 v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"))
@@ -62,6 +102,9 @@ enum Diag {
     static func clear() {
         UserDefaults.standard.removeObject(forKey: "diag.abnormal")
         queue.sync { try? FileManager.default.removeItem(at: fileURL) }
+        if crashFD >= 0 { ftruncate(crashFD, 0) }
+        try? FileManager.default.removeItem(at: traceURL)
+        crashFD = open(traceURL.path, O_WRONLY | O_CREAT | O_APPEND, 0o644)
         for u in reports() { try? FileManager.default.removeItem(at: u) }
     }
 
@@ -122,9 +165,11 @@ struct DiagView: View {
     @State private var abnormal = Diag.lastAbnormal
     @State private var reports: [URL] = Diag.reports()
     @State private var log = Diag.tail(60)
+    @State private var trace = Diag.trace()
 
     private var all: String {
-        var s = "OSVIA 诊断（\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")）\n"
+        var s = "OSVIA 诊断（\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")，构建 \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")）\n"
+        if !trace.isEmpty { s += "\n崩溃现场：\n" + trace + "\n" }
         if !abnormal.isEmpty { s += "\n" + abnormal + "\n" }
         for r in reports.prefix(2) { s += "\n系统崩溃报告 " + r.lastPathComponent + "\n" + Diag.summary(r) }
         s += "\n最近记录：\n" + log
@@ -142,7 +187,13 @@ struct DiagView: View {
                     abnormal = ""
                     reports = []
                     log = ""
+                    trace = ""
                 } label: { Label("清除记录", systemImage: "trash") }
+            }
+            if !trace.isEmpty {
+                Section("崩溃现场") {
+                    Text(verbatim: trace).font(.system(size: 10.5, design: .monospaced)).textSelection(.enabled)
+                }
             }
             if !abnormal.isEmpty {
                 Section("上次异常退出") {
@@ -164,6 +215,7 @@ struct DiagView: View {
             abnormal = Diag.lastAbnormal
             reports = Diag.reports()
             log = Diag.tail(60)
+            trace = Diag.trace()
         }
     }
 }

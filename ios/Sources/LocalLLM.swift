@@ -276,10 +276,37 @@ final class LocalLLM: ObservableObject {
     private var task: Task<Void, Never>?
     private var loadTask: Task<ModelContainer, Error>?
 
+    // 同一时刻只允许一个生成任务；App 离开前台就中止（后台不允许提交 GPU 任务，硬撑会直接崩溃）
+    private var busy = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var aborted = false
+
     init() {
         refresh()
-        NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
+        let nc = NotificationCenter.default
+        nc.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.unload() }
+        }
+        for n in [UIApplication.willResignActiveNotification, UIApplication.didEnterBackgroundNotification] {
+            nc.addObserver(forName: n, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.aborted = true }
+            }
+        }
+    }
+
+    private func acquire() async {
+        if !busy {
+            busy = true
+            return
+        }
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in waiters.append(c) }
+    }
+
+    private func release() {
+        if waiters.isEmpty {
+            busy = false
+        } else {
+            waiters.removeFirst().resume()
         }
     }
 
@@ -421,9 +448,19 @@ final class LocalLLM: ObservableObject {
         history: [(role: String, text: String)] = [],
         onText: @escaping (String) -> Void = { _ in }
     ) async throws -> String {
+        guard UIApplication.shared.applicationState == .active else {
+            Diag.mark("本地模型：App 不在前台，不生成")
+            throw CancellationError()
+        }
+        await acquire()
+        defer { release() }
+        // 排队期间用户可能已经离开
+        guard UIApplication.shared.applicationState == .active, !Task.isCancelled else { throw CancellationError() }
+        aborted = false
         Diag.mark("本地模型生成开始")
         defer { Diag.mark("本地模型生成结束") }
         let c = try await ensureLoaded()
+        if aborted { throw CancellationError() }
         var gp = GenerateParameters()
         gp.maxTokens = maxTokens
         gp.temperature = temperature
@@ -436,9 +473,14 @@ final class LocalLLM: ObservableObject {
             additionalContext: ["enable_thinking": false])
         var acc = ""
         for try await chunk in session.streamResponse(to: prompt) {
+            if aborted || Task.isCancelled {
+                Diag.mark("本地模型：离开前台，中止生成")
+                break
+            }
             acc += chunk
             onText(Self.clean(acc))
         }
+        if aborted { throw CancellationError() }
         return Self.clean(acc)
     }
 

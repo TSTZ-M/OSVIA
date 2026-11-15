@@ -42,7 +42,7 @@ enum Digest {
         if let ok = try? await store.requestFullAccessToReminders(), ok {
             let pred = store.predicateForReminders(in: nil)
             let all: [EKReminder] = await withCheckedContinuation { (c: CheckedContinuation<[EKReminder], Never>) in
-                store.fetchReminders(matching: pred) { c.resume(returning: $0 ?? []) }
+                store.fetchReminders(matching: pred) { @Sendable r in c.resume(returning: r ?? []) }
             }
             let todo = all.filter { r in
                 guard !r.isCompleted, let comps = r.dueDateComponents, let d = cal.date(from: comps) else { return false }
