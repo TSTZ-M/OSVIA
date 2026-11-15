@@ -39,6 +39,44 @@
 	<array>
 		<string>shortcuts</string>
 		<string>scriptable</string>
+		<string>weixin</string>
+		<string>alipay</string>
+		<string>taobao</string>
+		<string>openapp.jdmobile</string>
+		<string>pinduoduo</string>
+		<string>imeituan</string>
+		<string>eleme</string>
+		<string>snssdk1128</string>
+		<string>sinaweibo</string>
+		<string>xhsdiscover</string>
+		<string>bilibili</string>
+		<string>mqq</string>
+		<string>iosamap</string>
+		<string>baidumap</string>
+		<string>orpheus</string>
+		<string>qqmusic</string>
+		<string>zhihu</string>
+		<string>diditaxi</string>
+		<string>dingtalk</string>
+		<string>lark</string>
+		<string>wxwork</string>
+		<string>obsidian</string>
+		<string>notion</string>
+		<string>bear</string>
+		<string>things</string>
+		<string>pages</string>
+		<string>numbers</string>
+		<string>keynote</string>
+		<string>ms-word</string>
+		<string>ms-excel</string>
+		<string>tg</string>
+		<string>whatsapp</string>
+		<string>chatgpt</string>
+		<string>googlegmail</string>
+		<string>ms-outlook</string>
+		<string>spotify</string>
+		<string>youtube</string>
+		<string>comgooglemaps</string>
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
@@ -48,6 +86,10 @@
 	<string>助理需要为你添加和回顾日程</string>
 	<key>NSCameraUsageDescription</key>
 	<string>拍照后让助理识别文字或转换格式</string>
+	<key>NSContactsUsageDescription</key>
+	<string>助理在你要求时查询联系人的电话和邮箱（每次都会先征求你的同意）</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>助理需要你的位置来回答附近、本地天气和路线相关的问题（只在你提问时使用）</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>语音输入需要使用麦克风</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
