@@ -420,7 +420,8 @@ final class Agent: ObservableObject {
     // MARK: 模型
     // time：只在问题和时间有关时才告诉模型当前日期，否则它会把日期当成要回答的内容
     nonisolated static func instructions(time: Bool, query: String = "") -> String {
-        let mem = query.isEmpty ? "" : Memory.block(for: query, budget: 500, recent: false).text
+        let mem = query.isEmpty ? "" : Memory.block(for: query, budget: 600, recent: false).text
+        let prof = Evolve.profile()
         let concise = (UserDefaults.standard.object(forKey: "style") as? Int ?? 0) == 0
         var base = Evolve.prompt()
         if !L10n.isChinese {
@@ -433,6 +434,7 @@ final class Agent: ObservableObject {
             + (concise ? "回答要简短。" : "回答可以详细一些。")
             + "需要列表或代码时用 Markdown。不知道就直说不知道，不要编造。不要向用户提及任何内部工具的名字。"
             + (mem.isEmpty ? "" : "\n" + mem)
+            + (prof.isEmpty ? "" : "\n用户画像与回答指引：" + String(prof.prefix(320)))
     }
 
     // 本地大模型的系统提示：不再提到 remember / recall 之类的工具；工具说明由 LocalBrain 按需追加
@@ -449,9 +451,11 @@ final class Agent: ObservableObject {
         let p = Evolve.prompt()
         if p != Evolve.defaultPrompt { s += "\n用户偏好补充：" + String(p.prefix(300)) }
         if !query.isEmpty {
-            let mem = Memory.block(for: query, budget: 500, recent: false).text
+            let mem = Memory.block(for: query, budget: 600, recent: false).text
             if !mem.isEmpty { s += "\n" + mem }
         }
+        let prof = Evolve.profile()
+        if !prof.isEmpty { s += "\n用户画像与回答指引：" + String(prof.prefix(320)) }
         return s
     }
 

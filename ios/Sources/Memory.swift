@@ -4,12 +4,14 @@ import FoundationModels
 // MARK: 一次性生成：云端大脑 → 本地大模型 → 系统模型（整理记忆、提炼事实用）
 enum AI {
     @MainActor
-    static func oneShot(_ ins: String, _ prompt: String, maxTokens: Int = 900) async -> String? {
+    // local：是否允许用本地大模型（MLX）。后台自动做的事（邮件分拣、更新画像）传 false：
+    // 加载几个 GB 的模型会和界面抢内存，容易被系统杀掉；这类任务走云端或系统自带模型，都没有就不做。
+    static func oneShot(_ ins: String, _ prompt: String, maxTokens: Int = 900, local: Bool = true) async -> String? {
         if CloudLLM.ready {
             let msgs: [[String: String]] = [["role": "system", "content": ins], ["role": "user", "content": prompt]]
             if let r = try? await CloudLLM.stream(msgs, maxTokens: maxTokens, temperature: 0.2, onText: { _ in }), !r.isEmpty { return r }
         }
-        if let r = await LLM.complete(instructions: ins, prompt: prompt, maxTokens: maxTokens, temperature: 0.2) { return r }
+        if local, let r = await LLM.complete(instructions: ins, prompt: prompt, maxTokens: maxTokens, temperature: 0.2) { return r }
         if case .available = SystemLanguageModel.default.availability {
             return try? await LanguageModelSession(instructions: ins).respond(to: prompt).content
         }
@@ -105,8 +107,13 @@ enum Memory {
     // 批量写入：跳过和已有记忆高度相似的；返回新增条数
     @discardableResult
     static func addMany(_ items: [MemItem], src: String, pin: Bool = false) -> Int {
+        addManyIDs(items, src: src, pin: pin).count
+    }
+
+    // 同上，返回新增的记忆编号（用于「撤销导入」）
+    static func addManyIDs(_ items: [MemItem], src: String, pin: Bool = false) -> [Int] {
         var existing = DB.shared.rows("SELECT text FROM memory").map { grams($0.s("text")) }
-        var n = 0
+        var ids: [Int] = []
         let now = Date().timeIntervalSince1970
         for it in items {
             let t = String(it.text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(400))
@@ -115,10 +122,14 @@ enum Memory {
             if existing.contains(where: { jaccard($0, g) >= 0.7 }) { continue }
             existing.append(g)
             let c = cats.contains(it.cat) ? it.cat : guess(t)
-            DB.shared.run("INSERT INTO memory(text,cat,src,ts,pin) VALUES(?,?,?,?,?)", [t, c, src, now - Double(n) * 0.001, pin ? 1 : 0])
-            n += 1
+            let id = DB.shared.run("INSERT INTO memory(text,cat,src,ts,pin) VALUES(?,?,?,?,?)", [t, c, src, now - Double(ids.count) * 0.001, pin ? 1 : 0])
+            if id > 0 { ids.append(Int(id)) }
         }
-        return n
+        return ids
+    }
+
+    static func removeMany(_ ids: [Int]) {
+        for id in ids { DB.shared.run("DELETE FROM memory WHERE id=?", [id]) }
     }
 
     static func remove(_ id: Int) { DB.shared.run("DELETE FROM memory WHERE id=?", [id]) }
@@ -134,28 +145,73 @@ enum Memory {
     // MARK: 检索与注入
     private static let stop: Set<Character> = ["的", "了", "是", "在", "我", "你", "他", "她", "它", "吗", "呢", "吧", "啊", "和", "与", "有", "就", "也", "都", "要", "会", "能", "可", "以", "不", "这", "那", "个", "么", "什", "一", "下", "请", "帮"]
 
-    private static func queryGrams(_ q: String) -> Set<String> {
-        let c = Array(q.lowercased().filter { !$0.isWhitespace && !$0.isPunctuation && !stop.contains($0) })
-        guard c.count > 1 else { return Set(c.map { String($0) }) }
-        return Set((0..<(c.count - 1)).map { String(c[$0...($0 + 1)]) })
+    // 检索词：中文的相邻两字（遇到停用字断开）+ 英文数字单词
+    private static func terms(_ s: String) -> Set<String> {
+        var out = Set<String>()
+        var word = ""
+        var prev: Character?
+        func flush() {
+            if word.count >= 2 { out.insert(word) }
+            word = ""
+        }
+        for ch in s.lowercased() {
+            if ch.isASCII && (ch.isLetter || ch.isNumber) {
+                word.append(ch)
+                prev = nil
+                continue
+            }
+            flush()
+            if ch.isLetter && !ch.isASCII && !stop.contains(ch) {
+                if let p = prev { out.insert(String([p, ch])) }
+                prev = ch
+            } else {
+                prev = nil
+            }
+        }
+        flush()
+        return out
     }
 
+    // 按词的稀有程度加权打分（越少见的词命中越有价值），取最相关的几条
     static func relevant(_ q: String, k: Int = 6) -> [String] {
-        let qg = queryGrams(q)
-        guard !qg.isEmpty else { return [] }
+        let qt = terms(q)
+        guard !qt.isEmpty else { return [] }
+        let rows = all()
+        guard !rows.isEmpty else { return [] }
+        let docs = rows.map { terms($0.s("text")) }
+        var df: [String: Int] = [:]
+        for d in docs { for t in d { df[t, default: 0] += 1 } }
+        let n = Double(rows.count)
         var scored: [(Double, String)] = []
-        for r in all() {
-            let t = r.s("text")
-            let hit = Double(qg.intersection(grams(t)).count) / Double(qg.count)
-            if hit >= 0.18 { scored.append((hit + (r.i("pin") == 1 ? 0.2 : 0), t)) }
+        for (i, r) in rows.enumerated() {
+            var sc = 0.0
+            for t in qt where docs[i].contains(t) { sc += log(1 + n / Double(df[t] ?? 1)) }
+            if sc >= 2.0 { scored.append((sc + (r.i("pin") == 1 ? 0.5 : 0), r.s("text"))) }
         }
         return scored.sorted { $0.0 > $1.0 }.prefix(k).map { $0.1 }
     }
 
-    // 注入系统提示词的「关于用户」。budget 是字数上限；recent 为真时再补充最近的几条，让回答更贴近用户
-    static func block(for q: String, budget: Int, recent: Bool) -> (text: String, relevant: Int) {
+    // 没有精确命中时的概览：置顶的 + 每个类别最近的几条
+    static func overview(_ n: Int = 12) -> [String] {
+        var out: [String] = []
         let rows = all()
-        if rows.isEmpty { return ("", 0) }
+        for r in rows where r.i("pin") == 1 { out.append(r.s("text")) }
+        for c in cats {
+            for r in rows.filter({ $0.s("cat") == c && $0.i("pin") == 0 }).prefix(3) { out.append(r.s("text")) }
+        }
+        return Array(out.prefix(n))
+    }
+
+    private static func asksAboutUser(_ q: String) -> Bool {
+        let t = q.lowercased()
+        return ["我是谁", "了解我", "关于我", "我的", "记得", "记忆", "记住", "我喜欢", "我平时", "我做", "我在", "之前", "我们", "who am i", "about me", "remember", "my "].contains { t.contains($0) }
+    }
+
+    // 注入系统提示词的「关于用户」：置顶 → 与问题相关的 → 每个类别轮流取几条做骨架，直到用满字数预算。
+    // 这样即使问题和记忆没有共同词（比如「帮我写个自我介绍」），助理也始终知道你是谁。
+    static func block(for q: String, budget: Int, recent: Bool, hint: Bool = false) -> (text: String, relevant: Int, lines: Int) {
+        let rows = all()
+        if rows.isEmpty { return ("", 0, 0) }
         var lines: [String] = []
         var used = 0
         func push(_ t: String) {
@@ -165,11 +221,27 @@ enum Memory {
             used += l.count
         }
         for r in rows where r.i("pin") == 1 { push(r.s("text")) }
-        let rel = relevant(q, k: 6)
+        let rel = relevant(q, k: asksAboutUser(q) ? 12 : 6)
         for t in rel { push(t) }
-        if recent { for r in rows.prefix(12) where lines.count < 14 { push(r.s("text")) } }
-        if lines.isEmpty { return ("", 0) }
-        return ("关于用户的已知信息（自然地运用，只在相关时提及，不要逐条复述，更不要说「根据你的记忆」）：\n" + lines.joined(separator: "\n"), rel.count)
+        var byCat: [String: [Row]] = [:]
+        for r in rows where r.i("pin") == 0 { byCat[r.s("cat"), default: []].append(r) }
+        let order = ["个人", "工作", "偏好", "项目", "人际", "其他"]
+        var round = 0
+        while used < budget && round < 10 {
+            var any = false
+            for c in order {
+                if let list = byCat[c], round < list.count {
+                    push(list[round].s("text"))
+                    any = true
+                }
+            }
+            if !any { break }
+            round += 1
+        }
+        if lines.isEmpty { return ("", 0, 0) }
+        var t = "关于用户的已知信息（自然地运用，只在相关时提及，不要逐条复述，更不要说「根据你的记忆」）：\n" + lines.joined(separator: "\n")
+        if hint && rows.count > lines.count { t += "\n（共 \(rows.count) 条记忆，以上是节选；要查更多细节调用 search_memory。）" }
+        return (t, rel.count, lines.count)
     }
 
     // MARK: 导出
@@ -375,6 +447,46 @@ enum MemoryImport {
             if let out = await AI.oneShot(distillRules, b, maxTokens: 1500) { items += parse(out) }
         }
         return items
+    }
+}
+
+extension MemoryImport {
+    struct QuickResult {
+        var ids: [Int] = []
+        var found = 0
+        var error = ""
+    }
+
+    // 看起来已经是「每行一条」的列表、Markdown 或 JSON：直接解析，不需要 AI
+    private static func looksStructured(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.hasPrefix("[") || t.hasPrefix("{") { return true }
+        let lines = t.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty && !$0.hasPrefix("```") }
+        guard lines.count >= 3 else { return false }
+        let hits = lines.filter { $0.range(of: "^(?:[-*•+·]|\\d{1,3}[.)、]|[\\[【(（#])", options: .regularExpression) != nil }.count
+        return Double(hits) / Double(lines.count) >= 0.5
+    }
+
+    // 一步到位：识别 → （必要时 AI 提炼）→ 去重写入。不再逐条确认，导入后可一键撤销。
+    @MainActor
+    static func quick(_ raw: String, chat: [String], source: String, progress: @escaping (String) -> Void) async -> QuickResult {
+        var items: [MemItem] = []
+        if chat.isEmpty && looksStructured(raw) { items = parse(raw) }
+        if items.isEmpty {
+            if await AI.available() {
+                items = await distill(chat.isEmpty ? raw : chat.joined(separator: "\n"), progress: progress) ?? []
+            }
+            if items.isEmpty && chat.isEmpty { items = parse(raw) }
+        }
+        var r = QuickResult()
+        r.found = items.count
+        guard !items.isEmpty else {
+            r.error = chat.isEmpty ? "没有识别出可导入的内容。" : "需要先在设置里配置云端大脑或下载本地模型，才能从对话记录里提炼。"
+            return r
+        }
+        r.ids = Memory.addManyIDs(items, src: source)
+        Evolve.logImport(source: source, added: r.ids.count, sample: items.map { $0.text })
+        return r
     }
 }
 

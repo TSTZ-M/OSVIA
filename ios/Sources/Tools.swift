@@ -55,7 +55,8 @@ struct Recall: Tool {
         @Guide(description: "要查的内容，一句话") var query: String
     }
     func call(arguments a: Arguments) async throws -> String {
-        let r = Memory.relevant(a.query, k: 5) + KB.shared.search(a.query)
+        var r = Memory.relevant(a.query, k: 6) + KB.shared.search(a.query)
+        if r.isEmpty { r = Memory.overview(10) }
         return r.isEmpty ? "知识库里没有相关内容" : r.joined(separator: "\n---\n")
     }
 }

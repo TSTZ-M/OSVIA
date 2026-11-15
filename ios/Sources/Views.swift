@@ -39,6 +39,7 @@ struct OSVIAApp: App {
     @AppStorage("appearance") private var appearance = 0
 
     init() {
+        Diag.launch()
         L10n.bootstrap()
         Mail.registerBG()
         UNUserNotificationCenter.current().delegate = NotifDelegate.shared
@@ -59,6 +60,7 @@ struct OSVIAApp: App {
                 .onOpenURL { URLRouter.handle($0) }
         }
         .onChange(of: phase) { _, p in
+            if p == .active { Diag.phase(active: true) } else if p == .background { Diag.phase(active: false) }
             if p == .active {
                 AppTheme.apply(appearance)
                 Task { await Tasks.refresh(); await Evolve.run(); await Mail.autoRunIfDue() }

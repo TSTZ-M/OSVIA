@@ -244,6 +244,7 @@ struct EvolvePage: View {
     @State private var vers: [Row] = []
     @State private var busy = false
     @State private var info = ""
+    @State private var profile = Evolve.profile()
 
     var body: some View {
         List {
@@ -267,6 +268,11 @@ struct EvolvePage: View {
                 }
                 .disabled(busy)
                 if !info.isEmpty { Text(info).foregroundStyle(Brand.ink) }
+            }
+            if !profile.isEmpty {
+                Section {
+                    Text(verbatim: profile).font(.subheadline).foregroundStyle(Brand.ink)
+                } header: { Text("助理眼中的你") } footer: { Text("由你的记忆自动总结，每次对话都会带上。") }
             }
             Section("每次进化都做了什么") {
                 if log.isEmpty { Text("还没有进化记录。多聊几轮会自动进化，也可以点上面的「立即进化」。").foregroundStyle(Brand.sub) }
@@ -308,6 +314,7 @@ struct EvolvePage: View {
     func reload() {
         log = Evolve.log()
         vers = Evolve.versions()
+        profile = Evolve.profile()
     }
 }
 

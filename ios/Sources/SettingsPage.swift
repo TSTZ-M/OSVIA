@@ -103,6 +103,16 @@ struct AppSettingsView: View {
                 Section("权限") {
                     Button { openSettings() } label: { Label("通知、闹钟、照片、相机、麦克风等权限", systemImage: "gearshape") }
                 }
+                Section("诊断") {
+                    NavigationLink {
+                        DiagView()
+                    } label: {
+                        HStack {
+                            Label("诊断与崩溃线索", systemImage: "stethoscope")
+                            if !Diag.lastAbnormal.isEmpty { Spacer(); Text("有记录").font(.footnote).foregroundStyle(.orange) }
+                        }
+                    }
+                }
                 Section("数据") {
                     if let u = exportURL {
                         ShareLink(item: u) { Label("导出全部对话", systemImage: "square.and.arrow.up") }
