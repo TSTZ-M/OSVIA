@@ -179,7 +179,7 @@ enum Evolve {
         await refreshProfile(force: force, local: force)
         // 自动触发的进化最多每 6 小时一次，避免每次回到前台都重复（失败时尤其不能反复）
         if !force {
-            guard CloudLLM.ready else { return "" }
+            guard await CloudLLM.ready else { return "" }
             if let t = Double(DB.shared.kv("evolve.try") ?? ""), Date().timeIntervalSince1970 - t < 6 * 3600 { return "" }
         }
         DB.shared.setKV("evolve.try", String(Date().timeIntervalSince1970))
