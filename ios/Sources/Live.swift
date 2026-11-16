@@ -22,6 +22,9 @@ enum Live {
         (UserDefaults.standard.object(forKey: "liveOn") as? Bool ?? true) && ActivityAuthorizationInfo().areActivitiesEnabled
     }
 
+    // 当前这次请求的一句话概述，显示在岛上
+    static var query = ""
+
     private static let lock = NSLock()
     private static var last: Task<Void, Never>?
 
@@ -43,8 +46,9 @@ enum Live {
     static func set(_ p: Phase, _ subtitle: String? = nil) {
         guard enabled else { return }
         let sub = L10n.tr(subtitle ?? p.text)
+        let detail: String? = query.isEmpty ? nil : query
         enqueue {
-            let st = BotActivityAttributes.ContentState(title: Brand.name, subtitle: sub, end: nil, phase: p.rawValue)
+            let st = BotActivityAttributes.ContentState(title: Brand.name, subtitle: sub, end: nil, phase: p.rawValue, detail: detail)
             let content = ActivityContent(state: st, staleDate: Date().addingTimeInterval(180))
             if let a = assistant() {
                 await a.update(content)
@@ -69,16 +73,22 @@ enum Live {
     }
 
     // 开始思考 / 思考结束（结束时先显示「任务已完成」两秒再收起）
-    static func thinking(_ on: Bool) {
-        if on { set(.thinking) } else { finish() }
+    static func thinking(_ on: Bool, query q: String? = nil) {
+        if on {
+            if let q { query = String(q.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces).prefix(30)) }
+            set(.thinking)
+        } else {
+            finish()
+        }
     }
 
     static func finish() {
         guard enabled else { return }
         let sub = L10n.tr(Phase.done.text)
+        let detail: String? = query.isEmpty ? nil : query
         enqueue {
             guard let a = assistant() else { return }
-            let st = BotActivityAttributes.ContentState(title: Brand.name, subtitle: sub, end: nil, phase: Phase.done.rawValue)
+            let st = BotActivityAttributes.ContentState(title: Brand.name, subtitle: sub, end: nil, phase: Phase.done.rawValue, detail: detail)
             await a.update(ActivityContent(state: st, staleDate: Date().addingTimeInterval(30)))
         }
         Task {
@@ -91,17 +101,17 @@ enum Live {
         }
     }
 
-    static func timer(title: String, subtitle: String, end: Date) {
-        guard enabled else { return }
-        let t = L10n.tr(title)
-        let s = L10n.tr(subtitle)
-        enqueue {
-            for a in Activity<BotActivityAttributes>.activities where a.attributes.kind == "timer" {
-                await a.end(nil, dismissalPolicy: .immediate)
+    // 清理残留：旧版本留下的倒计时、过期没收起的状态，一律结束。启动和回到前台时调用。
+    // 闹钟与倒计时现在交给系统（AlarmKit），到点由系统自己收起，这里不再自建。
+    static func sweep() {
+        Task {
+            let busy = await MainActor.run { Agent.shared.busy }
+            for a in Activity<BotActivityAttributes>.activities {
+                let stale = a.activityState == .stale || a.activityState == .ended
+                if a.attributes.kind == "timer" || a.content.state.end != nil || (stale && !busy) {
+                    await a.end(nil, dismissalPolicy: .immediate)
+                }
             }
-            let st = BotActivityAttributes.ContentState(title: t, subtitle: s, end: end, phase: "timer")
-            let content = ActivityContent(state: st, staleDate: end.addingTimeInterval(120))
-            _ = try? Activity.request(attributes: BotActivityAttributes(kind: "timer"), content: content, pushType: nil)
         }
     }
 }

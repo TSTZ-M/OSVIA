@@ -4,7 +4,6 @@ import EventKit
 import UserNotifications
 import SwiftUI
 
-struct NoMeta: AlarmMetadata {}
 
 enum Sys {
     static let store = EKEventStore()
@@ -155,6 +154,40 @@ enum Sys {
             return "闹钟已设置：\(when)「\(title)」。内置闹钟不可用（\(kitErr)），已改为写入系统「时钟」，完成后会提示。"
         }
         return "闹钟没能设置成响铃：\(kitErr)。已先用通知提醒你，到点只会弹通知、不会响铃。"
+    }
+
+    // 倒计时：交给系统（AlarmKit 的计时器）。灵动岛和锁屏的倒计时由系统管理，结束或取消后自己收起，不会残留。
+    // 没有闹钟权限时返回空，调用方改用普通闹钟。
+    static func timer(_ secs: TimeInterval, _ label: String) async -> String? {
+        let title = label.isEmpty ? "倒计时" : label
+        do {
+            let mgr = AlarmManager.shared
+            if mgr.authorizationState == .notDetermined { _ = try await mgr.requestAuthorization() }
+            guard mgr.authorizationState == .authorized else { return nil }
+            await ensureNotif()
+            let id = UUID()
+            func res(_ s: String) -> LocalizedStringResource { LocalizedStringResource(stringLiteral: L10n.tr(s)) }
+            let alert = AlarmPresentation.Alert(title: res(title), stopButton: AlarmButton(text: res("停止"), textColor: .white, systemImageName: "stop.fill"))
+            let countdown = AlarmPresentation.Countdown(title: res(title), pauseButton: AlarmButton(text: res("暂停"), textColor: .white, systemImageName: "pause.fill"))
+            let paused = AlarmPresentation.Paused(title: res("已暂停"), resumeButton: AlarmButton(text: res("继续"), textColor: .white, systemImageName: "play.fill"))
+            let attrs = AlarmAttributes<NoMeta>(presentation: AlarmPresentation(alert: alert, countdown: countdown, paused: paused),
+                                                metadata: NoMeta(kind: "timer"), tintColor: Color(red: 0, green: 0.9, blue: 0.66))
+            _ = try await mgr.schedule(id: id, configuration: AlarmManager.AlarmConfiguration.timer(duration: secs, attributes: attrs))
+            guard ((try? mgr.alarms) ?? []).contains(where: { $0.id == id }) else { return nil }
+            let d = Date().addingTimeInterval(secs)
+            DB.shared.run("INSERT OR REPLACE INTO alarm(id,label,due,rep) VALUES(?,?,?,?)", [id.uuidString, title, d.timeIntervalSince1970, 0])
+            notify(id: "alarm-\(id.uuidString)", title: "闹钟", body: title, at: d, rep: 0, sound: false)
+            return "倒计时已设置：\(friendly(d))「\(title)」。灵动岛和锁屏会显示倒计时（可暂停、取消），到点像系统计时器一样响铃，静音和专注模式下也会响。"
+        } catch {
+            return nil
+        }
+    }
+
+    // 90 分钟内的一次性闹钟按倒计时处理（灵动岛有倒计时、到点系统收起）；更远的或重复闹钟走普通闹钟
+    static func alarmSmart(_ d: Date, _ label: String, rep: Int = 0) async -> String {
+        let secs = d.timeIntervalSinceNow
+        if rep == 0, secs >= 5, secs <= 90 * 60, let r = await timer(secs, label) { return r }
+        return await alarm(d, label, rep: rep)
     }
 
     // 写入「时钟」成功后，取消内置备份，避免同一时间响两次

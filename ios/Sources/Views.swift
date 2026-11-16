@@ -63,6 +63,7 @@ struct OSVIAApp: App {
             if p == .active { Diag.phase(active: true) } else if p == .background { Diag.phase(active: false) }
             if p == .active {
                 AppTheme.apply(appearance)
+                Live.sweep()
                 Task { await Tasks.refresh(); await Evolve.run(); await Mail.autoRunIfDue() }
             }
         }
@@ -87,6 +88,14 @@ enum URLRouter {
                 c.queryItems = (c.queryItems ?? []) + [URLQueryItem(name: "result", value: out)]
                 if let u = c.url { Task { await UIApplication.shared.open(u) } }
             }
+        case "voice":
+            AppState.shared.voiceTick += 1
+        case "mail":
+            AppState.shared.page = .mail
+        case "tasks":
+            AppState.shared.page = .tasks
+        case "new":
+            Agent.shared.newChat()
         case "clock":
             ClockBridge.callback(q)
         case "connector":

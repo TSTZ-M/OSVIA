@@ -494,8 +494,8 @@ enum Hands {
         let end = Date().addingTimeInterval(total)
         let sid = trace.begin(.action, "设置倒计时", title)
         Live.set(.working)
-        let r = await Sys.alarm(end, title)
-        if r.hasPrefix("闹钟已设置") { Live.timer(title: title, subtitle: "倒计时", end: end) }
+        let r: String
+        if let t = await Sys.timer(total, title) { r = t } else { r = await Sys.alarm(end, title) }
         trace.end(sid, detail: title + " · " + Sys.friendly(end))
         return ToolResult(text: r, final: true)
     }

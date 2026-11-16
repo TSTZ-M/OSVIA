@@ -469,5 +469,14 @@ iCloud 自定义域名 ⇒ iCloud custom domain
 识别图片文字 ⇒ Recognize text in image
 查找空闲时间 ⇒ Find free time
 搜索文件 ⇒ Search files
+暂停 ⇒ Pause
+继续 ⇒ Resume
+已暂停 ⇒ Paused
+倒计时 ⇒ Countdown
+最近 {} 天 ⇒ Last {} days
+没有照片 ⇒ No photos
+没有找到 ⇒ Not found
+{} 张 ⇒ {} photos
+查找照片 ⇒ Find photos
 """#
 }

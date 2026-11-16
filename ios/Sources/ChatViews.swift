@@ -117,6 +117,7 @@ struct ChatView: View {
                     Text(verbatim: agent.confirm?.detail ?? "")
                 }
                 .onChange(of: state.page) { _, p in if p == nil { refreshCounts() } }
+                .onChange(of: state.voiceTick) { _, _ in voice.start() }
                 .onAppear {
                     refreshCounts()
                     conns = Connectors.all()

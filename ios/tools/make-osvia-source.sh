@@ -1,6 +1,6 @@
 #!/bin/bash
 # Mac usage: bash ios/tools/make-osvia-source.sh /path/to/OSVIA.ipa
-# The IPA must be the one downloaded from release OSVIA-latest.
+# The IPA must be the one published as release OSVIA-<build> (CFBundleVersion).
 # Writes OSVIA-source.json at the repo root from the real IPA.
 set -euo pipefail
 IPA="$1"
@@ -14,7 +14,7 @@ VER=$(plutil -extract CFBundleShortVersionString raw "$TMP/Info.plist")
 BUILD=$(plutil -extract CFBundleVersion raw "$TMP/Info.plist")
 SIZE=$(stat -f%z "$IPA")
 DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-BASE="https://github.com/$REPO/releases/download/OSVIA-latest"
+BASE="https://github.com/$REPO/releases/download/OSVIA-$BUILD"
 ICON="https://raw.githubusercontent.com/$REPO/main/ios/Sources/Assets.xcassets/AppIcon.appiconset/icon.png"
 cat > "$ROOT/OSVIA-source.json" <<EOF
 {

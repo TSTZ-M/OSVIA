@@ -72,7 +72,6 @@ enum Tasks {
                 let pureRepeat = rep > 0 && !useModel
                 Sys.notify(id: "task-\(id)", title: r.s("title"), body: body, at: Date(timeIntervalSince1970: due), rep: pureRepeat ? rep : 0)
                 DB.shared.run("UPDATE task SET notified=1 WHERE id=?", [id])
-                if due - now < 8 * 3600 { Live.timer(title: r.s("title"), subtitle: "定时任务", end: Date(timeIntervalSince1970: due)) }
                 n += 1
             } else {
                 if r.i("notified") == 0 {
