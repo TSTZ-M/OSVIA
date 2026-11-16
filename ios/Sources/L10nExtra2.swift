@@ -407,5 +407,6 @@ Qwen3.5 4B（新） ⇒ Qwen3.5 4B (new)
 Qwen3.5 2B（新） ⇒ Qwen3.5 2B (new)
 新一代 Qwen3.5，推理与工具调用更强；社区转换的纯文本版，若加载失败请换回默认 ⇒ Next-gen Qwen3.5 with stronger reasoning and tool use; a community text-only conversion — switch back to the default if it fails to load
 新一代小模型，比 Qwen2.5 1.5B 聪明且更省内存；社区转换的纯文本版 ⇒ Next-gen small model, smarter than Qwen2.5 1.5B and light on memory; a community text-only conversion
+崩溃现场 ⇒ Crash trace
 """#
 }

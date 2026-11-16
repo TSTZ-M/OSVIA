@@ -27,7 +27,7 @@ final class MailStream {
 
     func write(_ d: Data) async throws {
         try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
-            task.write(d, timeout: 30) { e in
+            task.write(d, timeout: 30) { @Sendable e in
                 if let e { c.resume(throwing: MailError(e.localizedDescription)) } else { c.resume() }
             }
         }
@@ -35,7 +35,7 @@ final class MailStream {
 
     private func fill() async throws {
         let d: Data = try await withCheckedThrowingContinuation { c in
-            task.readData(ofMinLength: 1, maxLength: 65536, timeout: 30) { data, eof, e in
+            task.readData(ofMinLength: 1, maxLength: 65536, timeout: 30) { @Sendable data, eof, e in
                 if let e { c.resume(throwing: MailError(e.localizedDescription)) } else if let data, !data.isEmpty { c.resume(returning: data) } else if eof { c.resume(throwing: MailError("服务器断开了连接")) } else { c.resume(returning: Data()) }
             }
         }
@@ -105,9 +105,11 @@ final class IMAPClient {
     }
 
     func connect(user: String, pass: String) async throws {
+        Diag.mark("IMAP 连接")
         let g = try await s.line()
         guard g.hasPrefix("* OK") || g.hasPrefix("* PREAUTH") else { throw MailError("服务器没有正常响应：" + String(g.prefix(80))) }
         guard user.allSatisfy({ $0.isASCII }), pass.allSatisfy({ $0.isASCII }) else { throw MailError("账号或密码里有非英文字符，请检查是否复制了多余内容。") }
+        Diag.mark("IMAP 登录")
         let r = try await cmd("LOGIN \(Self.quote(user)) \(Self.quote(pass))", allowFail: true)
         if !r.ok { throw MailError(Self.explain(r.status)) }
         let c = try await cmd("CAPABILITY")
@@ -190,6 +192,7 @@ final class IMAPClient {
     }
 
     func select(_ folder: String) async throws {
+        Diag.mark("IMAP 选择 " + folder)
         let r = try await cmd("SELECT \(Self.quote(folder))")
         for u in r.untagged {
             let h = u.head
@@ -212,6 +215,7 @@ final class IMAPClient {
     func fetchRecent(count: Int, maxBytes: Int = 9000) async throws -> [IMAPMsg] {
         guard exists > 0 else { return [] }
         let from = max(1, exists - count + 1)
+        Diag.mark("IMAP 取信 \(from):\(exists)")
         let r = try await cmd("FETCH \(from):\(exists) (UID FLAGS INTERNALDATE BODY.PEEK[]<0.\(maxBytes)>)")
         debug = r.untagged.prefix(2).map { String($0.head.prefix(200)) }.joined(separator: " | ")
         return r.untagged.compactMap(parseFetch).sorted { $0.uid > $1.uid }

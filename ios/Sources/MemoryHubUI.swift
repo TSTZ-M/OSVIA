@@ -140,7 +140,7 @@ struct MemoryHubView: View {
                     Button {
                         busy = true
                         Task {
-                            await Evolve.refreshProfile(force: true)
+                            await Evolve.refreshProfile(force: true, local: true)
                             busy = false
                             reload()
                         }

@@ -565,6 +565,10 @@ final class Agent: ObservableObject {
         let extra = imageMode ? "" : await localContext(t, tr: tr)
         let turns: [Brain.Turn] = imageMode ? [] : Array(history().suffix(6))
         let ins = Self.localInstructions(time: Self.needsTime(t, []), query: t)
+        if !imageMode {
+            let m = Memory.block(for: t, budget: 600, recent: false)
+            if m.lines > 0 { tr.note(.memory, L10n.f("载入 {} 条记忆，{} 条与问题相关", "\(m.lines)", "\(m.relevant)"), "") }
+        }
         let user: String
         if imageMode {
             user = Self.imagePrompt(t, ctx)
