@@ -91,7 +91,7 @@ private struct AlarmTime: View {
             switch state.mode {
             case .countdown(let c):
                 let now = Date.now
-                Text(timerInterval: now ..< max(c.fireDate, now.addingTimeInterval(1)), countsDown: true)
+                Text(timerInterval: now ... max(c.fireDate, now.addingTimeInterval(1)), countsDown: true)
             case .paused(let p):
                 Text(Self.format(p.totalCountdownDuration - p.previouslyElapsedDuration))
             default:
