@@ -25,17 +25,52 @@ struct MailView: View {
     @State private var busy = false
     @State private var info = ""
     @State private var open: Set<String> = []
+    @State private var query = ""
+    @State private var filter = 0          // 0 全部 1 未读 2 需处理 3 星标
+    @State private var trashID: Int?
+    @State private var actionError = ""
+
+    private func todo(_ r: Row) -> Bool { ["urgent", "reply"].contains(r.s("cat")) }
+
+    private var unreadCount: Int { items.filter { $0.i("unread") == 1 && $0.s("cat") != "promo" }.count }
+    private var todoCount: Int { items.filter(todo).count }
+    private var starCount: Int { items.filter { $0.i("flagged") == 1 }.count }
+
+    // 先按筛选，再按搜索词
+    private var shown: [Row] {
+        items.filter { r in
+            switch filter {
+            case 1: return r.i("unread") == 1
+            case 2: return todo(r)
+            case 3: return r.i("flagged") == 1
+            default: return true
+            }
+        }
+        .filter { r in
+            let q = query.trimmingCharacters(in: .whitespaces)
+            if q.isEmpty { return true }
+            return [r.s("from_name"), r.s("from_addr"), r.s("subject"), r.s("summary"), r.s("snippet")].contains { $0.localizedCaseInsensitiveContains(q) }
+        }
+    }
+
+    private var flat: Bool { filter != 0 || !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
     private var groups: [MailGroup] {
-        [MailGroup(key: "todo", title: "需要你处理", icon: "exclamationmark.circle.fill", rows: items.filter { ["urgent", "reply"].contains($0.s("cat")) }),
-         MailGroup(key: "info", title: "了解即可", icon: "tray", rows: items.filter { $0.s("cat") == "info" }),
-         MailGroup(key: "notice", title: "通知", icon: "bell", rows: items.filter { $0.s("cat") == "notice" }),
-         MailGroup(key: "promo", title: "订阅与营销", icon: "newspaper", rows: items.filter { $0.s("cat") == "promo" })]
+        let s = shown
+        return [MailGroup(key: "todo", title: "需要你处理", icon: "exclamationmark.circle.fill", rows: s.filter(todo)),
+                MailGroup(key: "info", title: "了解即可", icon: "tray", rows: s.filter { $0.s("cat") == "info" }),
+                MailGroup(key: "notice", title: "通知", icon: "bell", rows: s.filter { $0.s("cat") == "notice" }),
+                MailGroup(key: "promo", title: "订阅与营销", icon: "newspaper", rows: s.filter { $0.s("cat") == "promo" })]
     }
 
     var body: some View {
-        List {
-            if accounts.isEmpty { intro } else { inbox }
+        Group {
+            if accounts.isEmpty {
+                List { intro }
+            } else {
+                List { inbox }
+                    .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("搜索发件人、主题、内容"))
+            }
         }
         .navigationTitle("邮箱")
         .navigationBarTitleDisplayMode(.inline)
@@ -55,6 +90,13 @@ struct MailView: View {
         .task {
             reload()
             if !accounts.isEmpty { await sync(maxAge: 120) }
+        }
+        .confirmationDialog("删除这封邮件？", isPresented: Binding(get: { trashID != nil }, set: { if !$0 { trashID = nil } }), titleVisibility: .visible) {
+            Button("删除", role: .destructive) {
+                if let id = trashID { quick(id, "trash") }
+                trashID = nil
+            }
+            Button("取消", role: .cancel) { trashID = nil }
         }
     }
 
@@ -88,7 +130,7 @@ struct MailView: View {
                     Label("添加邮箱", systemImage: "plus.circle.fill").foregroundStyle(Brand.mint)
                 }
             } footer: {
-                Text("支持 Gmail、iCloud、QQ、网易 163 / 126 / yeah、阿里、新浪、139、Yahoo、Zoho、Fastmail，以及任何支持 IMAP 的邮箱。使用「应用专用密码 / 授权码」登录，不会接触你的登录密码。")
+                Text("支持 Gmail、iCloud、QQ、网易 163 / 126 / yeah、阿里、新浪、139、Yahoo、Zoho、Fastmail，企业邮箱和自己域名的邮箱会自动识别服务器，其他任何支持 IMAP 的邮箱也可以。使用「应用专用密码 / 授权码」登录，不会接触你的登录密码。")
             }
         }
     }
@@ -103,45 +145,59 @@ struct MailView: View {
     // MARK: 收件箱
     private var inbox: some View {
         Group {
-            let todo = groups[0].rows.count
-            let unread = items.filter { $0.i("unread") == 1 && $0.s("cat") != "promo" }.count
             Section {
-                HStack(spacing: 14) {
-                    stat("\(todo)", "需要处理", todo > 0 ? .orange : Brand.sub)
-                    stat("\(unread)", "未读", Brand.mint)
-                    stat("\(items.count)", "已分拣", Brand.sub)
-                }
-                .padding(.vertical, 4)
                 ForEach(accounts, id: \.rid) { a in
                     let st = Mail.status(a.i("id"))
                     if !st.error.isEmpty {
                         Label { Text(verbatim: a.s("email") + "：" + L10n.tr(st.error)) } icon: { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
                             .font(.footnote)
-                    } else if !st.stat.isEmpty {
-                        Text(verbatim: st.stat).font(.footnote).foregroundStyle(Brand.sub)
                     }
+                    let w = Mail.warn(a.i("id"))
+                    if !w.isEmpty {
+                        Label { Text(verbatim: a.s("email") + "：" + L10n.tr(w)) } icon: { Image(systemName: "paperplane.circle.fill").foregroundStyle(.orange) }
+                            .font(.footnote)
+                    }
+                }
+                if !actionError.isEmpty {
+                    Label { Text(verbatim: actionError) } icon: { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
+                        .font(.footnote)
+                }
+                chips
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+            }
+            .listRowSeparator(.hidden)
+
+            if shown.isEmpty && !busy {
+                Section {
+                    Text(items.isEmpty ? "收件箱里还没有同步到邮件。下拉刷新试试。" : "没有符合条件的邮件。").foregroundStyle(Brand.sub)
                 }
             }
 
-            if items.isEmpty && !busy {
-                Section { Text("收件箱里还没有同步到邮件。下拉刷新试试。").foregroundStyle(Brand.sub) }
-            }
-
-            ForEach(groups, id: \.key) { g in
-                if !g.rows.isEmpty {
-                    if g.key == "todo" || g.key == "info" {
-                        Section {
-                            ForEach(g.rows.prefix(40), id: \.rid) { r in link(r) }
-                        } header: {
-                            Label { Text(verbatim: L10n.tr(g.title) + " · \(g.rows.count)") } icon: { Image(systemName: g.icon) }
-                        }
-                    } else {
-                        Section {
-                            DisclosureGroup(isExpanded: Binding(get: { open.contains(g.key) }, set: { if $0 { open.insert(g.key) } else { open.remove(g.key) } })) {
+            if flat {
+                if !shown.isEmpty {
+                    Section {
+                        ForEach(shown.prefix(80), id: \.rid) { r in link(r) }
+                    } header: {
+                        Text(verbatim: L10n.f("{} 封", "\(shown.count)"))
+                    }
+                }
+            } else {
+                ForEach(groups, id: \.key) { g in
+                    if !g.rows.isEmpty {
+                        if g.key == "todo" || g.key == "info" {
+                            Section {
                                 ForEach(g.rows.prefix(40), id: \.rid) { r in link(r) }
-                            } label: {
-                                Label { Text(verbatim: L10n.tr(g.title) + " · \(g.rows.count)") } icon: { Image(systemName: g.icon).foregroundStyle(Brand.sub) }
-                                    .foregroundStyle(Brand.ink)
+                            } header: {
+                                Label { Text(verbatim: L10n.tr(g.title) + " · \(g.rows.count)") } icon: { Image(systemName: g.icon) }
+                            }
+                        } else {
+                            Section {
+                                DisclosureGroup(isExpanded: Binding(get: { open.contains(g.key) }, set: { if $0 { open.insert(g.key) } else { open.remove(g.key) } })) {
+                                    ForEach(g.rows.prefix(40), id: \.rid) { r in link(r) }
+                                } label: {
+                                    Label { Text(verbatim: L10n.tr(g.title) + " · \(g.rows.count)") } icon: { Image(systemName: g.icon).foregroundStyle(Brand.sub) }
+                                        .foregroundStyle(Brand.ink)
+                                }
                             }
                         }
                     }
@@ -149,6 +205,12 @@ struct MailView: View {
             }
 
             Section {
+                ForEach(accounts, id: \.rid) { a in
+                    let st = Mail.status(a.i("id"))
+                    if !st.stat.isEmpty && st.error.isEmpty {
+                        Text(verbatim: a.s("email") + " · " + st.stat).font(.footnote).foregroundStyle(Brand.sub)
+                    }
+                }
                 NavigationLink {
                     MailAccountsView(onChange: reload)
                 } label: {
@@ -160,19 +222,72 @@ struct MailView: View {
         }
     }
 
-    private func stat(_ n: String, _ label: LocalizedStringKey, _ color: Color) -> some View {
-        VStack(spacing: 2) {
-            Text(verbatim: n).font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundStyle(color)
-            Text(label).font(.system(size: 12)).foregroundStyle(Brand.sub)
+    // MARK: 筛选
+    private var chips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                chip(0, "全部", items.count)
+                chip(1, "未读", unreadCount)
+                chip(2, "需处理", todoCount)
+                chip(3, "星标", starCount)
+            }
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    private func chip(_ tag: Int, _ title: LocalizedStringKey, _ n: Int) -> some View {
+        let on = filter == tag
+        return Button {
+            withAnimation(.easeInOut(duration: 0.18)) { filter = tag }
+            UISelectionFeedbackGenerator().selectionChanged()
+        } label: {
+            HStack(spacing: 5) {
+                Text(title).font(.system(size: 14, weight: .medium))
+                if n > 0 { Text(verbatim: "\(n)").font(.system(size: 12, weight: .semibold, design: .rounded)).opacity(0.75) }
+            }
+            .padding(.horizontal, 13)
+            .padding(.vertical, 7)
+            .foregroundStyle(on ? Brand.onMint : (tag == 2 && n > 0 ? Color.orange : Brand.ink))
+            .background(on ? Brand.mint : Brand.card, in: Capsule())
+            .overlay(Capsule().stroke(Brand.line.opacity(on ? 0 : 0.6), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
     }
 
     private func link(_ r: Row) -> some View {
-        NavigationLink {
-            MailDetailView(id: r.i("id"), onChange: reload)
+        let id = r.i("id")
+        let unread = r.i("unread") == 1
+        let starred = r.i("flagged") == 1
+        return NavigationLink {
+            MailDetailView(id: id, onChange: reload)
         } label: {
             MailRow(r: r)
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button { quick(id, unread ? "read" : "unread") } label: {
+                Label { Text(verbatim: L10n.tr(unread ? "标为已读" : "标为未读")) } icon: { Image(systemName: unread ? "envelope.open" : "envelope.badge") }
+            }
+            .tint(Brand.mint)
+            Button { quick(id, starred ? "unstar" : "star") } label: {
+                Label { Text(verbatim: L10n.tr(starred ? "取消星标" : "星标")) } icon: { Image(systemName: starred ? "star.slash" : "star") }
+            }
+            .tint(.orange)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button { trashID = id } label: { Label("删除", systemImage: "trash") }
+                .tint(.red)
+            Button { quick(id, "archive") } label: { Label("归档", systemImage: "archivebox") }
+                .tint(.indigo)
+        }
+    }
+
+    // 滑动操作：先改本地显示，再在后台同步到服务器；失败了提示并刷新回真实状态
+    private func quick(_ id: Int, _ action: String) {
+        actionError = ""
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Task {
+            let e = await Mail.act(id, action)
+            if !e.isEmpty { actionError = L10n.tr(e) }
+            reload()
         }
     }
 
@@ -194,25 +309,55 @@ struct MailRow: View {
 
     var body: some View {
         let unread = r.i("unread") == 1
-        let who = r.s("from_name").isEmpty ? r.s("from_addr") : r.s("from_name")
-        HStack(alignment: .top, spacing: 10) {
-            Circle().fill(unread ? Brand.mint : Color.clear).frame(width: 8, height: 8).padding(.top, 7)
+        let name = r.s("from_name")
+        let addr = r.s("from_addr")
+        let cat = r.s("cat")
+        HStack(alignment: .top, spacing: 12) {
+            SenderAvatar(name: name, addr: addr, size: 44, unread: unread)
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(verbatim: who).font(.system(size: 15.5, weight: unread ? .semibold : .regular)).foregroundStyle(Brand.ink).lineLimit(1)
+                HStack(spacing: 5) {
+                    Text(verbatim: name.isEmpty ? addr : name)
+                        .font(.system(size: 15.5, weight: unread ? .semibold : .regular))
+                        .foregroundStyle(Brand.ink)
+                        .lineLimit(1)
+                    if r.i("flagged") == 1 {
+                        Image(systemName: "star.fill").font(.system(size: 11)).foregroundStyle(.orange)
+                    }
                     Spacer(minLength: 6)
-                    Text(verbatim: Mail.stamp(r.d("ts"))).font(.system(size: 12)).foregroundStyle(Brand.sub)
+                    Text(verbatim: Mail.shortStamp(r.d("ts")))
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(unread ? Brand.mint : Brand.sub)
                 }
-                Text(verbatim: r.s("subject").isEmpty ? L10n.tr("（无主题）") : r.s("subject")).font(.system(size: 14.5)).foregroundStyle(Brand.ink).lineLimit(1)
-                Text(verbatim: r.s("summary")).font(.system(size: 13)).foregroundStyle(Brand.sub).lineLimit(2)
-                if !r.s("act").isEmpty {
-                    Text(verbatim: r.s("act"))
-                        .font(.system(size: 11.5, weight: .medium))
-                        .foregroundStyle(r.s("cat") == "urgent" ? Color.orange : Brand.mint)
+                Text(verbatim: r.s("subject").isEmpty ? L10n.tr("（无主题）") : r.s("subject"))
+                    .font(.system(size: 14.5, weight: unread ? .medium : .regular))
+                    .foregroundStyle(Brand.ink)
+                    .lineLimit(1)
+                Text(verbatim: r.s("summary"))
+                    .font(.system(size: 13))
+                    .foregroundStyle(Brand.sub)
+                    .lineLimit(2)
+                if cat == "urgent" || cat == "reply" || !r.s("act").isEmpty {
+                    HStack(spacing: 6) {
+                        if cat == "urgent" || cat == "reply" {
+                            Text(verbatim: L10n.tr(Mail.catName(cat)))
+                                .font(.system(size: 11, weight: .semibold))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .foregroundStyle(cat == "urgent" ? Color.orange : Brand.mint)
+                                .background((cat == "urgent" ? Color.orange : Brand.mint).opacity(0.14), in: Capsule())
+                        }
+                        if !r.s("act").isEmpty {
+                            Text(verbatim: r.s("act"))
+                                .font(.system(size: 11.5, weight: .medium))
+                                .foregroundStyle(Brand.sub)
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(.top, 1)
                 }
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
     }
 }
 
@@ -225,49 +370,43 @@ struct MailDetailView: View {
     @State private var mail: ParsedMail?
     @State private var loading = true
     @State private var error = ""
+    @State private var notice = ""
     @State private var busy = false
     @State private var reply = false
     @State private var showTrash = false
+    @State private var showUnsub = false
+    @State private var showJunk = false
+
+    private var unsub: Mail.UnsubTarget? { mail.flatMap { Mail.unsubTarget($0) } }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                if let r = row {
-                    Text(verbatim: r.s("subject").isEmpty ? L10n.tr("（无主题）") : r.s("subject"))
-                        .font(.system(size: 21, weight: .semibold))
-                        .foregroundStyle(Brand.ink)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(verbatim: r.s("from_name").isEmpty ? r.s("from_addr") : r.s("from_name")).font(.system(size: 15, weight: .medium)).foregroundStyle(Brand.ink)
-                        Text(verbatim: r.s("from_addr") + " · " + Mail.stamp(r.d("ts"))).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
-                    }
-                    if !r.s("summary").isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Label { Text(verbatim: L10n.tr(Mail.catName(r.s("cat")))) } icon: { Image(systemName: "sparkles") }
-                                .font(.system(size: 12.5, weight: .semibold))
-                                .foregroundStyle(Brand.mint)
-                            Text(verbatim: r.s("summary")).font(.system(size: 15)).foregroundStyle(Brand.ink)
-                            if !r.s("act").isEmpty {
-                                Text(verbatim: L10n.tr("建议：") + r.s("act")).font(.system(size: 13.5)).foregroundStyle(Brand.sub)
-                            }
-                        }
-                        .padding(12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Brand.mint.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                }
+            VStack(alignment: .leading, spacing: 16) {
+                if let r = row { header(r) }
+                if let r = row, !r.s("summary").isEmpty { summary(r) }
                 Divider()
                 if loading {
                     HStack(spacing: 8) { ProgressView(); Text("正在读取邮件…").foregroundStyle(Brand.sub) }
                 } else if let m = mail {
-                    if !m.attachments.isEmpty {
-                        Label { Text(verbatim: m.attachments.prefix(6).joined(separator: "、")) } icon: { Image(systemName: "paperclip") }
-                            .font(.system(size: 13)).foregroundStyle(Brand.sub)
-                    }
+                    if !m.attachments.isEmpty { attachments(m.attachments) }
                     Text(verbatim: m.text.isEmpty ? L10n.tr("（这封邮件没有可显示的文字内容）") : m.text)
                         .font(.system(size: 15.5))
+                        .lineSpacing(3)
                         .foregroundStyle(Brand.ink)
                         .textSelection(.enabled)
+                }
+                if let u = unsub, !loading {
+                    Button { showUnsub = true } label: {
+                        Label { Text(verbatim: L10n.f("退订 {}", Mail.unsubName(row))) } icon: { Image(systemName: "bell.slash") }
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Brand.sub)
+                    .accessibilityHint(Text(verbatim: u.https?.host ?? u.mail ?? ""))
+                }
+                if !notice.isEmpty {
+                    Label { Text(verbatim: notice) } icon: { Image(systemName: "checkmark.circle.fill").foregroundStyle(Brand.mint) }
+                        .font(.subheadline)
                 }
                 if !error.isEmpty {
                     Label { Text(verbatim: error) } icon: { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
@@ -279,6 +418,19 @@ struct MailDetailView: View {
         .background(Brand.page)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { act(row?.i("flagged") == 1 ? "unstar" : "star", leave: false) } label: {
+                        Label { Text(verbatim: L10n.tr(row?.i("flagged") == 1 ? "取消星标" : "星标")) } icon: { Image(systemName: row?.i("flagged") == 1 ? "star.slash" : "star") }
+                    }
+                    Button { UIPasteboard.general.string = row?.s("from_addr") ?? "" } label: { Label("复制发件人地址", systemImage: "doc.on.doc") }
+                    if unsub != nil { Button { showUnsub = true } label: { Label("退订", systemImage: "bell.slash") } }
+                    Button(role: .destructive) { showJunk = true } label: { Label("标为垃圾邮件", systemImage: "xmark.bin") }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .disabled(row == nil)
+            }
             ToolbarItemGroup(placement: .bottomBar) {
                 Button { reply = true } label: { Image(systemName: "arrowshape.turn.up.left") }
                     .disabled(row == nil)
@@ -306,6 +458,96 @@ struct MailDetailView: View {
             Button("删除", role: .destructive) { act("trash", leave: true) }
             Button("取消", role: .cancel) {}
         }
+        .confirmationDialog("移到垃圾邮件？", isPresented: $showJunk, titleVisibility: .visible) {
+            Button("移到垃圾邮件", role: .destructive) { act("junk", leave: true) }
+            Button("取消", role: .cancel) {}
+        }
+        .confirmationDialog("退订这个发件人？", isPresented: $showUnsub, titleVisibility: .visible) {
+            Button("退订") { unsubscribe() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text(verbatim: L10n.tr("会按邮件里的退订方式向发件人提出退订：") + (unsub?.https?.host ?? unsub?.mail ?? ""))
+        }
+    }
+
+    // MARK: 头部：头像、发件人、时间
+    private func header(_ r: Row) -> some View {
+        let name = r.s("from_name")
+        let addr = r.s("from_addr")
+        return VStack(alignment: .leading, spacing: 12) {
+            Text(verbatim: r.s("subject").isEmpty ? L10n.tr("（无主题）") : r.s("subject"))
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Brand.ink)
+            HStack(spacing: 12) {
+                SenderAvatar(name: name, addr: addr, size: 46)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(verbatim: name.isEmpty ? addr : name)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Brand.ink)
+                            .lineLimit(1)
+                        if r.i("flagged") == 1 { Image(systemName: "star.fill").font(.system(size: 12)).foregroundStyle(.orange) }
+                    }
+                    Text(verbatim: addr)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Brand.sub)
+                        .lineLimit(1)
+                    Text(verbatim: Mail.stamp(r.d("ts")))
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Brand.sub)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func summary(_ r: Row) -> some View {
+        let cat = r.s("cat")
+        let tint: Color = cat == "urgent" ? .orange : Brand.mint
+        return VStack(alignment: .leading, spacing: 6) {
+            Label { Text(verbatim: L10n.tr(Mail.catName(cat))) } icon: { Image(systemName: "sparkles") }
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(tint)
+            Text(verbatim: r.s("summary")).font(.system(size: 15)).foregroundStyle(Brand.ink)
+            if !r.s("act").isEmpty {
+                Text(verbatim: L10n.tr("建议：") + r.s("act")).font(.system(size: 13.5)).foregroundStyle(Brand.sub)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func attachments(_ names: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(names.prefix(6).enumerated()), id: \.offset) { _, n in
+                HStack(spacing: 8) {
+                    Image(systemName: Self.fileIcon(n)).foregroundStyle(Brand.mint).frame(width: 20)
+                    Text(verbatim: n).font(.system(size: 13.5)).foregroundStyle(Brand.ink).lineLimit(1).truncationMode(.middle)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Brand.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            if names.count > 6 {
+                Text(verbatim: L10n.f("还有 {} 个附件", "\(names.count - 6)")).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
+            }
+        }
+    }
+
+    private static func fileIcon(_ n: String) -> String {
+        switch (n as NSString).pathExtension.lowercased() {
+        case "pdf": return "doc.richtext"
+        case "jpg", "jpeg", "png", "gif", "heic", "webp": return "photo"
+        case "doc", "docx", "pages", "txt", "rtf": return "doc.text"
+        case "xls", "xlsx", "csv", "numbers": return "tablecells"
+        case "ppt", "pptx", "key": return "rectangle.on.rectangle"
+        case "zip", "rar", "7z", "gz": return "doc.zipper"
+        case "ics": return "calendar"
+        default: return "paperclip"
+        }
     }
 
     func load() async {
@@ -324,6 +566,7 @@ struct MailDetailView: View {
 
     func act(_ a: String, leave: Bool) {
         busy = true
+        error = ""
         Task {
             let e = await Mail.act(id, a)
             busy = false
@@ -332,7 +575,27 @@ struct MailDetailView: View {
                 onChange()
                 if leave { dismiss() } else { row = Mail.row(id) }
             } else {
-                error = e
+                error = L10n.tr(e)
+            }
+        }
+    }
+
+    func unsubscribe() {
+        busy = true
+        error = ""
+        notice = ""
+        Task {
+            let r = await Mail.unsubscribe(id, parsed: mail)
+            busy = false
+            if let u = r.open {
+                notice = L10n.tr("请在打开的网页上确认退订。")
+                _ = await UIApplication.shared.open(u)
+            } else if r.ok {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                notice = L10n.tr(r.msg)
+            } else {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+                error = L10n.tr(r.msg)
             }
         }
     }
@@ -473,6 +736,8 @@ struct MailAccountsView: View {
     @State private var removing: Int?
     @State private var diagnosing: Int?
     @State private var report = ""
+    @AppStorage(SenderLogos.enabledKey) private var logos = true
+    @State private var cleared = false
 
     var body: some View {
         List {
@@ -514,6 +779,19 @@ struct MailAccountsView: View {
                 }
             } footer: {
                 Text("开启「自动处理」后，每次打开 OSVIA（系统允许时也会在后台）会：把订阅与营销邮件标为已读并归到「OSVIA-Newsletters」文件夹；紧急和待回复的邮件发通知。不会自动回复、删除或发送任何邮件。iOS 不允许应用一直在后台运行，所以后台处理只是尽力而为。")
+            }
+
+            Section {
+                Toggle("显示发件人图标", isOn: $logos).tint(Brand.mint)
+                Button {
+                    SenderLogos.shared.clear()
+                    cleared = true
+                } label: {
+                    Label { Text(verbatim: L10n.tr(cleared ? "已清除" : "清除图标缓存")) } icon: { Image(systemName: "trash") }
+                }
+                .disabled(cleared)
+            } footer: {
+                Text("开启后，企业和品牌发件人会显示官网图标（只联网获取域名对应的图标，不会发送邮件内容）；个人邮箱和取不到图标时显示首字母头像。")
             }
 
             if !report.isEmpty {
@@ -567,10 +845,20 @@ struct AddMailView: View {
     @State private var smtp = ""
     @State private var smtpPort = "465"
     @State private var busy = false
+    @State private var stepText = ""
     @State private var error = ""
+    @State private var detecting = false
+    @State private var detected: MailServers?
+    @State private var manual = false
+    @State private var detectTask: Task<Void, Never>?
 
-    private var provider: MailProvider? { Mail.provider(for: email.trimmingCharacters(in: .whitespaces)) }
-    private var hasDomain: Bool { email.contains("@") && (email.split(separator: "@").last?.contains(".") ?? false) }
+    private var trimmed: String { email.trimmingCharacters(in: .whitespaces).lowercased() }
+    private var domain: String { trimmed.split(separator: "@").last.map(String.init) ?? "" }
+    private var hasDomain: Bool { trimmed.contains("@") && domain.contains(".") && !domain.hasSuffix(".") }
+    private var preset: MailProvider? { Mail.provider(for: trimmed) }
+    private var provider: MailProvider? { preset ?? detected.flatMap { Mail.providerByID($0.providerID) } }
+    // 识别失败、或用户要自己改时才显示服务器输入框
+    private var showServers: Bool { hasDomain && (manual || (preset == nil && detected == nil && !detecting)) }
 
     var body: some View {
         Form {
@@ -582,21 +870,7 @@ struct AddMailView: View {
                 TextField("显示名称（可选，写在发出的邮件上）", text: $name)
             }
 
-            if let p = provider {
-                Section {
-                    Text(verbatim: L10n.tr(p.help)).font(.subheadline).foregroundStyle(Brand.sub)
-                    if let u = URL(string: p.url), !p.url.isEmpty {
-                        Link(destination: u) { Label(L10n.f("打开 {} 的设置页", p.name), systemImage: "arrow.up.right.square") }
-                    }
-                } header: {
-                    Text(verbatim: p.name)
-                }
-            } else if hasDomain {
-                Section {
-                    Text("没有这个邮箱的预设，请在下面手动填写服务器（在邮箱网页的设置里能找到 IMAP / SMTP 服务器地址）。")
-                        .font(.subheadline).foregroundStyle(Brand.sub)
-                }
-            }
+            if hasDomain { statusSection }
 
             Section {
                 SecureField(provider.map { L10n.tr($0.secret) } ?? L10n.tr("密码 / 授权码"), text: $pass)
@@ -606,7 +880,7 @@ struct AddMailView: View {
                 Text("只保存在这台设备的系统钥匙串里，只用来连接你的邮箱服务器。")
             }
 
-            if provider == nil && hasDomain {
+            if showServers {
                 Section {
                     TextField("IMAP 服务器，如 imap.example.com", text: $imap)
                         .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
@@ -626,7 +900,7 @@ struct AddMailView: View {
                 } label: {
                     HStack(spacing: 8) {
                         if busy { ProgressView() }
-                        Text(busy ? "正在连接…" : "连接并保存").frame(maxWidth: .infinity)
+                        Text(verbatim: busy ? L10n.tr(stepText.isEmpty ? "正在连接…" : stepText) : L10n.tr("连接并保存")).frame(maxWidth: .infinity)
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -644,37 +918,88 @@ struct AddMailView: View {
         .onChange(of: email) { _, v in fill(v) }
     }
 
-    // 识别出服务商就自动填好服务器；识别不出就按域名猜一个
+    // MARK: 识别结果与授权码说明
+    private var statusSection: some View {
+        Section {
+            if let p = provider {
+                Text(verbatim: L10n.tr(p.help)).font(.subheadline).foregroundStyle(Brand.sub)
+                if let u = URL(string: p.url), !p.url.isEmpty {
+                    Link(destination: u) { Label(L10n.f("打开 {} 的设置页", p.name), systemImage: "arrow.up.right.square") }
+                }
+            }
+            if detecting {
+                HStack(spacing: 8) { ProgressView(); Text("正在识别邮箱服务器…").font(.subheadline).foregroundStyle(Brand.sub) }
+            } else if let d = detected {
+                Label { Text(verbatim: L10n.f("已识别（{}）：{}", L10n.tr(d.source), d.imap)) } icon: { Image(systemName: "checkmark.seal.fill").foregroundStyle(Brand.mint) }
+                    .font(.subheadline)
+            } else if preset == nil {
+                Text("没能自动识别这个邮箱的服务器。请在下面填写（在邮箱网页的设置里能找到 IMAP / SMTP 服务器地址）。")
+                    .font(.subheadline).foregroundStyle(Brand.sub)
+            }
+            if preset != nil || detected != nil {
+                Button { withAnimation { manual.toggle() } } label: {
+                    Label { Text(verbatim: L10n.tr(manual ? "收起服务器设置" : "修改服务器设置")) } icon: { Image(systemName: "slider.horizontal.3") }
+                        .font(.subheadline)
+                }
+            }
+        } header: {
+            if let p = provider { Text(verbatim: p.name) }
+        }
+    }
+
+    // 内置预设直接填；没有预设的先按域名猜一个，同时联网识别（域名自带配置 → Mozilla 配置库 → MX 托管方）
     func fill(_ v: String) {
-        let t = v.trimmingCharacters(in: .whitespaces)
+        detectTask?.cancel()
+        detected = nil
+        detecting = false
+        manual = false
+        error = ""
+        let t = v.trimmingCharacters(in: .whitespaces).lowercased()
         if let p = Mail.provider(for: t) {
             imap = p.imap
             smtp = p.smtp
             smtpPort = "\(p.smtpPort)"
-        } else if t.contains("@"), let d = t.split(separator: "@").last, d.contains(".") {
-            imap = "imap." + d
-            smtp = "smtp." + d
-            smtpPort = "465"
-        } else {
+            return
+        }
+        guard t.contains("@"), let d = t.split(separator: "@").last.map(String.init), d.contains("."), !d.hasSuffix(".") else {
             imap = ""
             smtp = ""
+            return
+        }
+        imap = "imap." + d
+        smtp = "smtp." + d
+        smtpPort = "465"
+        detecting = true
+        detectTask = Task {
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            if Task.isCancelled { return }
+            let r = await MailAutoconfig.detect(d)
+            if Task.isCancelled { return }
+            detecting = false
+            if let r {
+                detected = r
+                imap = r.imap
+                smtp = r.smtp
+                smtpPort = "\(r.smtpPort)"
+            }
         }
     }
 
     func connect() {
         error = ""
-        let em = email.trimmingCharacters(in: .whitespaces).lowercased()
+        let em = trimmed
         guard Mail.validAddress(em) else {
             error = L10n.tr("邮箱地址不正确。")
             return
         }
         busy = true
+        stepText = ""
         let secret = provider == nil ? pass.trimmingCharacters(in: .whitespacesAndNewlines) : pass.filter { !$0.isWhitespace }
         Task {
             let r = await Mail.add(email: em, name: Mail.cleanName(name), user: em, pass: secret,
-                                   imap: imap.trimmingCharacters(in: .whitespaces), imapPort: 993,
+                                   imap: imap.trimmingCharacters(in: .whitespaces), imapPort: detected?.imapPort ?? 993,
                                    smtp: smtp.trimmingCharacters(in: .whitespaces), smtpPort: Int(smtpPort) ?? 465,
-                                   provider: provider?.id ?? "custom")
+                                   provider: provider?.id ?? "custom", step: { stepText = $0 })
             busy = false
             if r.id == 0 {
                 error = L10n.tr(r.error)

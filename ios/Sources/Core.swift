@@ -54,6 +54,7 @@ final class DB {
             let t = st.trimmingCharacters(in: .whitespacesAndNewlines)
             if !t.isEmpty { exec(t) }
         }
+        exec("ALTER TABLE mail_triage ADD COLUMN flagged INTEGER DEFAULT 0")
         exec("ALTER TABLE msg ADD COLUMN conv INTEGER DEFAULT 0")
         exec("ALTER TABLE msg ADD COLUMN files TEXT DEFAULT ''")
         exec("ALTER TABLE msg ADD COLUMN meta TEXT DEFAULT ''")

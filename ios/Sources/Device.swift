@@ -233,7 +233,7 @@ enum DeviceTools {
             return await share(a, trace)
 
         default:
-            return nil
+            return await MoreTools.run(c, trace: trace, cloud: cloud)
         }
     }
 

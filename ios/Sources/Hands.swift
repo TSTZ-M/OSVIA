@@ -47,6 +47,7 @@ enum Hands {
         s += "- confirm_action {\"title\":\"要做的事\",\"detail\":\"细节\"}：做对外有影响或不可撤销的事之前先向用户确认，返回允许或拒绝\n"
         s += "- device {}：电量、存储、系统版本、低电量模式；torch {\"on\":true}：手电筒；copy_text {\"text\":\"…\"}：复制到剪贴板\n"
         s += DeviceTools.doc()
+        s += MoreTools.doc()
         return s
     }
 
@@ -327,9 +328,9 @@ enum Hands {
     }
 
     // MARK: 文件工作区
-    private static var work: URL { Store.dir("工作区") }
+    static var work: URL { Store.dir("工作区") }
 
-    private static func safeName(_ raw: String, defaultExt: String = "md") -> String {
+    static func safeName(_ raw: String, defaultExt: String = "md") -> String {
         var n = (raw as NSString).lastPathComponent
         n = n.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
         while n.hasPrefix(".") { n.removeFirst() }
@@ -338,7 +339,7 @@ enum Hands {
         return String(n.suffix(80))
     }
 
-    private static func uniqueURL(_ name: String) -> URL {
+    static func uniqueURL(_ name: String) -> URL {
         var u = work.appendingPathComponent(name)
         var i = 2
         let base = (name as NSString).deletingPathExtension

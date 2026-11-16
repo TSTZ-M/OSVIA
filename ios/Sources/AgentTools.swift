@@ -99,7 +99,7 @@ enum AgentTools {
 
     // 需要用户确认、或会改变外部状态的工具：顺序执行，不并行
     nonisolated static func sequential(_ name: String) -> Bool {
-        ["mcp_call", "http_request", "delete_file", "run_shortcut", "confirm_action", "mail_send", "mail_act", "connector", "open_app", "maps", "compose", "share", "contacts", "location"].contains(name)
+        ["mcp_call", "http_request", "delete_file", "run_shortcut", "confirm_action", "mail_send", "mail_act", "mail_unsubscribe", "speak", "ocr", "calendar_free", "connector", "open_app", "maps", "compose", "share", "contacts", "location"].contains(name)
     }
 
     // MARK: 给模型看的工具说明

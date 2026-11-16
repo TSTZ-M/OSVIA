@@ -408,5 +408,66 @@ Qwen3.5 2B（新） ⇒ Qwen3.5 2B (new)
 新一代 Qwen3.5，推理与工具调用更强；社区转换的纯文本版，若加载失败请换回默认 ⇒ Next-gen Qwen3.5 with stronger reasoning and tool use; a community text-only conversion — switch back to the default if it fails to load
 新一代小模型，比 Qwen2.5 1.5B 聪明且更省内存；社区转换的纯文本版 ⇒ Next-gen small model, smarter than Qwen2.5 1.5B and light on memory; a community text-only conversion
 崩溃现场 ⇒ Crash trace
+搜索发件人、主题、内容 ⇒ Search sender, subject, content
+全部 ⇒ All
+需处理 ⇒ To do
+星标 ⇒ Starred
+没有符合条件的邮件。 ⇒ No matching emails.
+{} 封 ⇒ {} emails
+取消星标 ⇒ Unstar
+归档 ⇒ Archive
+昨天 ⇒ Yesterday
+复制发件人地址 ⇒ Copy sender address
+退订 ⇒ Unsubscribe
+退订 {} ⇒ Unsubscribe from {}
+退订这个发件人？ ⇒ Unsubscribe from this sender?
+会按邮件里的退订方式向发件人提出退订： ⇒ Will send an unsubscribe request using the method in the email: 
+标为垃圾邮件 ⇒ Mark as junk
+移到垃圾邮件 ⇒ Move to junk
+移到垃圾邮件？ ⇒ Move to junk?
+还有 {} 个附件 ⇒ {} more attachments
+请在打开的网页上确认退订。 ⇒ Please confirm the unsubscribe on the page that opened.
+这封邮件没有提供退订方式。 ⇒ This email doesn’t offer an unsubscribe method.
+已退订（发件人服务器已确认）。 ⇒ Unsubscribed (confirmed by the sender’s server).
+这个发件人需要在网页上确认退订。 ⇒ This sender needs you to confirm the unsubscribe on a web page.
+没能自动退订。 ⇒ Couldn’t unsubscribe automatically.
+退订邮件 ⇒ Unsubscribe from email
+已识别（{}）：{} ⇒ Detected ({}): {}
+正在识别邮箱服务器… ⇒ Detecting the mail server…
+没能自动识别这个邮箱的服务器。请在下面填写（在邮箱网页的设置里能找到 IMAP / SMTP 服务器地址）。 ⇒ Couldn’t detect this mailbox’s servers automatically. Enter them below (you can find the IMAP / SMTP addresses in the webmail settings).
+收起服务器设置 ⇒ Hide server settings
+修改服务器设置 ⇒ Edit server settings
+正在连接收信服务器… ⇒ Connecting to the incoming server…
+正在读取文件夹… ⇒ Reading folders…
+正在测试发信服务器… ⇒ Testing the outgoing server…
+域名自带配置 ⇒ Domain’s own configuration
+Mozilla 邮箱配置库 ⇒ Mozilla mail configuration database
+腾讯企业邮箱 ⇒ Tencent Exmail
+阿里企业邮箱 ⇒ Alibaba Mail (Business)
+网易企业邮箱 ⇒ NetEase Mail (Business)
+iCloud 自定义域名 ⇒ iCloud custom domain
+客户端专用密码 ⇒ Client-specific password
+登录密码或客户端专用密码 ⇒ Login password or client-specific password
+客户端授权码 ⇒ Client authorization code
+企业邮箱网页版 → 设置 → 邮箱绑定 → 开启「安全登录」并生成客户端专用密码；管理员需允许 IMAP/SMTP。 ⇒ Webmail → Settings → Account binding → turn on “Secure login” and generate a client-specific password; the admin must allow IMAP/SMTP.
+确认管理员已开启 IMAP/SMTP；若开启了二次验证，请使用客户端专用密码。 ⇒ Make sure the admin has enabled IMAP/SMTP; if two-step verification is on, use a client-specific password.
+企业邮箱网页版 → 设置 → 客户端设置，开启 IMAP 并设置客户端授权码。 ⇒ Webmail → Settings → Client settings: turn on IMAP and set a client authorization code.
+显示发件人图标 ⇒ Show sender icons
+清除图标缓存 ⇒ Clear icon cache
+已清除 ⇒ Cleared
+开启后，企业和品牌发件人会显示官网图标（只联网获取域名对应的图标，不会发送邮件内容）；个人邮箱和取不到图标时显示首字母头像。 ⇒ When on, company and brand senders show their website icon (only the domain is used to fetch it; no email content is sent). Personal addresses and senders without an icon show an initials avatar.
+支持 Gmail、iCloud、QQ、网易 163 / 126 / yeah、阿里、新浪、139、Yahoo、Zoho、Fastmail，企业邮箱和自己域名的邮箱会自动识别服务器，其他任何支持 IMAP 的邮箱也可以。使用「应用专用密码 / 授权码」登录，不会接触你的登录密码。 ⇒ Supports Gmail, iCloud, QQ, NetEase 163 / 126 / yeah, Alibaba, Sina, 139, Yahoo, Zoho and Fastmail. Business and custom-domain mailboxes are detected automatically, and any other IMAP mailbox works too. You sign in with an app-specific password / authorization code, so your real password is never used.
+收件箱里有新邮件，但服务器没有返回正文（可能是临时故障）。稍后下拉刷新再试。 ⇒ There are new emails, but the server returned no content (possibly a temporary glitch). Pull to refresh again later.
+剪贴板 ⇒ Clipboard
+未来 {} 天 · 至少 {} 分钟 ⇒ Next {} days · at least {} min
+没有日历权限 ⇒ No calendar access
+{} 个空档 ⇒ {} free slots
+{} 字 ⇒ {} chars
+{} 处 ⇒ {} matches
+朗读 ⇒ Read aloud
+生成二维码 ⇒ Generate QR code
+识别图片文字 ⇒ Recognize text in image
+查找空闲时间 ⇒ Find free time
+搜索文件 ⇒ Search files
 """#
 }

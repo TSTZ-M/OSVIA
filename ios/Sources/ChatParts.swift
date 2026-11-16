@@ -30,6 +30,23 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         synth.speak(u)
     }
 
+    // 助理主动朗读（speak 工具）：可指定语言；没指定就用应用当前语言
+    func say(_ text: String, lang: String? = nil) {
+        synth.stopSpeaking(at: .immediate)
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        let plain = text.replacingOccurrences(of: "[*#`>_]", with: "", options: .regularExpression)
+        let u = AVSpeechUtterance(string: plain)
+        u.voice = AVSpeechSynthesisVoice(language: (lang?.isEmpty ?? true) ? L10n.info.locale : lang)
+        speakingId = UUID()
+        synth.speak(u)
+    }
+
+    func stop() {
+        synth.stopSpeaking(at: .immediate)
+        speakingId = nil
+    }
+
     nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor in self.speakingId = nil }
     }
