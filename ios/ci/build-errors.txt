@@ -1,3 +1,4 @@
 Xcode 26.6
 Build version 17F113
-RESULT: SUCCEEDED
+/Users/runner/work/OSVIA/OSVIA/ios/Sources/Tasks.swift:182:28: error: main actor-isolated static property 'ready' cannot be accessed from outside of the actor
+RESULT: FAILED
