@@ -42,6 +42,7 @@ jobs:
           touch ci/build.log
           { xcodebuild -version; grep -E "error:" ci/build.log | sort -u | head -n 80; } > ci/build-errors.txt || true
           if grep -q "BUILD SUCCEEDED" ci/build.log; then echo "RESULT: SUCCEEDED" >> ci/build-errors.txt; else echo "RESULT: FAILED" >> ci/build-errors.txt; fi
+          echo "----- build-errors.txt -----"; cat ci/build-errors.txt
           rm -f ci/build.log
       - name: Commit results
         if: always()

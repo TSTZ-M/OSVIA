@@ -9,6 +9,7 @@ struct BotActivityAttributes: ActivityAttributes {
         var subtitle: String
         var end: Date?
         var phase: String = "thinking"
+        var detail: String? = nil
     }
     var kind: String
 }

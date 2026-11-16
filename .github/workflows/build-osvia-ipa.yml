@@ -75,11 +75,18 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish release OSVIA-latest
+      - name: Publish releases (one per build + OSVIA-latest)
+        working-directory: ios
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          N=${{ github.run_number }}
+          # 每个版本一个独立 Release：源里的下载地址指向该版本，SideStore 缓存了旧源也不会出现「版本号不匹配」
+          gh release create "OSVIA-$N" OSVIA.ipa --title "OSVIA build $N" --notes "Unsigned OSVIA.ipa (build $N) for SideStore" --latest=false || gh release upload "OSVIA-$N" OSVIA.ipa --clobber
+          # OSVIA-latest 保留给旧链接
           gh release create OSVIA-latest OSVIA.ipa --title "OSVIA-latest" --notes "Unsigned OSVIA.ipa for SideStore" || gh release upload OSVIA-latest OSVIA.ipa --clobber
+          # 只保留最近 5 个版本
+          gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].tag_name' | grep -E '^OSVIA-[0-9]+$' | sort -t- -k2 -n -r | tail -n +6 | while read -r t; do gh release delete "$t" --cleanup-tag -y || true; done
 
       - name: Update OSVIA-source.json from the real IPA
         run: bash tools/make-osvia-source.sh OSVIA.ipa

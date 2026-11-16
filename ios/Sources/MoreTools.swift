@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import EventKit
 import Vision
+import Photos
 import CoreImage
 import CoreImage.CIFilterBuiltins
 
@@ -14,6 +15,7 @@ enum MoreTools {
         s += "- qr_code {\"text\":\"链接或文字\",\"name\":\"可选文件名\"}：生成二维码图片，附在回复下方（Wi‑Fi 分享、网址、名片、取件码都能用；Wi‑Fi 写成 WIFI:T:WPA;S:名称;P:密码;;）\n"
         s += "- ocr {}：识别剪贴板里的图片文字（用户说「识别我刚截的图」时用）；{\"name\":\"工作区图片文件名\"}：识别工作区里的图片\n"
         s += "- calendar_free {\"days\":3,\"minutes\":60,\"from\":\"09:00\",\"to\":\"18:00\"}：在用户日历里找连续空闲的时间段（约时间、排日程时用，比 agenda 自己推算准）\n"
+        s += "- photos_find {\"keywords\":[\"cat\",\"beach\"],\"days\":30,\"limit\":6}：按画面内容在相册里找照片（本机识别，不上传）。keywords 用英文的常见物体或场景词，如 cat dog food beach mountain sunset flower car document baby；留空 = 取最近的照片。找到的缩略图附在回复下方\n"
         s += "- search_files {\"q\":\"关键词\"}：在工作区的文件名和文件内容里搜索\n"
         return s
     }
@@ -26,6 +28,7 @@ enum MoreTools {
         case "ocr": return await ocr(a, trace)
         case "calendar_free": return await calendarFree(a, trace)
         case "search_files": return searchFiles(str(a, "q"), trace)
+        case "photos_find": return await photosFind(a, trace)
         default: return nil
         }
     }
@@ -171,6 +174,92 @@ enum MoreTools {
         }
         trace.end(sid, detail: L10n.f("{} 个空档", "\(total)"))
         return ToolResult(text: out)
+    }
+
+    // MARK: 相册找图（Vision 本机分类，只看缩略图）
+    private nonisolated static func scan(_ assets: [PHAsset], _ kws: [String], _ limit: Int) -> [PHAsset] {
+        if kws.isEmpty { return Array(assets.prefix(limit)) }
+        let mgr = PHImageManager.default()
+        let opt = PHImageRequestOptions()
+        opt.isSynchronous = true
+        opt.deliveryMode = .fastFormat
+        opt.resizeMode = .fast
+        opt.isNetworkAccessAllowed = false
+        var out: [PHAsset] = []
+        let deadline = Date().addingTimeInterval(25)
+        for a in assets {
+            if out.count >= limit || Date() > deadline { break }
+            var cg: CGImage?
+            mgr.requestImage(for: a, targetSize: CGSize(width: 299, height: 299), contentMode: .aspectFit, options: opt) { img, _ in cg = img?.cgImage }
+            guard let cg else { continue }
+            let req = VNClassifyImageRequest()
+            try? VNImageRequestHandler(cgImage: cg).perform([req])
+            let hit = (req.results ?? []).contains { o in o.confidence >= 0.3 && kws.contains { o.identifier.lowercased().contains($0) } }
+            if hit { out.append(a) }
+        }
+        return out
+    }
+
+    private nonisolated static func export(_ assets: [PHAsset]) -> [(Data, Date?)] {
+        let mgr = PHImageManager.default()
+        let opt = PHImageRequestOptions()
+        opt.isSynchronous = true
+        opt.deliveryMode = .highQualityFormat
+        opt.isNetworkAccessAllowed = false
+        var out: [(Data, Date?)] = []
+        for a in assets {
+            mgr.requestImage(for: a, targetSize: CGSize(width: 1280, height: 1280), contentMode: .aspectFit, options: opt) { img, _ in
+                if let d = img?.jpegData(compressionQuality: 0.85) { out.append((d, a.creationDate)) }
+            }
+        }
+        return out
+    }
+
+    private static func photosFind(_ a: [String: Any], _ trace: Tracer) async -> ToolResult {
+        var st = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        if st == .notDetermined { st = await PHPhotoLibrary.requestAuthorization(for: .readWrite) }
+        guard st == .authorized || st == .limited else { return ToolResult(text: "没有相册权限（用户可以在 设置 → OSVIA 里允许）。", ok: false) }
+        var kws: [String] = (a["keywords"] as? [String]) ?? []
+        if kws.isEmpty { kws = str(a, "keywords").split(whereSeparator: { ",，、 ".contains($0) }).map(String.init) }
+        kws = kws.map { $0.lowercased().trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let days = int(a, "days", 30, 1, 3650)
+        let limit = int(a, "limit", 6, 1, 12)
+        let sid = trace.begin(.read, "查找照片", kws.isEmpty ? L10n.f("最近 {} 天", "\(days)") : kws.joined(separator: " "))
+        let o = PHFetchOptions()
+        o.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        o.predicate = NSPredicate(format: "mediaType == %d AND creationDate >= %@", PHAssetMediaType.image.rawValue, Date().addingTimeInterval(-Double(days) * 86400) as NSDate)
+        o.fetchLimit = 400
+        var assets: [PHAsset] = []
+        PHAsset.fetchAssets(with: o).enumerateObjects { x, _, _ in assets.append(x) }
+        guard !assets.isEmpty else {
+            trace.end(sid, ok: false, detail: L10n.tr("没有照片"))
+            return ToolResult(text: "最近 \(days) 天的相册里没有照片（或只授权了部分照片）。", ok: false)
+        }
+        let total = assets.count
+        let list = assets
+        let words = kws
+        let shots: [(Data, Date?)] = await Task.detached(priority: .userInitiated) {
+            export(scan(list, words, limit))
+        }.value
+        if shots.isEmpty {
+            trace.end(sid, ok: false, detail: L10n.tr("没有找到"))
+            return ToolResult(text: "在最近 \(days) 天的 \(total) 张照片里没有找到「\(kws.joined(separator: "、"))」。可以换个英文关键词，或把 days 调大再试。")
+        }
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd-HHmm"
+        let show = DateFormatter()
+        show.dateFormat = "M月d日 HH:mm"
+        var names: [String] = []
+        for (d, date) in shots {
+            let n = "照片-" + (date.map { f.string(from: $0) } ?? "\(names.count + 1)") + ".jpg"
+            let url = Hands.uniqueURL(Hands.safeName(n, defaultExt: "jpg"))
+            if (try? d.write(to: url)) != nil {
+                Agent.shared.mutate(trace.mid) { $0.files.append(url) }
+                names.append(date.map { show.string(from: $0) } ?? url.lastPathComponent)
+            }
+        }
+        trace.end(sid, detail: L10n.f("{} 张", "\(names.count)"))
+        return ToolResult(text: "找到 \(names.count) 张（扫描了最近 \(days) 天的 \(total) 张照片）：" + names.joined(separator: "、") + "。已附在回复下方，缩略图可预览、分享。")
     }
 
     // MARK: 搜工作区文件

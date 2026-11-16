@@ -230,13 +230,10 @@ enum Router {
         let aiW = aiStrong && !(doW && !has(["播报", "汇报", "简报", "告诉我", "总结", "汇总"]))
 
         let content = p.rest
-        let soon = d.timeIntervalSinceNow < 8 * 3600 && d.timeIntervalSinceNow > 0
 
         if alarmW && !aiW {
             let label = content.isEmpty ? "闹钟" : String(content.prefix(20))
-            let r = await Sys.alarm(d, label, rep: p.rep)
-            if r.hasPrefix("闹钟已设置"), soon { Live.timer(title: label, subtitle: "闹钟", end: d) }
-            return r
+            return await Sys.alarmSmart(d, label, rep: p.rep)
         }
         if aiW || (timerW && !remindW && !eventW) {
             guard p.rep > 0 || d > Date() else { return "这个时间已经过了，换一个时间试试。" }
@@ -244,7 +241,6 @@ enum Router {
             let title = String(instr.prefix(14))
             Tasks.add(title, instr, d, useModel: aiW, rep: p.rep)
             await Tasks.refresh()
-            if soon { Live.timer(title: title, subtitle: "定时任务", end: d) }
             return "定时任务已创建：\(p.rep > 0 ? Sys.repText(p.rep) + " " : "")\(Sys.friendly(d))「\(title)」。\(aiW ? "到点前我会先准备好内容，再用通知送达。" : "")"
         }
         if eventW {
@@ -253,9 +249,7 @@ enum Router {
         }
         if remindW {
             let title = content.isEmpty ? "提醒" : String(content.prefix(40))
-            let r = await Sys.reminder(title, d, rep: p.rep)
-            if r.hasPrefix("提醒已设置"), soon { Live.timer(title: title, subtitle: "提醒", end: d) }
-            return r
+            return await Sys.reminder(title, d, rep: p.rep)
         }
         return nil
     }

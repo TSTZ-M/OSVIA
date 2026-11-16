@@ -99,7 +99,7 @@ enum AgentTools {
 
     // 需要用户确认、或会改变外部状态的工具：顺序执行，不并行
     nonisolated static func sequential(_ name: String) -> Bool {
-        ["mcp_call", "http_request", "delete_file", "run_shortcut", "confirm_action", "mail_send", "mail_act", "mail_unsubscribe", "speak", "ocr", "calendar_free", "connector", "open_app", "maps", "compose", "share", "contacts", "location"].contains(name)
+        ["mcp_call", "http_request", "delete_file", "run_shortcut", "confirm_action", "mail_send", "mail_act", "mail_unsubscribe", "speak", "ocr", "calendar_free", "photos_find", "connector", "open_app", "maps", "compose", "share", "contacts", "location"].contains(name)
     }
 
     // MARK: 给模型看的工具说明
@@ -269,17 +269,14 @@ enum AgentTools {
             let title = str(a, "title")
             let sid = trace.begin(.action, c.name == "set_alarm" ? "设置闹钟" : (c.name == "add_reminder" ? "添加提醒" : "添加日程"), title)
             Live.set(.working)
-            let soon = d.timeIntervalSinceNow > 0 && d.timeIntervalSinceNow < 8 * 3600
             var r = ""
             switch c.name {
             case "set_alarm":
                 let label = title.isEmpty ? "闹钟" : String(title.prefix(20))
-                r = await Sys.alarm(d, label, rep: rep(a))
-                if r.hasPrefix("闹钟已设置"), soon { Live.timer(title: label, subtitle: "闹钟", end: d) }
+                r = await Sys.alarmSmart(d, label, rep: rep(a))
             case "add_reminder":
                 let label = title.isEmpty ? "提醒" : String(title.prefix(40))
                 r = await Sys.reminder(label, d, rep: rep(a))
-                if r.hasPrefix("提醒已设置"), soon { Live.timer(title: label, subtitle: "提醒", end: d) }
             default:
                 r = await Sys.event(title.isEmpty ? "日程" : String(title.prefix(30)), d)
             }

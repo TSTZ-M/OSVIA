@@ -108,6 +108,29 @@ enum CloudLLM {
     static var ready: Bool { enabled && !key.isEmpty && !base.isEmpty && !model.isEmpty }
     static var summary: String { ready ? preset.name.components(separatedBy: "（")[0] : "未设置" }
 
+    // 向服务商查询当前账号能用的模型（OpenAI 兼容 GET /models）。服务商换了模型名也不用等应用更新。
+    static func listModels() async -> (ids: [String], error: String) {
+        let root = base.trimmingCharacters(in: CharacterSet(charactersIn: "/ \n"))
+        guard let url = URL(string: root + "/models") else { return ([], "接口地址不正确") }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 20
+        req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+        do {
+            let (d, resp) = try await URLSession.shared.data(for: req)
+            if let h = resp as? HTTPURLResponse, h.statusCode != 200 {
+                return ([], h.statusCode == 401 || h.statusCode == 403 ? "密钥不对或没有权限，请检查密钥" : "服务商没有提供模型列表（\(h.statusCode)），请手动填写模型名")
+            }
+            let j = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+            let arr = (j?["data"] as? [[String: Any]]) ?? (j?["models"] as? [[String: Any]]) ?? []
+            let ids = arr.compactMap { $0["id"] as? String ?? $0["name"] as? String }
+                .map { $0.hasPrefix("models/") ? String($0.dropFirst(7)) : $0 }
+                .filter { !$0.lowercased().contains("embed") && !$0.lowercased().contains("whisper") && !$0.lowercased().contains("tts") && !$0.lowercased().contains("image") }
+            return (Array(Set(ids)).sorted(), ids.isEmpty ? "没有读到可用模型，请手动填写模型名" : "")
+        } catch {
+            return ([], "读取失败：" + error.localizedDescription)
+        }
+    }
+
     // 流式对话（OpenAI 兼容 /chat/completions）。返回完整回答；onText 每次给出到目前为止的全文。
     static func stream(_ messages: [[String: String]], maxTokens: Int = 1000, temperature: Double = 0.4,
                        onText: @escaping (String) -> Void) async throws -> String {

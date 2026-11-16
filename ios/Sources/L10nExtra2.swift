@@ -469,5 +469,20 @@ iCloud 自定义域名 ⇒ iCloud custom domain
 识别图片文字 ⇒ Recognize text in image
 查找空闲时间 ⇒ Find free time
 搜索文件 ⇒ Search files
+暂停 ⇒ Pause
+继续 ⇒ Resume
+已暂停 ⇒ Paused
+倒计时 ⇒ Countdown
+最近 {} 天 ⇒ Last {} days
+没有照片 ⇒ No photos
+没有找到 ⇒ Not found
+{} 张 ⇒ {} photos
+查找照片 ⇒ Find photos
+获取可用模型列表 ⇒ Load available models
+选择模型 ⇒ Choose model
+默认 ⇒ Default
+服务商更新了模型名、或想换更强的模型时，先填好密钥，点这里读取你账号当前能用的模型。 ⇒ If the provider renamed models or you want a stronger one, enter your key first, then tap here to load the models your account can use.
+密钥不对或没有权限，请检查密钥 ⇒ The key is wrong or lacks permission — please check it
+没有读到可用模型，请手动填写模型名 ⇒ No models found — please enter the model name manually
 """#
 }

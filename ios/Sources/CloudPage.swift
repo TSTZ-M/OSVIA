@@ -9,6 +9,9 @@ struct CloudPage: View {
     @State private var key = ""
     @State private var testing = false
     @State private var result = ""
+    @State private var models: [String] = []
+    @State private var loadingModels = false
+    @State private var modelsError = ""
 
     private var current: CloudPreset { CloudLLM.presets.first { $0.id == preset } ?? CloudLLM.presets[0] }
 
@@ -43,6 +46,27 @@ struct CloudPage: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
+            Section {
+                Button {
+                    loadModels()
+                } label: {
+                    HStack(spacing: 8) {
+                        if loadingModels { ProgressView() }
+                        Label("获取可用模型列表", systemImage: "list.bullet")
+                    }
+                }
+                .disabled(loadingModels || key.isEmpty)
+                if !models.isEmpty {
+                    Picker("选择模型", selection: $customModel) {
+                        Text("默认").tag("")
+                        ForEach(models, id: \.self) { Text($0).tag($0) }
+                    }
+                    .pickerStyle(.navigationLink)
+                }
+                if !modelsError.isEmpty { Text(verbatim: L10n.tr(modelsError)).font(.footnote).foregroundStyle(.red) }
+            } footer: {
+                Text("服务商更新了模型名、或想换更强的模型时，先填好密钥，点这里读取你账号当前能用的模型。")
+            }
             Section("密钥") {
                 SecureField("粘贴 API Key", text: $key)
                     .textInputAutocapitalization(.never)
@@ -67,7 +91,21 @@ struct CloudPage: View {
         .onChange(of: key) { _, v in SecretStore.set("cloudKey", v.trimmingCharacters(in: .whitespacesAndNewlines)) }
         .onChange(of: preset) { _, _ in
             customModel = ""
+            models = []
+            modelsError = ""
             result = ""
+        }
+    }
+
+    private func loadModels() {
+        loadingModels = true
+        modelsError = ""
+        SecretStore.set("cloudKey", key.trimmingCharacters(in: .whitespacesAndNewlines))
+        Task {
+            let r = await CloudLLM.listModels()
+            models = r.ids
+            modelsError = r.error
+            loadingModels = false
         }
     }
 

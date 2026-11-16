@@ -10,6 +10,7 @@ final class AppState: ObservableObject {
     static let shared = AppState()
     @Published var drawer = false
     @Published var page: AppPage?
+    @Published var voiceTick = 0   // 小组件「语音」：数值变化时对话页开始听写
 }
 
 // 根界面：参照 Claude，没有底部标签栏。从左边缘右滑或点左上角菜单打开侧栏。

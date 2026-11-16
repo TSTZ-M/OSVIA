@@ -192,7 +192,7 @@ final class Agent: ObservableObject {
         let files = attachments.map { $0.url }
         guard !t.isEmpty || !files.isEmpty, !busy else { return }
         busy = true
-        Live.thinking(true)
+        Live.thinking(true, query: t)
         attachments = []
         store("user", t, files)
         if let f = files.last { lastFile = f }
