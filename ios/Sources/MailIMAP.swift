@@ -7,8 +7,10 @@ final class MailStream {
     private let session: URLSession
     private let task: URLSessionStreamTask
     private var buf = Data()
+    private let host: String
 
     init(host: String, port: Int, tls: Bool) {
+        self.host = host
         session = URLSession(configuration: .ephemeral)
         task = session.streamTask(withHostName: host, port: port)
         if tls { task.startSecureConnection() }
@@ -16,6 +18,22 @@ final class MailStream {
     }
 
     func startTLS() { task.startSecureConnection() }
+
+    // 把系统的网络错误换成用户看得懂、知道怎么改的话
+    static func friendly(_ e: Error, host: String) -> String {
+        let ns = e as NSError
+        guard ns.domain == NSURLErrorDomain else { return e.localizedDescription }
+        switch ns.code {
+        case NSURLErrorCannotFindHost, NSURLErrorDNSLookupFailed: return "找不到服务器「\(host)」：请检查服务器地址是否写对，或网络是否正常。"
+        case NSURLErrorTimedOut: return "连接「\(host)」超时：服务器没有响应，请检查服务器地址和端口，或换个网络再试。"
+        case NSURLErrorCannotConnectToHost: return "连不上「\(host)」：端口可能不对，或服务器没有开启 IMAP / SMTP。"
+        case NSURLErrorNotConnectedToInternet, NSURLErrorDataNotAllowed: return "现在没有网络连接。"
+        case NSURLErrorNetworkConnectionLost: return "网络连接中断了，请再试一次。"
+        case NSURLErrorSecureConnectionFailed, NSURLErrorServerCertificateUntrusted, NSURLErrorServerCertificateHasBadDate, NSURLErrorServerCertificateHasUnknownRoot, NSURLErrorServerCertificateNotYetValid:
+            return "与「\(host)」的安全连接失败（证书或加密问题）：请确认服务器地址写对了，并且这个服务器的 IMAP 用的是 993 端口的 SSL。"
+        default: return e.localizedDescription
+        }
+    }
 
     func close() {
         task.closeRead()
@@ -26,17 +44,19 @@ final class MailStream {
     func write(_ s: String) async throws { try await write(Data(s.utf8)) }
 
     func write(_ d: Data) async throws {
+        let h = host
         try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
             task.write(d, timeout: 30) { @Sendable e in
-                if let e { c.resume(throwing: MailError(e.localizedDescription)) } else { c.resume() }
+                if let e { c.resume(throwing: MailError(MailStream.friendly(e, host: h))) } else { c.resume() }
             }
         }
     }
 
     private func fill() async throws {
+        let h = host
         let d: Data = try await withCheckedThrowingContinuation { c in
             task.readData(ofMinLength: 1, maxLength: 65536, timeout: 30) { @Sendable data, eof, e in
-                if let e { c.resume(throwing: MailError(e.localizedDescription)) } else if let data, !data.isEmpty { c.resume(returning: data) } else if eof { c.resume(throwing: MailError("服务器断开了连接")) } else { c.resume(returning: Data()) }
+                if let e { c.resume(throwing: MailError(MailStream.friendly(e, host: h))) } else if let data, !data.isEmpty { c.resume(returning: data) } else if eof { c.resume(throwing: MailError("服务器断开了连接")) } else { c.resume(returning: Data()) }
             }
         }
         buf.append(d)
@@ -221,6 +241,28 @@ final class IMAPClient {
         return r.untagged.compactMap(parseFetch).sorted { $0.uid > $1.uid }
     }
 
+    // 增量同步第一步：只取最近 count 封的 UID、标志、日期（每封几十字节），用来判断哪些是新邮件、哪些已读状态变了
+    func fetchHeads(count: Int) async throws -> [IMAPMsg] {
+        guard exists > 0 else { return [] }
+        let from = max(1, exists - count + 1)
+        let r = try await cmd("FETCH \(from):\(exists) (UID FLAGS INTERNALDATE)")
+        debug = r.untagged.prefix(2).map { String($0.head.prefix(200)) }.joined(separator: " | ")
+        return r.untagged.compactMap(parseFetch).sorted { $0.uid > $1.uid }
+    }
+
+    // 第二步：只取新邮件的正文开头，一批最多 15 封
+    func fetchBodies(uids: [Int], maxBytes: Int = 9000) async throws -> [IMAPMsg] {
+        var out: [IMAPMsg] = []
+        var at = 0
+        while at < uids.count {
+            let batch = uids[at..<min(at + 15, uids.count)].map(String.init).joined(separator: ",")
+            at += 15
+            let r = try await cmd("UID FETCH \(batch) (UID FLAGS INTERNALDATE BODY.PEEK[]<0.\(maxBytes)>)")
+            out += r.untagged.compactMap(parseFetch)
+        }
+        return out.sorted { $0.uid > $1.uid }
+    }
+
     func fetchBody(uid: Int, maxBytes: Int = 300_000) async throws -> IMAPMsg? {
         let r = try await cmd("UID FETCH \(uid) (UID FLAGS INTERNALDATE BODY.PEEK[]<0.\(maxBytes)>)")
         return r.untagged.compactMap(parseFetch).first
@@ -310,8 +352,8 @@ final class SMTPClient {
         return text
     }
 
-    func deliver(user: String, pass: String, from: String, to: [String], message: Data) async throws {
-        defer { s.close() }
+    // 连接 + 握手 + 登录，成功后可以直接发信或结束
+    private func handshake(user: String, pass: String) async throws {
         let (gc, gt) = try await reply()
         guard gc == 220 else { throw MailError("发信服务器没有正常响应：" + String(gt.prefix(80))) }
         var ehlo = try await send("EHLO osvia.local", expect: [250])
@@ -331,6 +373,18 @@ final class SMTPClient {
             _ = try await send(Data(user.utf8).base64EncodedString(), expect: [334])
             _ = try await send(Data(pass.utf8).base64EncodedString(), expect: [235])
         }
+    }
+
+    // 添加邮箱时测试发信服务器能否登录（不发任何邮件）
+    func verify(user: String, pass: String) async throws {
+        defer { s.close() }
+        try await handshake(user: user, pass: pass)
+        _ = try? await send("QUIT", expect: [221])
+    }
+
+    func deliver(user: String, pass: String, from: String, to: [String], message: Data) async throws {
+        defer { s.close() }
+        try await handshake(user: user, pass: pass)
         _ = try await send("MAIL FROM:<\(from)>", expect: [250])
         for r in to { _ = try await send("RCPT TO:<\(r)>", expect: [250, 251]) }
         _ = try await send("DATA", expect: [354])
