@@ -48,6 +48,7 @@ enum Hands {
         s += "- device {}：电量、存储、系统版本、低电量模式；torch {\"on\":true}：手电筒；copy_text {\"text\":\"…\"}：复制到剪贴板\n"
         s += DeviceTools.doc()
         s += MoreTools.doc()
+        s += Hands2.doc()
         return s
     }
 

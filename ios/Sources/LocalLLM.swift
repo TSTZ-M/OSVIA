@@ -285,11 +285,20 @@ final class LocalLLM: ObservableObject {
         refresh()
         let nc = NotificationCenter.default
         nc.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.unload() }
+            Task { @MainActor in
+                Diag.mark("内存警告：卸载本地模型，余量 \(Safety.availableBytes() >> 20) MB")
+                self?.aborted = true
+                self?.unload()
+            }
         }
-        for n in [UIApplication.willResignActiveNotification, UIApplication.didEnterBackgroundNotification] {
-            nc.addObserver(forName: n, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.aborted = true }
+        nc.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.aborted = true }
+        }
+        // 进后台就把模型从内存里卸掉：后台占着 2GB 多的 App 是系统最先杀的，回来就是「闪退」。下次提问再载入
+        nc.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                self?.aborted = true
+                self?.unload()
             }
         }
     }
@@ -319,8 +328,33 @@ final class LocalLLM: ObservableObject {
 
     var selectedName: String { Self.models.first { $0.id == selectedID }?.name ?? selectedID }
 
-    // 已下载、已选、已开启：Agent 就用它回答
-    var canUse: Bool { enabled && isInstalled(selectedID) }
+    // 载入这个模型大约要多少字节：权重 ×1.15（缓存、激活）+ 450MB（分词器、界面和系统开销）
+    static func needBytes(_ id: String) -> Int {
+        let gb = Double(models.first { $0.id == id }?.gb ?? "2.5") ?? 2.5
+        return Int(gb * 1.15 * 1_073_741_824) + 450 * 1_048_576
+    }
+
+    // 内存够不够：已经载入的不用再算；真机拿不到余量时（返回 0）不拦
+    func memoryEnough(_ id: String) -> Bool {
+        if container != nil && loadedID == id { return true }
+        let avail = Safety.availableBytes()
+        return avail == 0 || avail >= Self.needBytes(id)
+    }
+
+    // 不能用本地模型的原因（空串 = 可以用或没有启用），显示在设置页
+    var blockReason: String {
+        guard enabled, isInstalled(selectedID) else { return "" }
+        if Safety.safeMode { return "安全模式下已暂停本地模型。" }
+        if Safety.localOff { return "上次运行时被系统终止，已自动停用本地模型。回到对话页点上方的「恢复」可重新启用。" }
+        if !memoryEnough(selectedID) {
+            return L10n.f("手机当前可用内存约 {} MB，载入这个模型约需 {} MB，现在改用系统自带模型。关闭其他 App 后再试，或换一个更小的模型。",
+                          "\(Safety.availableBytes() >> 20)", "\(Self.needBytes(selectedID) >> 20)")
+        }
+        return ""
+    }
+
+    // 已下载、已选、已开启、内存够、没有被安全机制停用：Agent 就用它回答
+    var canUse: Bool { enabled && Safety.localAllowed && isInstalled(selectedID) && memoryEnough(selectedID) }
 
     func isInstalled(_ id: String) -> Bool {
         FileManager.default.fileExists(atPath: MirrorDownloader.marker(for: id).path)
@@ -335,6 +369,7 @@ final class LocalLLM: ObservableObject {
         loadedID = ""
         loadTask = nil
         if case .ready = state { state = .idle }
+        Safety.trimMLX()
     }
 
     func select(_ id: String) {
@@ -362,17 +397,28 @@ final class LocalLLM: ObservableObject {
         state = .downloading(0)
         task = Task {
             do {
-                let c = try await LLMModelFactory.shared.loadContainer(
-                    from: MirrorDownloader(),
-                    using: TransformersLoader(),
-                    configuration: ModelConfiguration(id: id),
-                    progressHandler: { p in
-                        let f = p.fractionCompleted
-                        Task { @MainActor in LocalLLM.shared.state = .downloading(f) }
-                    })
-                container = c
-                loadedID = id
-                state = .ready
+                let progress: @Sendable (Foundation.Progress) -> Void = { p in
+                    let f = p.fractionCompleted
+                    Task { @MainActor in LocalLLM.shared.state = .downloading(f) }
+                }
+                if memoryEnough(id) {
+                    Safety.tuneMLX()
+                    Safety.begin()
+                    defer { Safety.end() }
+                    let c = try await LLMModelFactory.shared.loadContainer(
+                        from: MirrorDownloader(),
+                        using: TransformersLoader(),
+                        configuration: ModelConfiguration(id: id),
+                        progressHandler: progress)
+                    container = c
+                    loadedID = id
+                    state = .ready
+                } else {
+                    // 手机现在的可用内存不够载入这个模型：只下载文件，不载入，避免下载完成的瞬间被系统杀掉
+                    Diag.mark("内存不足以载入 \(id)，只下载不载入")
+                    _ = try await MirrorDownloader().download(id: id, revision: nil, matching: [], useLatest: false, progressHandler: progress)
+                    state = .idle
+                }
             } catch {
                 if error is CancellationError || (error as? URLError)?.code == .cancelled {
                     state = .idle
@@ -391,6 +437,14 @@ final class LocalLLM: ObservableObject {
         if let c = container, loadedID == id { return c }
         guard isInstalled(id) else { throw LocalLLMError.notInstalled }
         if let t = loadTask { return try await t.value }
+        guard Safety.localAllowed else { throw LocalLLMError.other(L10n.tr("本地模型已被安全机制暂停。")) }
+        guard memoryEnough(id) else {
+            let msg = L10n.f("可用内存约 {} MB，载入这个模型约需 {} MB，不够。", "\(Safety.availableBytes() >> 20)", "\(Self.needBytes(id) >> 20)")
+            Diag.mark("拒绝载入本地模型：" + msg)
+            throw LocalLLMError.other(msg)
+        }
+        Diag.mark("载入本地模型 \(id)，内存余量 \(Safety.availableBytes() >> 20) MB，约需 \(Self.needBytes(id) >> 20) MB")
+        Safety.tuneMLX()
         state = .loading
         let t = Task { () -> ModelContainer in
             try await LLMModelFactory.shared.loadContainer(
@@ -458,9 +512,17 @@ final class LocalLLM: ObservableObject {
         guard UIApplication.shared.applicationState == .active, !Task.isCancelled else { throw CancellationError() }
         aborted = false
         Diag.mark("本地模型生成开始")
-        defer { Diag.mark("本地模型生成结束") }
+        Safety.begin()
+        defer {
+            Safety.end()
+            Safety.trimMLX()
+            Diag.mark("本地模型生成结束，内存余量 \(Safety.availableBytes() >> 20) MB")
+        }
         let c = try await ensureLoaded()
-        if aborted { throw CancellationError() }
+        if aborted {
+            unload()
+            throw CancellationError()
+        }
         var gp = GenerateParameters()
         gp.maxTokens = maxTokens
         gp.temperature = temperature

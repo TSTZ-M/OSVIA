@@ -29,7 +29,7 @@ final class DB {
     private let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
     init() {
-        let dir = try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let dir = (try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)) ?? FileManager.default.temporaryDirectory
         sqlite3_open(dir.appendingPathComponent("agent.sqlite").path, &h)
         let schema = """
         CREATE TABLE IF NOT EXISTS msg(id INTEGER PRIMARY KEY, role TEXT, text TEXT, ts REAL);
