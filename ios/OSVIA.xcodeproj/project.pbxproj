@@ -10,6 +10,7 @@
 		01CDE7AD5BE2BE203634529F /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C0029FA543916C4C3818B7C9 /* MLXLLM */; };
 		02DD83BD8899BBCC59E0CA7E /* L10nExtra.swift in Sources */ = {isa = PBXBuildFile; fileRef = 914164BE70B66F943CCEA2C9 /* L10nExtra.swift */; };
 		067A803EC8421074FC16D9F9 /* ChatParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36B861B891DF3965072D46FB /* ChatParts.swift */; };
+		06D73E1B0AB8799E566399C4 /* AlarmMeta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 784DB26BBC24C42A8389B42B /* AlarmMeta.swift */; };
 		107CB7D6EA0B2EFDF97CC32E /* Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85EC833F9255E492541A0D89 /* Device.swift */; };
 		12E91576FD7ADE711765BF87 /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9BC70B91880117EF16B3D4B /* Core.swift */; };
 		130EC51C0C03E248A3386DE4 /* Convert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F16D55670AC29881C6C8EF /* Convert.swift */; };
@@ -28,10 +29,12 @@
 		34A96A0AEAAA20A81FAD462E /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 29E3115A47712220D7FCC66E /* MLXLMCommon */; };
 		3730FFCC337F983D9EC0FDED /* ScreenTranslate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552390B6E479B9DFBD2AD4AE /* ScreenTranslate.swift */; };
 		38A80F4DA0AB39E19C99C69A /* ShareService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7CF1C380639B56BDCF5B83 /* ShareService.swift */; };
+		40720ED00F630BC8DCFB0717 /* AlarmMeta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 784DB26BBC24C42A8389B42B /* AlarmMeta.swift */; };
 		4086807A026D74F2E8CBF404 /* AICatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD8C16A8F0D9C20238D8938 /* AICatalog.swift */; };
 		40881F5299A57F7F548731D8 /* Mail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95B6971DC59560F399B850C /* Mail.swift */; };
 		45AAB589869518F1A56FBB8E /* SettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2101D21764981A72D73E0C /* SettingsPage.swift */; };
 		471FB32FAD1B2EC235D6577B /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D7F458E62F89F51A1357BA /* Agent.swift */; };
+		474BAA2C66D50CE3369D0B5B /* OSVIAAlarmLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0937CBEBB94632B0B3D727B6 /* OSVIAAlarmLive.swift */; };
 		47D1CA09C0038E9A97534CBD /* Features.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC8AFB834A4A6D1C92CB04D9 /* Features.swift */; };
 		4A8D3FB210BACB9B5BB1C4E6 /* ConnectorUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9470283AE163DE614D32912B /* ConnectorUI.swift */; };
 		4AFA00C231C51FA8DDF3E3E6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C056D018B93423E5C3F5080 /* Assets.xcassets */; };
@@ -53,6 +56,7 @@
 		808B688F9980F615ABF8F139 /* SenderAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95E6E61F619D536E4004F0E9 /* SenderAvatar.swift */; };
 		821F9DCACE04DA7D4681C863 /* Pages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD378CF7A1C193B601004E /* Pages.swift */; };
 		8381044BB58722C350A44174 /* AgentExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFAD0B2A860DCA1B9228EDF6 /* AgentExt.swift */; };
+		8A8BCBD7D369B13421EF6796 /* OSVIAWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6239B4BD0E3A6300C739265 /* OSVIAWidgets.swift */; };
 		8EC3FFA4046713AF57DB4E8E /* MemoryHubUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7019597CAA2452F89E593FE9 /* MemoryHubUI.swift */; };
 		8F9E71961615D2C503EB9FAE /* MCP.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5AA26DFFC633BB4831AD0C9 /* MCP.swift */; };
 		906554E6873E40180B32BD94 /* Gallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1EE660C9505756B897B07D8 /* Gallery.swift */; };
@@ -115,6 +119,7 @@
 
 /* Begin PBXFileReference section */
 		000E7FBD7725FCEA749D8A56 /* OSVIA.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = OSVIA.xcconfig; sourceTree = "<group>"; };
+		0937CBEBB94632B0B3D727B6 /* OSVIAAlarmLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSVIAAlarmLive.swift; sourceTree = "<group>"; };
 		0B4ED48F9A6156C397F91725 /* Files.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Files.swift; sourceTree = "<group>"; };
 		0F63F20AC69F28D3D5527E2F /* L10nUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nUI.swift; sourceTree = "<group>"; };
 		11F16D55670AC29881C6C8EF /* Convert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Convert.swift; sourceTree = "<group>"; };
@@ -144,6 +149,7 @@
 		648F5A959FF9F80A6668BC4E /* CloudLLM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudLLM.swift; sourceTree = "<group>"; };
 		6BDD378CF7A1C193B601004E /* Pages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pages.swift; sourceTree = "<group>"; };
 		7019597CAA2452F89E593FE9 /* MemoryHubUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryHubUI.swift; sourceTree = "<group>"; };
+		784DB26BBC24C42A8389B42B /* AlarmMeta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmMeta.swift; sourceTree = "<group>"; };
 		7A4F66B7C5B8C7FCEDD99591 /* L10nTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTable.swift; sourceTree = "<group>"; };
 		7AC56BD002D9CE316C9D8E0B /* MailIMAP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailIMAP.swift; sourceTree = "<group>"; };
 		7B343B947A6B1EFDA0D538B9 /* Connectors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connectors.swift; sourceTree = "<group>"; };
@@ -183,6 +189,7 @@
 		DDBEE5B8CA2F61F0BA1CE1D9 /* Media.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Media.swift; sourceTree = "<group>"; };
 		DE1D20BEED090BA644D407DF /* OSVIALive.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = OSVIALive.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DFAD0B2A860DCA1B9228EDF6 /* AgentExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentExt.swift; sourceTree = "<group>"; };
+		E6239B4BD0E3A6300C739265 /* OSVIAWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSVIAWidgets.swift; sourceTree = "<group>"; };
 		E6ECB48DAE81978A2DF10345 /* WebSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSearch.swift; sourceTree = "<group>"; };
 		EC6137101BE75E7208EF94B0 /* Diag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diag.swift; sourceTree = "<group>"; };
 		EF2CCBA2BAD472E680AACB9E /* MoreTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreTools.swift; sourceTree = "<group>"; };
@@ -218,6 +225,7 @@
 		3234F0319FDA991E5D7E3E9D /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				784DB26BBC24C42A8389B42B /* AlarmMeta.swift */,
 				5F1FE275EA3CB62B3390FAE0 /* BotActivity.swift */,
 				BED1AA84663C25D2EB051C07 /* BrandMark.swift */,
 			);
@@ -227,7 +235,9 @@
 		378B8FAD244BE333739C8DB3 /* Live */ = {
 			isa = PBXGroup;
 			children = (
+				0937CBEBB94632B0B3D727B6 /* OSVIAAlarmLive.swift */,
 				A41505DA06B7FD4BDC2A76AA /* OSVIALive.swift */,
+				E6239B4BD0E3A6300C739265 /* OSVIAWidgets.swift */,
 			);
 			path = Live;
 			sourceTree = "<group>";
@@ -431,9 +441,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06D73E1B0AB8799E566399C4 /* AlarmMeta.swift in Sources */,
 				E04DDD39256DAD38346738CA /* BotActivity.swift in Sources */,
 				55346F22EA0BC79262C7A6DC /* BrandMark.swift in Sources */,
+				474BAA2C66D50CE3369D0B5B /* OSVIAAlarmLive.swift in Sources */,
 				77532A60DF2C827F1638BD21 /* OSVIALive.swift in Sources */,
+				8A8BCBD7D369B13421EF6796 /* OSVIAWidgets.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -446,6 +459,7 @@
 				471FB32FAD1B2EC235D6577B /* Agent.swift in Sources */,
 				8381044BB58722C350A44174 /* AgentExt.swift in Sources */,
 				71BDA34C83A521357D42B671 /* AgentTools.swift in Sources */,
+				40720ED00F630BC8DCFB0717 /* AlarmMeta.swift in Sources */,
 				70B55B23DEAEBE2FFBBBFED8 /* BotActivity.swift in Sources */,
 				D41B519365D2770669F90EFA /* Brain.swift in Sources */,
 				C495AED4A6B6F03283940343 /* Brand.swift in Sources */,
