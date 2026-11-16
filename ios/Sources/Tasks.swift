@@ -25,7 +25,9 @@ enum Tasks {
 
     // 任务内容用当前应用语言生成（通知里显示的就是这段文字）。
     // 天气、新闻这类要实时数据的任务，先把真实数据取回来，再让模型整理成几句话；否则模型只能凭空编。
-    static func gen(_ instr: String) async -> String {
+    // auto=true（回到前台自动准备、创建任务后的刷新）绝不加载本地大模型：几 GB 的模型和刚启动的界面抢内存，被系统杀掉后任务还没完成，下次启动又来，就成了闪退循环。
+    // 只用云端或系统自带模型，都没有就退回真实数据或任务原文。
+    static func gen(_ instr: String, auto: Bool = false) async -> String {
         var data = ""
         var weatherText = ""
         if Weather.words.contains(where: { instr.contains($0) }) {
@@ -44,6 +46,10 @@ enum Tasks {
             + (data.isEmpty ? "需要资料时先调用工具。" : "只依据下面给出的资料，不要编造。")
             + L10n.replyDirective + "当前时间：" + Sys.fmtFull(Date())
         let prompt = data + "任务：" + instr
+        if auto {
+            if let r = await AI.oneShot(ins, prompt, maxTokens: 300, local: false) { return r }
+            return weatherText
+        }
         if await UIApplication.shared.applicationState == .active,
            let r = await LLM.complete(instructions: ins, prompt: prompt, maxTokens: 300, temperature: 0.4) { return r }
         if !weatherText.isEmpty { return weatherText }
@@ -64,7 +70,7 @@ enum Tasks {
             let rep = r.i("rep")
             var result = r.s("result")
             if useModel && result.isEmpty && due - now < 48 * 3600 {
-                result = await gen(r.s("instr"))
+                result = await gen(r.s("instr"), auto: true)
                 DB.shared.run("UPDATE task SET result=? WHERE id=?", [result, id])
             }
             let body = String((result.isEmpty ? r.s("instr") : result).prefix(160))

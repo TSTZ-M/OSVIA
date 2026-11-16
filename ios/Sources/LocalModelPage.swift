@@ -33,7 +33,11 @@ struct LocalModelPage: View {
     var statusRow: some View {
         switch m.state {
         case .idle:
-            Text(m.canUse ? "已就绪" : "未下载本地模型").font(.subheadline).foregroundStyle(Brand.sub)
+            if !m.blockReason.isEmpty {
+                Text(L10n.tr(m.blockReason)).font(.footnote).foregroundStyle(.orange)
+            } else {
+                Text(m.canUse ? "已就绪" : "未下载本地模型").font(.subheadline).foregroundStyle(Brand.sub)
+            }
         case .downloading(let f):
             VStack(alignment: .leading, spacing: 6) {
                 Text("正在下载 {}%".replacingOccurrences(of: "{}", with: "\(Int(f * 100))")).font(.subheadline)

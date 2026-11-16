@@ -29,7 +29,7 @@ enum MoreTools {
         case "calendar_free": return await calendarFree(a, trace)
         case "search_files": return searchFiles(str(a, "q"), trace)
         case "photos_find": return await photosFind(a, trace)
-        default: return nil
+        default: return await Hands2.run(c, trace: trace, cloud: cloud)
         }
     }
 

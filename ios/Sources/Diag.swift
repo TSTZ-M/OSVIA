@@ -83,7 +83,8 @@ enum Diag {
 
     static func launch() {
         let ud = UserDefaults.standard
-        if ud.bool(forKey: activeKey) {
+        let abnormal = ud.bool(forKey: activeKey)
+        if abnormal {
             let t = tail(14)
             ud.set(stamp.string(from: Date()) + " 上次在前台异常结束，最后的记录：\n" + t, forKey: "diag.abnormal")
         }
@@ -91,12 +92,14 @@ enum Diag {
         ud.set(false, forKey: activeKey)
         trimLog()
         mark("—— 启动 v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"))
+        Safety.launch(abnormal: abnormal)
         MXMetricManager.shared.add(Subscriber.shared)
     }
 
     static func phase(active: Bool) {
         UserDefaults.standard.set(active, forKey: activeKey)
-        mark(active ? "回到前台" : "进入后台")
+        mark((active ? "回到前台" : "进入后台") + "，内存余量 \(Safety.availableBytes() >> 20) MB")
+        if active { Safety.foreground() } else { Safety.background() }
     }
 
     static func clear() {

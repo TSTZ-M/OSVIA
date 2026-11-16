@@ -64,7 +64,15 @@ struct OSVIAApp: App {
             if p == .active {
                 AppTheme.apply(appearance)
                 Live.sweep()
-                Task { await Tasks.refresh(); await Evolve.run(); await Mail.autoRunIfDue() }
+                // 等界面稳定下来再做自动任务；安全模式下不跑邮件同步和进化
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 2_500_000_000)
+                    guard UIApplication.shared.applicationState == .active else { return }
+                    await Tasks.refresh()
+                    guard !Safety.safeMode else { return }
+                    await Evolve.run()
+                    await Mail.autoRunIfDue()
+                }
             }
         }
     }

@@ -59,7 +59,12 @@ final class Voice: ObservableObject {
             req = r
             let input = engine.inputNode
             input.removeTap(onBus: 0)
-            input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { [weak self] b, _ in
+            // 麦克风被电话或其他 App 占用时采样率是 0，直接装 tap 会抛出系统异常、闪退
+            let fmt = input.outputFormat(forBus: 0)
+            guard fmt.sampleRate > 0, fmt.channelCount > 0 else {
+                throw NSError(domain: "osvia.voice", code: 1, userInfo: [NSLocalizedDescriptionKey: "麦克风暂时不可用，可能正被电话或其他 App 占用"])
+            }
+            input.installTap(onBus: 0, bufferSize: 1024, format: fmt) { [weak self] b, _ in
                 r.append(b)
                 guard let ch = b.floatChannelData?[0] else { return }
                 let n = Int(b.frameLength)

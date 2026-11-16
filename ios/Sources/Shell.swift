@@ -57,6 +57,7 @@ struct RootView: View {
                 }
             )
         }
+        .overlay(alignment: .top) { SafetyBanner() }
         .environment(\.locale, L10n.locale)
         .environment(\.layoutDirection, L10n.rtl ? .rightToLeft : .leftToRight)
         .translationTask(l10n.config) { session in await l10n.run(session) }

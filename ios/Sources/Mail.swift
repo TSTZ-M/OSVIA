@@ -408,6 +408,7 @@ enum Mail {
 
     // MARK: 自动运行：回到前台时（每个账号间隔 10 分钟）和系统给的后台刷新机会
     static func autoRunIfDue() async {
+        guard !Safety.safeMode else { return }
         for a in accounts() where a.i("auto") == 1 {
             if Date().timeIntervalSince1970 - a.d("last_run") < 600 { continue }
             await refresh(a.i("id"), rules: true)
