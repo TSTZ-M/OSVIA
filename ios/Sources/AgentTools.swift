@@ -113,8 +113,8 @@ enum AgentTools {
         if !local {
             s += "- remember {\"text\":\"一条关于用户的长期事实或偏好\",\"cat\":\"个人|偏好|工作|项目|人际|其他\"}：用户明确要求记住，或透露了稳定的个人信息时调用\n"
             s += "- set_alarm {\"time\":\"yyyy-MM-dd'T'HH:mm\",\"title\":\"标题\",\"repeat\":\"none|daily|weekly\"}：设置会响铃的闹钟\n"
-            s += "- add_reminder {\"time\":\"yyyy-MM-dd'T'HH:mm\",\"title\":\"内容\",\"repeat\":\"none|daily|weekly\"}：添加提醒事项\n"
-            s += "- add_event {\"time\":\"yyyy-MM-dd'T'HH:mm\",\"title\":\"标题\"}：添加日历日程\n"
+            s += "- add_reminder {\"time\":\"yyyy-MM-dd'T'HH:mm\",\"title\":\"内容\",\"notes\":\"备注\",\"repeat\":\"none|daily|weekly|monthly|yearly\"}：添加提醒事项\n"
+            s += "- add_event {\"time\":\"yyyy-MM-dd'T'HH:mm\",\"title\":\"标题\",\"minutes\":60,\"location\":\"地点\",\"notes\":\"备注\",\"repeat\":\"none|daily|weekly|monthly|yearly\",\"alert\":10,\"allday\":false}：添加日历日程；minutes 是时长，alert 是提前几分钟提醒（-1 不提醒）；全天日程把 allday 设为 true、time 只写 yyyy-MM-dd。会自动提示时间冲突\n"
         }
         s += Hands.doc(local: local)
         if !local { s += Mail.doc() }
@@ -152,6 +152,14 @@ enum AgentTools {
         let s = str(a, "time")
         guard !s.isEmpty else { return nil }
         return f.date(from: String(s.prefix(16)))
+    }
+
+    // 全天日程只给日期（yyyy-MM-dd）
+    private static func whenDay(_ a: [String: Any]) -> Date? {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: String(str(a, "time").prefix(10)))
     }
 
     private static func rep(_ a: [String: Any]) -> Int {
@@ -265,7 +273,8 @@ enum AgentTools {
             return await callMCP(a, trace: trace, cloud: cloud)
 
         case "set_alarm", "add_reminder", "add_event":
-            guard let d = when(a) else { return ToolResult(text: "时间格式不对，请用 yyyy-MM-dd'T'HH:mm 重新调用。", ok: false) }
+            let allDay = c.name == "add_event" && ((a["allday"] as? Bool) ?? (a["allday"] as? NSNumber)?.boolValue ?? false)
+            guard let d = when(a) ?? (allDay ? whenDay(a) : nil) else { return ToolResult(text: "时间格式不对，请用 yyyy-MM-dd'T'HH:mm 重新调用。", ok: false) }
             let title = str(a, "title")
             let sid = trace.begin(.action, c.name == "set_alarm" ? "设置闹钟" : (c.name == "add_reminder" ? "添加提醒" : "添加日程"), title)
             Live.set(.working)
@@ -276,9 +285,12 @@ enum AgentTools {
                 r = await Sys.alarmSmart(d, label, rep: rep(a))
             case "add_reminder":
                 let label = title.isEmpty ? "提醒" : String(title.prefix(40))
-                r = await Sys.reminder(label, d, rep: rep(a))
+                r = await Sys.reminder(label, d, rep: rep(a), notes: str(a, "notes"), freq: str(a, "repeat").lowercased())
             default:
-                r = await Sys.event(title.isEmpty ? "日程" : String(title.prefix(30)), d)
+                r = await Sys.event(title.isEmpty ? "日程" : String(title.prefix(30)), d,
+                                    minutes: Int(str(a, "minutes")) ?? 60, location: String(str(a, "location").prefix(60)),
+                                    notes: String(str(a, "notes").prefix(300)), freq: str(a, "repeat").lowercased(),
+                                    alert: Int(str(a, "alert")) ?? 10, allDay: allDay)
             }
             trace.end(sid, detail: Sys.friendly(d))
             return ToolResult(text: r, final: true)
