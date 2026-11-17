@@ -248,16 +248,21 @@ final class FileFetcher: NSObject, URLSessionDownloadDelegate, @unchecked Sendab
 final class LocalLLM: ObservableObject {
     static let shared = LocalLLM()
 
-    // 默认模型：Qwen3-4B-Instruct-2507（非思考版，指令遵循、中文、工具调用都明显强于旧版 Qwen3 4B 与 Qwen2.5 3B）
+    // 默认模型：Qwen3-4B-Instruct-2507（非思考版）。它是目前在真机上验证最充分的一档，所以保留为默认「稳定版」；
+    // Qwen3.5 是新一代（2026-03 发布），社区转换的纯文本版体积更小、能力更强，作为首选新模型提供。
     static let defaultID = "mlx-community/Qwen3-4B-Instruct-2507-4bit"
 
     static let models: [LocalModel] = [
-        LocalModel(id: "mlx-community/Qwen3-4B-Instruct-2507-4bit", name: "Qwen3 4B 2507", gb: "2.3", note: "推荐：目前手机上最聪明的一档，中文与指令遵循最强"),
-        LocalModel(id: "mlx-community/Qwen2.5-3B-Instruct-4bit", name: "Qwen2.5 3B", gb: "1.8", note: "速度与质量均衡，占内存较少"),
-        LocalModel(id: "mlx-community/Qwen2.5-1.5B-Instruct-4bit", name: "Qwen2.5 1.5B", gb: "0.9", note: "轻量，速度快，占内存少"),
-        LocalModel(id: "droyster/Qwen3.5-4B-Text-MLX-4bit", name: "Qwen3.5 4B（新）", gb: "2.4", note: "新一代 Qwen3.5，推理与工具调用更强；社区转换的纯文本版，若加载失败请换回默认"),
-        LocalModel(id: "augible/qwen3.5-2b-4bit-text-mlx", name: "Qwen3.5 2B（新）", gb: "1.1", note: "新一代小模型，比 Qwen2.5 1.5B 聪明且更省内存；社区转换的纯文本版"),
-        LocalModel(id: "mlx-community/Qwen3-4B-4bit", name: "Qwen3 4B（旧）", gb: "2.3", note: "旧版混合思考模型，不再推荐")
+        LocalModel(id: "droyster/Qwen3.5-4B-Text-MLX-4bit", name: "Qwen3.5 4B（新一代）", gb: "2.4", note: "新一代主力小模型：推理、工具调用、中文都更强；社区转换的纯文本版，若载入失败请换回稳定版"),
+        LocalModel(id: "augible/qwen3.5-2b-4bit-text-mlx", name: "Qwen3.5 2B（新一代）", gb: "1.1", note: "新一代轻量款，占内存少，6GB 内存的手机优先选它；社区转换的纯文本版"),
+        LocalModel(id: "mlx-community/Qwen3-4B-Instruct-2507-4bit", name: "Qwen3 4B 2507（稳定版）", gb: "2.3", note: "默认：验证最充分，中文与指令遵循稳定")
+    ]
+
+    // 已下架的过旧模型：启动时自动删除它们已下载的文件，释放存储，并把选中项切回默认
+    static let retiredIDs = [
+        "mlx-community/Qwen2.5-3B-Instruct-4bit",
+        "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+        "mlx-community/Qwen3-4B-4bit"
     ]
 
     enum State: Equatable {
@@ -282,6 +287,7 @@ final class LocalLLM: ObservableObject {
     private var aborted = false
 
     init() {
+        purgeRetired()
         refresh()
         let nc = NotificationCenter.default
         nc.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
@@ -362,6 +368,24 @@ final class LocalLLM: ObservableObject {
 
     func refresh() {
         installed = Set(Self.models.map { $0.id }.filter { isInstalled($0) })
+    }
+
+    // 删除已下架模型的文件；选中的是已下架模型时，改回默认
+    private func purgeRetired() {
+        let fm = FileManager.default
+        var freed = 0
+        for id in Self.retiredIDs {
+            let d = MirrorDownloader.dir(for: id)
+            if fm.fileExists(atPath: d.path) {
+                try? fm.removeItem(at: d)
+                freed += 1
+            }
+        }
+        if Self.retiredIDs.contains(selectedID) {
+            UserDefaults.standard.removeObject(forKey: "localModelID")
+            freed += 1
+        }
+        if freed > 0 { Diag.mark("已清理 \(freed) 项过旧本地模型（文件或选中项）") }
     }
 
     func unload() {

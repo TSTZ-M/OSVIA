@@ -14,6 +14,7 @@ enum Hands2 {
         s += "- reminders {\"action\":\"list|complete|delete\",\"q\":\"标题关键词\"}：查看、完成、删除系统提醒事项（删除会先问用户）\n"
         s += "- events {\"action\":\"find|delete|move\",\"q\":\"标题关键词\",\"days\":14,\"time\":\"yyyy-MM-dd'T'HH:mm\"}：在日历里找日程；delete 删除、move 改到 time 开始（保持时长），都会先问用户\n"
         s += "- contact_add {\"name\":\"姓名\",\"phone\":\"电话\",\"email\":\"邮箱\",\"org\":\"公司\"}：新建联系人（会先问用户）\n"
+        s += "- date_calc {\"from\":\"yyyy-MM-dd 或 now\",\"days\":0,\"months\":0,\"weekday\":\"周三\",\"to\":\"yyyy-MM-dd\"}：日期推算，别心算。给 days/months 得到偏移后的日期和星期；给 weekday（周一…周日）得到 from 之后最近的那一天；给 to 得到两个日期相差的天数和周数\n"
         s += "- open_settings {}：打开本应用的系统设置页（权限被拒绝时，让用户去开启；先告诉用户要开哪一项）\n"
         return s
     }
@@ -31,6 +32,7 @@ enum Hands2 {
         case "events": return await events(a, trace)
         case "contact_add": return await contactAdd(a, trace)
         case "open_settings": return await openSettings(trace)
+        case "date_calc": return dateCalc(a, trace)
         default: return nil
         }
     }
@@ -56,6 +58,52 @@ enum Hands2 {
         let f = DateFormatter()
         f.dateFormat = "MM-dd HH:mm"
         return f.string(from: d)
+    }
+
+    // MARK: 日期推算
+    private static func dateCalc(_ a: [String: Any], _ trace: Tracer) -> ToolResult {
+        let cal = Calendar.current
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        func parse(_ s: String) -> Date? {
+            let t = s.trimmingCharacters(in: .whitespaces)
+            if t.isEmpty || t.lowercased() == "now" || t == "今天" { return cal.startOfDay(for: Date()) }
+            return f.date(from: String(t.prefix(10))).map { cal.startOfDay(for: $0) }
+        }
+        func show(_ d: Date) -> String {
+            let w = DateFormatter()
+            w.locale = Locale(identifier: "zh_CN")
+            w.dateFormat = "yyyy年M月d日 EEEE"
+            return w.string(from: d) + "（" + f.string(from: d) + "）"
+        }
+        guard let from = parse(str(a, "from")) else { return ToolResult(text: "from 的格式不对，用 yyyy-MM-dd 或 now。", ok: false) }
+        trace.note(.time, "日期推算", str(a, "from").isEmpty ? "今天" : str(a, "from"))
+        if !str(a, "to").isEmpty {
+            guard let to = parse(str(a, "to")) else { return ToolResult(text: "to 的格式不对，用 yyyy-MM-dd。", ok: false) }
+            let d = cal.dateComponents([.day], from: from, to: to).day ?? 0
+            return ToolResult(text: "从 \(show(from)) 到 \(show(to))：相差 \(abs(d)) 天（约 \(String(format: "%.1f", Double(abs(d)) / 7)) 周），\(d >= 0 ? "后者在后" : "后者在前")。")
+        }
+        if !str(a, "weekday").isEmpty {
+            let names = ["日": 1, "天": 1, "一": 2, "二": 3, "三": 4, "四": 5, "五": 6, "六": 7,
+                         "sun": 1, "mon": 2, "tue": 3, "wed": 4, "thu": 5, "fri": 6, "sat": 7]
+            let w = str(a, "weekday").lowercased()
+            guard let target = names.first(where: { w.hasSuffix($0.key) || w.hasPrefix($0.key) })?.value else {
+                return ToolResult(text: "weekday 请写 周一…周日。", ok: false)
+            }
+            let cur = cal.component(.weekday, from: from)
+            var add = (target - cur + 7) % 7
+            if add == 0 { add = 7 }
+            // “下周X”：本周的 X 已过或就是今天时才进入下一周；用户明确说“下周”时，调用方可再加 days:7
+            let d = cal.date(byAdding: .day, value: add + (((a["days"] as? NSNumber)?.intValue) ?? 0), to: from) ?? from
+            return ToolResult(text: "\(show(from)) 之后最近的\(str(a, "weekday"))是 \(show(d))。")
+        }
+        var d = from
+        let months = (a["months"] as? NSNumber)?.intValue ?? 0
+        let days = (a["days"] as? NSNumber)?.intValue ?? 0
+        if months != 0 { d = cal.date(byAdding: .month, value: months, to: d) ?? d }
+        if days != 0 { d = cal.date(byAdding: .day, value: days, to: d) ?? d }
+        return ToolResult(text: "\(show(from)) \(months != 0 ? "加 \(months) 个月 " : "")\(days != 0 ? "加 \(days) 天 " : "")= \(show(d))。")
     }
 
     // MARK: 定时任务

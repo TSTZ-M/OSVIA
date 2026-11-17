@@ -36,7 +36,8 @@ enum Hands {
         s += "- run_js {\"code\":\"JavaScript\"}：沙盒里运行代码，console.log 输出，最后一个表达式的值也会返回；可用 httpGet(url) 同步取网页/接口文本。计算、日期推算、数据整理、统计排序、格式转换、解析 JSON 都写代码做，不要心算\n"
         s += "- http_request {\"method\":\"GET\",\"url\":\"https://…\",\"headers\":{…},\"body\":\"…\"}：调用任意 https 接口（GET 直接执行，其他方法会先问用户）\n"
         s += "- create_file {\"name\":\"文件名.扩展名\",\"content\":\"内容\"}：生成文件（md txt csv json html pdf ics 等）放进工作区，并附在回复下方供预览分享。文章、表格、简历、代码、日历文件用它交付\n"
-        s += "- read_file {\"name\":\"文件名\"} / list_files {} / delete_file {\"name\":\"文件名\"}：读写工作区里的文件（删除会先问用户）\n"
+        s += "- read_file {\"name\":\"文件名\",\"offset\":0}：读工作区文件，一次最多 12000 字节，较长的用 offset 接着往后读；list_files {}；delete_file {\"name\":\"文件名\"}（删除会先问用户）\n"
+        s += "- edit_file {\"name\":\"文件名\",\"mode\":\"append|prepend|replace\",\"content\":\"新内容\",\"find\":\"replace 时要被替换的原文\"}：修改工作区里已有的文件：在末尾追加、在开头插入、或把 find 精确替换成 content。改完会重新附在回复下方\n"
         s += "- save_skill {\"name\":\"技能名\",\"desc\":\"用途\",\"sample\":\"测试输入\",\"code\":\"function(input){…return 字符串;}\"}：没有现成工具时，自己写一个可复用的脚本技能（ES5，可用 fetchText(url) 和 kbSearch(词)），测试通过才保存，之后用 run_skill 调用\n"
         s += "- agenda {\"days\":3}：读取用户未来几天的日历日程和提醒事项（安排时间、问「我明天有什么事」时先用它）\n"
         s += "- timer {\"minutes\":10,\"title\":\"泡面\"}：倒计时，到点响铃（相对时间一律用它，不要自己算绝对时间）\n"
@@ -61,7 +62,8 @@ enum Hands {
         case "run_js": return await runJSTool(str(a, "code"), trace)
         case "http_request": return await http(a, trace, cloud: cloud)
         case "create_file": return createFile(str(a, "name"), str(a, "content"), trace)
-        case "read_file": return readFile(str(a, "name"), trace)
+        case "read_file": return readFile(str(a, "name"), trace, offset: (a["offset"] as? NSNumber)?.intValue ?? 0)
+        case "edit_file": return editFile(a, trace)
         case "list_files": return listFiles(trace)
         case "delete_file": return await deleteFile(str(a, "name"), trace)
         case "save_skill": return await saveSkill(a, trace)
@@ -415,12 +417,47 @@ enum Hands {
         return ToolResult(text: "已生成文件「\(url.lastPathComponent)」，附在回复下方，用户点开可预览、分享或存到「文件」。不要再贴出全文，用一两句话说明内容即可。")
     }
 
-    private static func readFile(_ rawName: String, _ trace: Tracer) -> ToolResult {
+    private static func readFile(_ rawName: String, _ trace: Tracer, offset: Int = 0) -> ToolResult {
         let url = work.appendingPathComponent(safeName(rawName))
         guard let d = try? Data(contentsOf: url) else { return ToolResult(text: "工作区里没有这个文件，可以先用 list_files 看看。", ok: false) }
         trace.note(.file, "读取文件", url.lastPathComponent)
-        let t = String(decoding: d.prefix(12000), as: UTF8.self)
-        return ToolResult(text: t + (d.count > 12000 ? "\n…（文件较长，只读了前 12000 字节）" : ""))
+        let start = min(max(0, offset), d.count)
+        let end = min(d.count, start + 12000)
+        let t = String(decoding: d[start..<end], as: UTF8.self)
+        return ToolResult(text: t + (end < d.count ? "\n…（还有内容，用 offset=\(end) 接着读；文件共 \(d.count) 字节）" : ""))
+    }
+
+    // 修改工作区里已有的文本文件：追加、前插、精确替换。改完把文件重新附到回复下方。
+    private static func editFile(_ a: [String: Any], _ trace: Tracer) -> ToolResult {
+        let name = safeName(str(a, "name"))
+        let url = work.appendingPathComponent(name)
+        guard let old = try? String(contentsOf: url, encoding: .utf8) else {
+            return ToolResult(text: "工作区里没有这个文本文件，可以先用 list_files 看看；新文件用 create_file。", ok: false)
+        }
+        let content = (a["content"] as? String) ?? ""
+        let find = (a["find"] as? String) ?? ""
+        let mode = str(a, "mode").lowercased()
+        var new = old
+        switch mode {
+        case "append": new = old + (old.hasSuffix("\n") || old.isEmpty ? "" : "\n") + content
+        case "prepend": new = content + (content.hasSuffix("\n") ? "" : "\n") + old
+        case "replace":
+            guard !find.isEmpty else { return ToolResult(text: "replace 需要 find（要被替换的原文）。", ok: false) }
+            let n = old.components(separatedBy: find).count - 1
+            guard n > 0 else { return ToolResult(text: "文件里没有找到 find 对应的原文，先用 read_file 看清楚原文再改（要逐字一致）。", ok: false) }
+            guard n == 1 else { return ToolResult(text: "find 在文件里出现了 \(n) 次，请带上更多上下文让它唯一。", ok: false) }
+            new = old.replacingOccurrences(of: find, with: content)
+        default: return ToolResult(text: "mode 只能是 append、prepend 或 replace。", ok: false)
+        }
+        guard !content.isEmpty || mode == "replace" else { return ToolResult(text: "内容为空。", ok: false) }
+        let sid = trace.begin(.file, "修改文件", name)
+        do { try new.write(to: url, atomically: true, encoding: .utf8) } catch {
+            trace.end(sid, ok: false, detail: name + " · " + String(error.localizedDescription.prefix(40)))
+            return ToolResult(text: "写文件失败：" + error.localizedDescription, ok: false)
+        }
+        Agent.shared.mutate(trace.mid) { m in if !m.files.contains(url) { m.files.append(url) } }
+        trace.end(sid, detail: name)
+        return ToolResult(text: "已修改「\(name)」（\(old.count) → \(new.count) 字），附在回复下方。不要再贴出全文，用一两句话说明改了什么。")
     }
 
     private static func listFiles(_ trace: Tracer) -> ToolResult {
