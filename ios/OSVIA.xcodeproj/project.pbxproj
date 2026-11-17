@@ -50,6 +50,7 @@
 		68330B29B62091CF65F0A841 /* MailAutoconfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55818AB25CD659A5F3F4AF0A /* MailAutoconfig.swift */; };
 		68B9E58757606440C261ADF4 /* Media.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBEE5B8CA2F61F0BA1CE1D9 /* Media.swift */; };
 		70B55B23DEAEBE2FFBBBFED8 /* BotActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1FE275EA3CB62B3390FAE0 /* BotActivity.swift */; };
+		70FADF79CD2581E0EBDF540A /* TaskAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 515BACBDFB953B32A7C4D09A /* TaskAgent.swift */; };
 		71BDA34C83A521357D42B671 /* AgentTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = B394B7497BEBCAA881B92AED /* AgentTools.swift */; };
 		7593CF3CED16851208A5C50F /* L10nExtra2.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9332C0FB383F2064968EBB4 /* L10nExtra2.swift */; };
 		77532A60DF2C827F1638BD21 /* OSVIALive.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41505DA06B7FD4BDC2A76AA /* OSVIALive.swift */; };
@@ -144,6 +145,7 @@
 		4DB40CE77AE6B917BE5E81F2 /* ChatViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViews.swift; sourceTree = "<group>"; };
 		4E9FA8FE73C76A90F5F4E858 /* MCPOAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPOAuth.swift; sourceTree = "<group>"; };
 		4F2F9FCE5D72ADF412997D85 /* Steps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Steps.swift; sourceTree = "<group>"; };
+		515BACBDFB953B32A7C4D09A /* TaskAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskAgent.swift; sourceTree = "<group>"; };
 		552390B6E479B9DFBD2AD4AE /* ScreenTranslate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTranslate.swift; sourceTree = "<group>"; };
 		55818AB25CD659A5F3F4AF0A /* MailAutoconfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailAutoconfig.swift; sourceTree = "<group>"; };
 		5F1FE275EA3CB62B3390FAE0 /* BotActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotActivity.swift; sourceTree = "<group>"; };
@@ -324,6 +326,7 @@
 				4657E80B8BF0B3645C5E8D5B /* Skills.swift */,
 				4F2F9FCE5D72ADF412997D85 /* Steps.swift */,
 				8E6FEA2C297024FA08F11B9E /* Sys.swift */,
+				515BACBDFB953B32A7C4D09A /* TaskAgent.swift */,
 				94C08053FF95F408B5FEF4F3 /* Tasks.swift */,
 				25EA8D0EA418BC74F7A9CDF5 /* TasksPage.swift */,
 				385F35EAC7A6F013CFD73513 /* Tools.swift */,
@@ -528,6 +531,7 @@
 				210B8CB69D11C6C1E715C5E9 /* Skills.swift in Sources */,
 				2EE78677FA6B674DA81248E0 /* Steps.swift in Sources */,
 				E4B3848D4025F3A6C18EE46D /* Sys.swift in Sources */,
+				70FADF79CD2581E0EBDF540A /* TaskAgent.swift in Sources */,
 				7D0774EC06D382125B1DDA9B /* Tasks.swift in Sources */,
 				FC68683145D4A4932802B7CE /* TasksPage.swift in Sources */,
 				BEBEBE892FC2E38841786CB9 /* Tools.swift in Sources */,
