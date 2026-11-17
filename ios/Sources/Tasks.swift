@@ -28,6 +28,11 @@ enum Tasks {
     // auto=true（回到前台自动准备、创建任务后的刷新）绝不加载本地大模型：几 GB 的模型和刚启动的界面抢内存，被系统杀掉后任务还没完成，下次启动又来，就成了闪退循环。
     // 只用云端或系统自带模型，都没有就退回真实数据或任务原文。
     static func gen(_ instr: String, auto: Bool = false) async -> String {
+        if auto {
+            // 云端可用时让智能体自己多步查资料；失败再走下面的一次性流程
+            let fg = await UIApplication.shared.applicationState == .active
+            if let r = await Brain.runTask(instr, seconds: fg ? 40 : 20) { return r }
+        }
         var data = ""
         var weatherText = ""
         if Weather.words.contains(where: { instr.contains($0) }) {

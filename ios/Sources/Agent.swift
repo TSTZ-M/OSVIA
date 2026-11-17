@@ -292,6 +292,37 @@ final class Agent: ObservableObject {
         }
         persist("assistant", body, files, meta: meta)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+        refreshRecap()
+    }
+
+    // 长对话：滑出最近窗口的早期内容，滚动压缩成一段摘要，下次提问时交给云端大脑，不丢上下文。
+    // 在回答结束后后台做，不拖慢回复；每多 4 条消息才更新一次。
+    private var recapBusy = false
+    private var recaps: [Int: (covered: Int, text: String)] = [:]
+
+    private func refreshRecap() {
+        guard CloudLLM.ready, !recapBusy else { return }
+        let cid = convId
+        let upto = msgs.count - 8
+        let have = min(recaps[cid]?.covered ?? 0, max(upto, 0))
+        guard upto - have >= 4 else { return }
+        let chunk = msgs[have..<upto].compactMap { m -> String? in
+            let t = m.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return t.isEmpty ? nil : (m.role == "user" ? "用户：" : "助理：") + String(t.prefix(500))
+        }.joined(separator: "\n")
+        guard !chunk.isEmpty else { return }
+        let old = recaps[cid]?.text ?? ""
+        let ins = "你在压缩一段对话的历史。把「已有摘要」和「新增对话」合并成一段不超过 350 字的摘要：保留用户的目标与偏好、已经做出的决定、关键的数字、名字、日期、文件名，以及还没完成的事；去掉寒暄和已经解决的细节。只输出摘要本身。" + L10n.replyDirective
+        let prompt = (old.isEmpty ? "" : "已有摘要：\n" + old + "\n\n") + "新增对话：\n" + chunk
+        recapBusy = true
+        Task { [weak self] in
+            let r = await AI.oneShot(ins, prompt, maxTokens: 450, local: false)
+            guard let self else { return }
+            self.recapBusy = false
+            if let r = r?.trimmingCharacters(in: .whitespacesAndNewlines), !r.isEmpty {
+                self.recaps[cid] = (upto, String(r.prefix(900)))
+            }
+        }
     }
 
     // 最近几轮对话，作为真正的多轮上下文交给模型。剔除出错、停止这类没有信息量的回复，避免模型被它们带偏
@@ -597,6 +628,7 @@ final class Agent: ObservableObject {
             Live.set(.thinking)
             let r = await Brain.ask(
                 history: imageMode ? [] : history(),
+                recap: imageMode ? "" : (recaps[convId]?.text ?? ""),
                 user: imageMode ? Self.imagePrompt(t, ctx) : t,
                 ctx: imageMode ? "" : ctx,
                 trace: Tracer(mid),

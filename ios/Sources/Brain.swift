@@ -54,11 +54,13 @@ enum Brain {
     }
 
     // 返回 nil：云端不可用，调用方改用本机模型。返回空串：被用户停止。
-    static func ask(history: [Turn], user: String, ctx: String, trace: Tracer,
+    static func ask(history: [Turn], recap: String = "", user: String, ctx: String, trace: Tracer,
                     onText: @escaping (String) -> Void) async -> String? {
         guard CloudLLM.ready else { return nil }
         Diag.mark("云端对话开始：" + String(user.prefix(20)))
-        var msgs: [[String: String]] = [["role": "system", "content": system(query: user, trace: trace)]]
+        var sys = system(query: user, trace: trace)
+        if !recap.isEmpty { sys += "\n\n本次对话更早内容的摘要（仅供参考，最近的对话以下面的消息为准）：" + recap }
+        var msgs: [[String: String]] = [["role": "system", "content": sys]]
         for h in history { msgs.append(["role": h.role, "content": h.text]) }
         msgs.append(["role": "user", "content": user + ctx])
 
