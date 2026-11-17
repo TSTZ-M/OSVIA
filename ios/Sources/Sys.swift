@@ -203,8 +203,9 @@ enum Sys {
         DB.shared.run("DELETE FROM alarm WHERE id=?", [id])
     }
 
-    static func reminder(_ title: String, _ d: Date, rep: Int = 0, notes: String = "") async -> String {
-        guard rep > 0 || d > Date() else { return "这个时间已经过了，换一个时间试试。" }
+    static func reminder(_ title: String, _ d: Date, rep: Int = 0, notes: String = "", freq: String = "") async -> String {
+        let longRep = freq == "monthly" || freq == "yearly"
+        guard rep > 0 || longRep || d > Date() else { return "这个时间已经过了，换一个时间试试。" }
         var inReminders = false
         do {
             if try await store.requestFullAccessToReminders() {
@@ -214,7 +215,9 @@ enum Sys {
                 r.calendar = store.defaultCalendarForNewReminders()
                 r.dueDateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: d)
                 r.addAlarm(EKAlarm(absoluteDate: d))
-                if rep > 0 {
+                if longRep {
+                    r.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: freq == "monthly" ? .monthly : .yearly, interval: 1, end: nil))
+                } else if rep > 0 {
                     r.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: rep == 1 ? .daily : .weekly, interval: 1, end: nil))
                 }
                 try store.save(r, commit: true)
@@ -223,21 +226,55 @@ enum Sys {
         } catch {}
         // 已写入系统提醒事项时由它负责提醒，不再重复发通知
         if !inReminders { Sys.notify(id: "remind-\(UUID().uuidString)", title: "提醒", body: title, at: d, rep: rep) }
-        return "提醒已设置：\(rep > 0 ? repText(rep) + " " : "")\(friendly(d))「\(title)」" + (inReminders ? "，已写入系统提醒事项。" : "，将以通知提醒你。")
+        let repShown = longRep ? (freq == "monthly" ? L10n.tr("每月") : L10n.tr("每年")) + " " : (rep > 0 ? repText(rep) + " " : "")
+        return "提醒已设置：\(repShown)\(friendly(d))「\(title)」" + (inReminders ? "，已写入系统提醒事项。" : "，将以通知提醒你。")
     }
 
-    static func event(_ title: String, _ d: Date, minutes: Int = 60) async -> String {
-        guard d > Date() else { return "这个时间已经过了，换一个时间试试。" }
+    // 时长、地点、备注、重复、提前提醒、全天都可选；保存前先查有没有时间冲突，写进回复里
+    static func event(_ title: String, _ d: Date, minutes: Int = 60, location: String = "", notes: String = "",
+                      freq: String = "", alert: Int = 10, allDay: Bool = false) async -> String {
+        let cal = Calendar.current
+        guard allDay ? d >= cal.startOfDay(for: Date()) : d > Date() else { return "这个时间已经过了，换一个时间试试。" }
         do {
             guard try await store.requestFullAccessToEvents() else { return "没有日历权限，请到 设置 → \(Brand.name) 里允许日历。" }
             let e = EKEvent(eventStore: store)
             e.title = title
-            e.startDate = d
-            e.endDate = d.addingTimeInterval(Double(max(minutes, 5)) * 60)
+            let mins = min(max(minutes, 5), 24 * 60)
+            if allDay {
+                e.isAllDay = true
+                e.startDate = cal.startOfDay(for: d)
+                e.endDate = cal.startOfDay(for: d)
+            } else {
+                e.startDate = d
+                e.endDate = d.addingTimeInterval(Double(mins) * 60)
+            }
+            if !location.isEmpty { e.location = location }
+            if !notes.isEmpty { e.notes = notes }
             e.calendar = store.defaultCalendarForNewEvents
-            e.addAlarm(EKAlarm(relativeOffset: -600))
-            try store.save(e, span: .thisEvent)
-            return "日程已添加：\(friendly(d))「\(title)」，提前 10 分钟提醒。"
+            if alert >= 0 { e.addAlarm(EKAlarm(relativeOffset: -Double(min(alert, 7 * 24 * 60)) * 60)) }
+            var repShown = ""
+            let rule: EKRecurrenceFrequency?
+            switch freq {
+            case "daily": rule = .daily; repShown = L10n.tr("每天")
+            case "weekly": rule = .weekly; repShown = L10n.tr("每周")
+            case "monthly": rule = .monthly; repShown = L10n.tr("每月")
+            case "yearly": rule = .yearly; repShown = L10n.tr("每年")
+            default: rule = nil
+            }
+            if let rule { e.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: rule, interval: 1, end: nil)) }
+            // 冲突：同一时间段里已有的非全天日程
+            var clash: [String] = []
+            if !allDay {
+                let pred = store.predicateForEvents(withStart: e.startDate, end: e.endDate, calendars: nil)
+                clash = store.events(matching: pred).filter { !$0.isAllDay }.prefix(3).compactMap { $0.title }
+            }
+            try store.save(e, span: rule == nil ? .thisEvent : .futureEvents)
+            var out = "日程已添加：" + (repShown.isEmpty ? "" : repShown + " ") + (allDay ? friendly(d).replacingOccurrences(of: " 00:00", with: "") : friendly(d)) + "「\(title)」"
+            out += allDay ? "（全天）" : "（\(mins) 分钟）"
+            if !location.isEmpty { out += "，地点 \(location)" }
+            out += alert >= 0 ? (alert == 0 ? "，开始时提醒。" : "，提前 \(alert) 分钟提醒。") : "。"
+            if !clash.isEmpty { out += " 注意：这个时间段已有日程「" + clash.joined(separator: "」「") + "」，可能冲突。" }
+            return out
         } catch {
             return "日程添加失败：\(error.localizedDescription)"
         }
