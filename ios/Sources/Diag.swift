@@ -69,8 +69,8 @@ enum Diag {
 
     // 上一次崩溃留下的调用栈（没有就是空串）
     static func trace() -> String {
-        guard let t = try? String(contentsOf: traceURL, encoding: .utf8) else { return "" }
-        return String(t.suffix(6000))
+        guard let d = try? Data(contentsOf: traceURL), !d.isEmpty else { return "" }
+        return String(String(decoding: d, as: UTF8.self).suffix(6000))
     }
 
     private static func installCrashHandler() {
@@ -156,7 +156,7 @@ enum Diag {
     static func reports() -> [URL] {
         let d = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let all = (try? FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil)) ?? []
-        return all.filter { $0.lastPathComponent.hasPrefix("crash-") }.sorted { $0.lastPathComponent > $1.lastPathComponent }
+        return all.filter { $0.lastPathComponent.hasPrefix("crash-") && $0.pathExtension == "json" }.sorted { $0.lastPathComponent > $1.lastPathComponent }
     }
 
     // 把崩溃报告里最有用的部分提出来：异常类型、信号、终止原因、调用栈前几帧

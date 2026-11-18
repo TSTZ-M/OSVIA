@@ -3,6 +3,20 @@ import Foundation
 // MARK: 邮件网络层：IMAP（收、整理）+ SMTP（发）。基于 URLSessionStreamTask，隐式 TLS（993 / 465）或 STARTTLS（587）。
 struct MailError: Error { let msg: String; init(_ m: String) { msg = m } }
 
+// 回调只认第一次。系统在读取超时、取消、关闭连接时可能对同一个读写回调再调用一次；
+// CheckedContinuation 被第二次 resume 会直接崩溃（现象：邮件同步超时后一两秒内闪退）。
+private final class MailOnce: @unchecked Sendable {
+    private let l = NSLock()
+    private var done = false
+    func take() -> Bool {
+        l.lock()
+        defer { l.unlock() }
+        if done { return false }
+        done = true
+        return true
+    }
+}
+
 final class MailStream {
     private let session: URLSession
     private let task: URLSessionStreamTask
@@ -22,6 +36,15 @@ final class MailStream {
     // 把系统的网络错误换成用户看得懂、知道怎么改的话
     static func friendly(_ e: Error, host: String) -> String {
         let ns = e as NSError
+        if ns.domain == NSPOSIXErrorDomain {
+            switch ns.code {
+            case 60: return "连接「\(host)」超时：服务器没有响应。多半是当前网络访问不到这个邮箱服务器（例如需要代理或 VPN），请换个网络再试。"
+            case 61: return "连不上「\(host)」：端口可能不对，或服务器没有开启 IMAP / SMTP。"
+            case 50, 51, 65: return "现在没有网络连接。"
+            case 54, 57: return "网络连接中断了，请再试一次。"
+            default: break
+            }
+        }
         guard ns.domain == NSURLErrorDomain else { return e.localizedDescription }
         switch ns.code {
         case NSURLErrorCannotFindHost, NSURLErrorDNSLookupFailed: return "找不到服务器「\(host)」：请检查服务器地址是否写对，或网络是否正常。"
@@ -35,9 +58,9 @@ final class MailStream {
         }
     }
 
+    // 直接取消任务并作废会话：不再单独 closeRead / closeWrite（它们会把还挂着的读回调再触发一遍）
     func close() {
-        task.closeRead()
-        task.closeWrite()
+        task.cancel()
         session.invalidateAndCancel()
     }
 
@@ -46,7 +69,9 @@ final class MailStream {
     func write(_ d: Data) async throws {
         let h = host
         try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
+            let once = MailOnce()
             task.write(d, timeout: 30) { @Sendable e in
+                guard once.take() else { return }
                 if let e { c.resume(throwing: MailError(MailStream.friendly(e, host: h))) } else { c.resume() }
             }
         }
@@ -55,7 +80,9 @@ final class MailStream {
     private func fill() async throws {
         let h = host
         let d: Data = try await withCheckedThrowingContinuation { c in
+            let once = MailOnce()
             task.readData(ofMinLength: 1, maxLength: 65536, timeout: 30) { @Sendable data, eof, e in
+                guard once.take() else { return }
                 if let e { c.resume(throwing: MailError(MailStream.friendly(e, host: h))) } else if let data, !data.isEmpty { c.resume(returning: data) } else if eof { c.resume(throwing: MailError("服务器断开了连接")) } else { c.resume(returning: Data()) }
             }
         }
