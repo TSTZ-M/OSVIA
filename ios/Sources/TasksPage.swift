@@ -105,7 +105,7 @@ struct TasksView: View {
                 }
                 Section {
                     if alarms.isEmpty { Text("没有闹钟").foregroundStyle(Brand.sub) }
-                    ForEach(alarms.indices, id: \.self) { i in alarmRow(alarms[i]) }
+                    ForEach(Array(alarms.enumerated()), id: \.offset) { i, elem in alarmRow(elem) }
                         .onDelete { idx in
                             for i in idx { Sys.cancelAlarm(alarms[i].s("id")) }
                             reload()
@@ -115,7 +115,7 @@ struct TasksView: View {
                 }
                 Section {
                     if tasks.isEmpty { Text("没有定时任务").foregroundStyle(Brand.sub) }
-                    ForEach(tasks.indices, id: \.self) { i in taskRow(tasks[i]) }
+                    ForEach(Array(tasks.enumerated()), id: \.offset) { i, elem in taskRow(elem) }
                         .onDelete { idx in
                             for i in idx { Tasks.remove(tasks[i].i("id")) }
                             reload()
@@ -276,12 +276,12 @@ struct EvolvePage: View {
             }
             Section("每次进化都做了什么") {
                 if log.isEmpty { Text("还没有进化记录。多聊几轮会自动进化，也可以点上面的「立即进化」。").foregroundStyle(Brand.sub) }
-                ForEach(log.indices, id: \.self) { i in
+                ForEach(Array(log.enumerated()), id: \.offset) { i, elem in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(Sys.fmt(Date(timeIntervalSince1970: log[i].d("ts")))).font(.subheadline).foregroundStyle(Brand.sub)
-                        Text(log[i].s("summary")).font(.headline)
-                        if !log[i].s("facts").isEmpty {
-                            ForEach(log[i].s("facts").split(separator: "\n").map(String.init), id: \.self) { f in
+                        Text(Sys.fmt(Date(timeIntervalSince1970: elem.d("ts")))).font(.subheadline).foregroundStyle(Brand.sub)
+                        Text(elem.s("summary")).font(.headline)
+                        if !elem.s("facts").isEmpty {
+                            ForEach(elem.s("facts").split(separator: "\n").map(String.init), id: \.self) { f in
                                 Label(f, systemImage: "leaf").font(.subheadline)
                             }
                         }
@@ -290,13 +290,13 @@ struct EvolvePage: View {
                 }
             }
             Section("系统提示版本") {
-                ForEach(vers.indices, id: \.self) { i in
+                ForEach(Array(vers.enumerated()), id: \.offset) { i, elem in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("第 \(vers[i].i("ver")) 版" + (i == 0 ? "（当前）" : "")).font(.headline)
-                        Text(vers[i].s("body")).font(.subheadline).foregroundStyle(Brand.sub)
+                        Text("第 \(elem.i("ver")) 版" + (i == 0 ? "（当前）" : "")).font(.headline)
+                        Text(elem.s("body")).font(.subheadline).foregroundStyle(Brand.sub)
                         if i > 0 {
                             Button("回滚到这一版") {
-                                Evolve.saveVersion(vers[i].s("body"))
+                                Evolve.saveVersion(elem.s("body"))
                                 reload()
                             }
                         }

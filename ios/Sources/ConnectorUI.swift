@@ -18,23 +18,23 @@ struct ConnectorHub: View {
                 }
                 Section("已连接") {
                     if rows.isEmpty { Text("还没有连接器，从下面一键添加").foregroundStyle(.secondary) }
-                    ForEach(rows.indices, id: \.self) { i in
+                    ForEach(Array(rows.enumerated()), id: \.offset) { i, elem in
                         Button {
-                            onUse(rows[i])
+                            onUse(elem)
                             dismiss()
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: Connectors.icon(rows[i].s("kind"))).foregroundStyle(Color.accentColor).frame(width: 26)
+                                Image(systemName: Connectors.icon(elem.s("kind"))).foregroundStyle(Color.accentColor).frame(width: 26)
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(rows[i].s("name")).foregroundStyle(.primary)
-                                    Text(sub(rows[i])).font(.footnote).foregroundStyle(.secondary).lineLimit(1)
+                                    Text(elem.s("name")).foregroundStyle(.primary)
+                                    Text(sub(elem)).font(.footnote).foregroundStyle(.secondary).lineLimit(1)
                                 }
                                 Spacer()
-                                if testing == rows[i].s("name") { ProgressView() }
+                                if testing == elem.s("name") { ProgressView() }
                             }
                         }
                         .contextMenu {
-                            Button { test(rows[i]) } label: { Label("测试一下", systemImage: "play.circle") }
+                            Button { test(elem) } label: { Label("测试一下", systemImage: "play.circle") }
                         }
                     }
                     .onDelete { idx in

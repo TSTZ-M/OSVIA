@@ -259,9 +259,9 @@ struct ChatView: View {
     var plusMenu: some View {
         Menu {
             Menu {
-                ForEach(conns.indices, id: \.self) { i in
-                    Button { activeConn = conns[i].s("name") } label: {
-                        Label(conns[i].s("name"), systemImage: Connectors.icon(conns[i].s("kind")))
+                ForEach(Array(conns.enumerated()), id: \.offset) { i, elem in
+                    Button { activeConn = elem.s("name") } label: {
+                        Label(elem.s("name"), systemImage: Connectors.icon(elem.s("kind")))
                     }
                 }
                 Button { showConnectors = true } label: {

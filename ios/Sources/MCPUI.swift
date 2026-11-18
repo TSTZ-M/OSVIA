@@ -49,8 +49,8 @@ struct MCPView: View {
 
             Section("已添加") {
                 if rows.isEmpty { Text("还没有服务器。从下面挑一个，或添加自己的。").foregroundStyle(Brand.sub) }
-                ForEach(rows.indices, id: \.self) { i in
-                    let r = rows[i]
+                ForEach(Array(rows.enumerated()), id: \.offset) { i, elem in
+                    let r = elem
                     NavigationLink {
                         MCPDetailView(id: r.i("id"))
                     } label: {
@@ -334,11 +334,11 @@ struct MCPDetailView: View {
 
             Section(L10n.f("工具（{}）", "\(tools.count)")) {
                 if tools.isEmpty { Text("还没有获取到工具").foregroundStyle(Brand.sub) }
-                ForEach(tools.indices, id: \.self) { i in
+                ForEach(Array(tools.enumerated()), id: \.offset) { i, elem in
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
-                            Text(verbatim: tools[i].name).font(.system(size: 15, weight: .semibold, design: .monospaced)).foregroundStyle(Brand.ink)
-                            if tools[i].readOnly {
+                            Text(verbatim: elem.name).font(.system(size: 15, weight: .semibold, design: .monospaced)).foregroundStyle(Brand.ink)
+                            if elem.readOnly {
                                 Text("只读")
                                     .font(.system(size: 10.5, weight: .semibold))
                                     .foregroundStyle(Brand.mint)
@@ -348,8 +348,8 @@ struct MCPDetailView: View {
                                     .clipShape(Capsule())
                             }
                         }
-                        if !tools[i].desc.isEmpty {
-                            Text(verbatim: String(tools[i].desc.prefix(240))).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
+                        if !elem.desc.isEmpty {
+                            Text(verbatim: String(elem.desc.prefix(240))).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
                         }
                     }
                     .padding(.vertical, 2)

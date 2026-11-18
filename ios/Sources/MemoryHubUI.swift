@@ -718,7 +718,7 @@ struct MemoryListView: View {
                     Text(rows.isEmpty ? "还没有记忆。去「AI 记忆」导入，或在对话里说「记住……」。" : "没有匹配的记忆")
                         .foregroundStyle(Brand.sub)
                 }
-                ForEach(shown.indices, id: \.self) { i in row(shown[i]) }
+                ForEach(Array(shown.enumerated()), id: \.offset) { i, elem in row(elem) }
             }
         }
         .navigationTitle("全部记忆")

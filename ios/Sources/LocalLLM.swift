@@ -549,6 +549,8 @@ final class LocalLLM: ObservableObject {
         }
         var gp = GenerateParameters()
         gp.maxTokens = maxTokens
+        // 上下文缓存封顶：4B 模型每个 token 的 KV 约 150KB，长提示词会额外吃掉几百 MB，手机上这就是被系统终止的差距
+        gp.maxKVSize = 3072
         gp.temperature = temperature
         gp.topP = 0.8 // 官方推荐的采样范围，减少胡话与重复
         let session = ChatSession(

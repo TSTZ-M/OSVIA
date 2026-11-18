@@ -81,7 +81,39 @@ enum Diag {
         for s in [SIGTRAP, SIGABRT, SIGSEGV, SIGBUS, SIGILL, SIGFPE] { signal(s, crashHandler) }
     }
 
+    // 全新安装时 Application Support 目录还不存在：日志和崩溃现场文件都建不出来，第一次崩溃就什么线索也没有。启动第一件事先把目录建好。
+    private static func ensureDir() {
+        let d = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+    }
+
+    // 有没有值得看的线索：崩溃现场、异常退出记录、系统崩溃报告
+    static var hasLead: Bool { !trace().isEmpty || !lastAbnormal.isEmpty || !reports().isEmpty }
+
+    // 看过了（或已复制发给开发者）：清掉线索，横幅不再出现
+    static func acknowledge() {
+        UserDefaults.standard.removeObject(forKey: "diag.abnormal")
+        if crashFD >= 0 { ftruncate(crashFD, 0) }
+        try? FileManager.default.removeItem(at: traceURL)
+        crashFD = open(traceURL.path, O_WRONLY | O_CREAT | O_APPEND, 0o644)
+        for u in reports() { try? FileManager.default.removeItem(at: u) }
+        SafetyState.shared.refresh()
+    }
+
+    // 整份诊断文字，一键复制用
+    static func report() -> String {
+        var s = "OSVIA 诊断（\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")，构建 \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")，\(ProcessInfo.processInfo.operatingSystemVersionString)，内存 \(ProcessInfo.processInfo.physicalMemory >> 30) GB）\n"
+        let t = trace()
+        if !t.isEmpty { s += "\n崩溃现场：\n" + t + "\n" }
+        let a = lastAbnormal
+        if !a.isEmpty { s += "\n" + a + "\n" }
+        for r in reports().prefix(2) { s += "\n系统崩溃报告 " + r.lastPathComponent + "\n" + summary(r) }
+        s += "\n最近记录：\n" + tail(60)
+        return s
+    }
+
     static func launch() {
+        ensureDir()
         let ud = UserDefaults.standard
         let abnormal = ud.bool(forKey: activeKey)
         if abnormal {
@@ -109,6 +141,7 @@ enum Diag {
         try? FileManager.default.removeItem(at: traceURL)
         crashFD = open(traceURL.path, O_WRONLY | O_CREAT | O_APPEND, 0o644)
         for u in reports() { try? FileManager.default.removeItem(at: u) }
+        SafetyState.shared.refresh()
     }
 
     private static func trimLog() {
@@ -170,14 +203,7 @@ struct DiagView: View {
     @State private var log = Diag.tail(60)
     @State private var trace = Diag.trace()
 
-    private var all: String {
-        var s = "OSVIA 诊断（\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")，构建 \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")）\n"
-        if !trace.isEmpty { s += "\n崩溃现场：\n" + trace + "\n" }
-        if !abnormal.isEmpty { s += "\n" + abnormal + "\n" }
-        for r in reports.prefix(2) { s += "\n系统崩溃报告 " + r.lastPathComponent + "\n" + Diag.summary(r) }
-        s += "\n最近记录：\n" + log
-        return s
-    }
+    private var all: String { Diag.report() }
 
     var body: some View {
         List {

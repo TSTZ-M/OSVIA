@@ -108,36 +108,81 @@ enum Safety {
         MLX.Memory.cacheLimit = 32 * 1024 * 1024
     }
 
-    // 释放 MLX 缓存的显存
-    static func trimMLX() { MLX.Memory.clearCache() }
+    // 释放 MLX 缓存的显存。没载入过本地模型就什么都不做：
+    // 不能为了「清缓存」去初始化一遍 Metal 和 MLX（每次进后台、内存警告都会走到这里）
+    static func trimMLX() {
+        guard tuned else { return }
+        MLX.Memory.clearCache()
+    }
 }
 
 // 界面用：安全提示条
 final class SafetyState: ObservableObject {
     static let shared = SafetyState()
     @Published var notice = ""
+    @Published var crash = false
 
     func refresh() {
         let n = Safety.notice()
-        if Thread.isMainThread { notice = n } else { DispatchQueue.main.async { self.notice = n } }
+        let c = Diag.hasLead
+        if Thread.isMainThread { notice = n; crash = c } else { DispatchQueue.main.async { self.notice = n; self.crash = c } }
     }
 }
 
 struct SafetyBanner: View {
     @ObservedObject private var s = SafetyState.shared
+    @State private var copied = false
 
     var body: some View {
-        if !s.notice.isEmpty {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "shield.lefthalf.filled").foregroundStyle(.orange).padding(.top, 2)
-                Text(L10n.tr(s.notice)).font(.footnote).foregroundStyle(Brand.ink).fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 4)
-                Button(L10n.tr("恢复")) {
-                    Safety.restore()
-                }
+        VStack(spacing: 6) {
+            if !s.notice.isEmpty { safeCard }
+            if s.crash { crashCard }
+        }
+    }
+
+    private var safeCard: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "shield.lefthalf.filled").foregroundStyle(.orange).padding(.top, 2)
+            Text(L10n.tr(s.notice)).font(.footnote).foregroundStyle(Brand.ink).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            Button(L10n.tr("恢复")) { Safety.restore() }
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Brand.mint)
+        }
+        .modifier(BannerStyle())
+    }
+
+    // 上次异常退出：一键复制诊断信息（崩溃调用栈、内存、最后的操作），发给开发者即可定位
+    private var crashCard: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "ladybug").foregroundStyle(.red).padding(.top, 2)
+            Text(copied ? "已复制，直接粘贴发给开发者" : "上次异常退出，已记下现场。点「复制」发给开发者，就能定位原因。")
+                .font(.footnote).foregroundStyle(Brand.ink).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            Button(copied ? "收起" : "复制") {
+                if copied {
+                    Diag.acknowledge()
+                    copied = false
+                } else {
+                    UIPasteboard.general.string = Diag.report()
+                    copied = true
+                }
             }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Brand.mint)
+            if !copied {
+                Button("忽略") { Diag.acknowledge() }
+                    .font(.footnote)
+                    .foregroundStyle(Brand.sub)
+            }
+        }
+        .modifier(BannerStyle())
+    }
+}
+
+private struct BannerStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(Brand.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -145,6 +190,5 @@ struct SafetyBanner: View {
             .padding(.horizontal, 12)
             .padding(.top, 6)
             .transition(.move(edge: .top).combined(with: .opacity))
-        }
     }
 }

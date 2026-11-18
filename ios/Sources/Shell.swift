@@ -123,7 +123,7 @@ struct DrawerView: View {
                     if shown.isEmpty {
                         Text(q.isEmpty ? "还没有对话" : "没有匹配的对话").font(.subheadline).foregroundStyle(Brand.sub).padding(.horizontal, 18)
                     }
-                    ForEach(shown.indices, id: \.self) { i in conv(shown[i]) }
+                    ForEach(Array(shown.enumerated()), id: \.offset) { i, elem in conv(elem) }
                 }
                 .padding(.horizontal, 6)
             }
