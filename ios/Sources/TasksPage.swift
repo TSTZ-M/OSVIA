@@ -27,6 +27,7 @@ extension Sys {
         guard let r = DB.shared.rows("SELECT * FROM alarm WHERE id=?", [id]).first, let u = UUID(uuidString: id) else { return "" }
         if !on {
             try? AlarmManager.shared.cancel(id: u)
+            await AlarmLive.end(u)
             UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["alarm-\(id)"])
             DB.shared.setKV("alarmoff." + id, "1")
             return ""
