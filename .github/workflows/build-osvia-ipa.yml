@@ -88,7 +88,8 @@ jobs:
           # 只保留最近 5 个版本
           gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].tag_name' | grep -E '^OSVIA-[0-9]+$' | sort -t- -k2 -n -r | tail -n +6 | while read -r t; do gh release delete "$t" --cleanup-tag -y || true; done
 
-      - name: Publish IPA to ipa branch (raw.githubusercontent.com download path)
+      - name: Publish IPA to ipa branch (source for the download mirrors)
+        id: ipa
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,23 +110,41 @@ jobs:
           git add -A
           git commit -q -m "ipa build $N"
           git push -q -f origin ipa-new:ipa
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Update OSVIA-source.json from the real IPA
+        env:
+          SHA: ${{ steps.ipa.outputs.sha }}
         run: |
           N=${{ github.run_number }}
-          URL="https://raw.githubusercontent.com/${{ github.repository }}/ipa/OSVIA-$N.ipa"
-          SIZE=$(stat -f%z OSVIA.ipa)
-          GOT=0
-          for i in 1 2 3 4 5 6; do
-            GOT=$(curl -fsSL --max-time 90 -o /dev/null -w '%{size_download}' "$URL" || echo 0)
-            [ "$GOT" = "$SIZE" ] && break
-            sleep 5
+          REPO=${{ github.repository }}
+          WANT=$(shasum -a 256 OSVIA.ipa | cut -d' ' -f1)
+          PROBE=$(mktemp)
+          # 国内直连 github.com / raw.githubusercontent.com 经常超时（SideStore 报 -1001），所以优先走 jsDelivr 镜像。
+          # 镜像地址按提交哈希固定，内容永远不变、不会出现旧缓存。逐个下载并比对 SHA-256，第一个字节完全一致的才写进源；
+          # 全部失败才退回 raw，最后退回 Release。镜像域名不通了，改这个列表即可。
+          CANDIDATES="
+          https://testingcf.jsdelivr.net/gh/$REPO@$SHA/OSVIA-$N.ipa
+          https://fastly.jsdelivr.net/gh/$REPO@$SHA/OSVIA-$N.ipa
+          https://gcore.jsdelivr.net/gh/$REPO@$SHA/OSVIA-$N.ipa
+          https://raw.githubusercontent.com/$REPO/ipa/OSVIA-$N.ipa
+          "
+          PICK=""
+          for URL in $CANDIDATES; do
+            for i in 1 2 3; do
+              : > "$PROBE"
+              curl -fsSL --max-time 60 -o "$PROBE" "$URL" 2>/dev/null || true
+              if [ "$(shasum -a 256 "$PROBE" | cut -d' ' -f1)" = "$WANT" ]; then PICK="$URL"; break 2; fi
+              sleep 5
+            done
+            echo "not usable: $URL"
           done
-          if [ "$GOT" = "$SIZE" ]; then
-            echo "raw ok: $URL"
-            OSVIA_IPA_URL="$URL" bash tools/make-osvia-source.sh OSVIA.ipa
+          rm -f "$PROBE"
+          if [ -n "$PICK" ]; then
+            echo "download URL verified: $PICK"
+            OSVIA_IPA_URL="$PICK" bash tools/make-osvia-source.sh OSVIA.ipa
           else
-            echo "raw not ready, fall back to release URL"
+            echo "no mirror verified, fall back to release URL"
             bash tools/make-osvia-source.sh OSVIA.ipa
           fi
 

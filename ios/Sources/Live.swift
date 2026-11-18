@@ -1,7 +1,8 @@
 import ActivityKit
 import Foundation
+import UIKit
 
-// 灵动岛 / 锁屏实时活动：聆听、思考、搜索、执行、完成，以及闹钟与任务倒计时。
+// 灵动岛 / 锁屏实时活动：聆听、思考、搜索、执行、完成。闹钟与倒计时交给系统（AlarmKit）。
 // 所有操作排成一条队列依次执行，避免「结束」和「更新」互相抢先。显示的文字按应用当前语言翻译。
 enum Live {
     enum Phase: String {
@@ -28,18 +29,26 @@ enum Live {
     private static let lock = NSLock()
     private static var last: Task<Void, Never>?
 
-    private static func enqueue(_ op: @escaping () async -> Void) {
+    @discardableResult
+    private static func enqueue(_ op: @escaping () async -> Void) -> Task<Void, Never> {
         lock.lock()
         let prev = last
-        last = Task {
+        let t = Task {
             _ = await prev?.value
             await op()
         }
+        last = t
         lock.unlock()
+        return t
     }
 
-    private static func assistant() -> Activity<BotActivityAttributes>? {
-        Activity<BotActivityAttributes>.activities.first(where: { $0.attributes.kind == "think" })
+    // 当前可更新的助理活动。已结束的不算（否则之后的更新全部落空，岛上再也不出现）；重复的顺手结束
+    private static func assistant() async -> Activity<BotActivityAttributes>? {
+        let usable = Activity<BotActivityAttributes>.activities.filter {
+            $0.attributes.kind == "think" && ($0.activityState == .active || $0.activityState == .stale)
+        }
+        for extra in usable.dropFirst() { await extra.end(nil, dismissalPolicy: .immediate) }
+        return usable.first
     }
 
     // 切换到某个状态（已有就更新，没有就新建）
@@ -48,9 +57,13 @@ enum Live {
         let sub = L10n.tr(subtitle ?? p.text)
         let detail: String? = query.isEmpty ? nil : query
         enqueue {
-            let st = BotActivityAttributes.ContentState(title: Brand.name, subtitle: sub, end: nil, phase: p.rawValue, detail: detail)
-            let content = ActivityContent(state: st, staleDate: Date().addingTimeInterval(180))
-            if let a = assistant() {
+            let existing = await assistant()
+            // 上一次已经显示「完成」的话，这是一次新请求，计时从头开始
+            let prev = existing?.content.state
+            let started = (prev?.phase == Phase.done.rawValue ? nil : prev?.started) ?? Date()
+            let st = BotActivityAttributes.ContentState(title: Brand.name, subtitle: sub, end: nil, phase: p.rawValue, detail: detail, started: started)
+            let content = ActivityContent(state: st, staleDate: Date().addingTimeInterval(180), relevanceScore: 80)
+            if let a = existing {
                 await a.update(content)
             } else {
                 _ = try? Activity.request(attributes: BotActivityAttributes(kind: "think"), content: content, pushType: nil)
@@ -65,7 +78,7 @@ enum Live {
         } else {
             guard enabled else { return }
             enqueue {
-                if let a = assistant(), a.content.state.phase == Phase.listening.rawValue {
+                if let a = await assistant(), a.content.state.phase == Phase.listening.rawValue {
                     await a.end(nil, dismissalPolicy: .immediate)
                 }
             }
@@ -87,31 +100,37 @@ enum Live {
         let sub = L10n.tr(Phase.done.text)
         let detail: String? = query.isEmpty ? nil : query
         enqueue {
-            guard let a = assistant() else { return }
-            let st = BotActivityAttributes.ContentState(title: Brand.name, subtitle: sub, end: nil, phase: Phase.done.rawValue, detail: detail)
-            await a.update(ActivityContent(state: st, staleDate: Date().addingTimeInterval(30)))
+            guard let a = await assistant() else { return }
+            let st = BotActivityAttributes.ContentState(title: Brand.name, subtitle: sub, end: nil, phase: Phase.done.rawValue, detail: detail, started: a.content.state.started)
+            await a.update(ActivityContent(state: st, staleDate: Date().addingTimeInterval(30), relevanceScore: 80))
         }
-        Task {
+        // 两秒后收起。用后台任务护住这段等待：用户刚好切走应用时也能收掉，不会残留
+        Task { @MainActor in
+            let bg = UIApplication.shared.beginBackgroundTask(withName: "osvia.live.finish", expirationHandler: nil)
             try? await Task.sleep(nanoseconds: 2_500_000_000)
-            enqueue {
-                if let a = assistant(), a.content.state.phase == Phase.done.rawValue {
+            await enqueue {
+                if let a = await assistant(), a.content.state.phase == Phase.done.rawValue {
                     await a.end(nil, dismissalPolicy: .immediate)
                 }
-            }
+            }.value
+            if bg != .invalid { UIApplication.shared.endBackgroundTask(bg) }
         }
     }
 
-    // 清理残留：旧版本留下的倒计时、过期没收起的状态，一律结束。启动和回到前台时调用。
-    // 闹钟与倒计时现在交给系统（AlarmKit），到点由系统自己收起，这里不再自建。
+    // 清理残留：旧版本留下的倒计时、过期没收起的状态、上次被杀掉时没来得及收起的状态，一律结束。启动和回到前台时调用。
+    // 闹钟与倒计时交给系统（AlarmKit），这里只兜底清掉停止后残留的空白闹钟岛。
     static func sweep() {
         Task {
             let busy = await MainActor.run { Agent.shared.busy }
             for a in Activity<BotActivityAttributes>.activities {
                 let stale = a.activityState == .stale || a.activityState == .ended
-                if a.attributes.kind == "timer" || a.content.state.end != nil || (stale && !busy) {
+                // 没有任务在跑、也不是正在聆听，但岛上还停在「思考 / 执行」：是上一个进程留下的，收掉
+                let orphan = !busy && a.content.state.phase != Phase.listening.rawValue
+                if a.attributes.kind == "timer" || a.content.state.end != nil || stale && !busy || orphan {
                     await a.end(nil, dismissalPolicy: .immediate)
                 }
             }
+            await AlarmLive.sweep()
         }
     }
 }

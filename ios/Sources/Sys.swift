@@ -192,13 +192,19 @@ enum Sys {
 
     // 写入「时钟」成功后，取消内置备份，避免同一时间响两次
     static func dropBackup(_ id: String, note: String) {
-        if let u = UUID(uuidString: id) { try? AlarmManager.shared.cancel(id: u) }
+        if let u = UUID(uuidString: id) {
+            try? AlarmManager.shared.cancel(id: u)
+            Task { await AlarmLive.end(u) }
+        }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["alarm-\(id)"])
         DB.shared.run("UPDATE alarm SET label=label||? WHERE id=?", ["（已写入\(note)）", id])
     }
 
     static func cancelAlarm(_ id: String) {
-        if let u = UUID(uuidString: id) { try? AlarmManager.shared.cancel(id: u) }
+        if let u = UUID(uuidString: id) {
+            try? AlarmManager.shared.cancel(id: u)
+            Task { await AlarmLive.end(u) }
+        }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["alarm-\(id)"])
         DB.shared.run("DELETE FROM alarm WHERE id=?", [id])
     }
