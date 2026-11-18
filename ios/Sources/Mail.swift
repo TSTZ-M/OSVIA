@@ -410,8 +410,13 @@ enum Mail {
     static func autoRunIfDue() async {
         guard !Safety.safeMode else { return }
         for a in accounts() where a.i("auto") == 1 {
-            if Date().timeIntervalSince1970 - a.d("last_run") < 600 { continue }
-            await refresh(a.i("id"), rules: true)
+            let id = a.i("id")
+            let now = Date().timeIntervalSince1970
+            if now - a.d("last_run") < 600 { continue }
+            // 上次失败后 20 分钟内不再自动重试：网络不通时，每次回到前台都要空等 30 秒
+            if let t = Double(DB.shared.kv("mail.failAt.\(id)") ?? ""), now - t < 1200 { continue }
+            let r = await refresh(id, rules: true)
+            DB.shared.setKV("mail.failAt.\(id)", r.error.isEmpty ? "" : String(now))
         }
         if accounts().contains(where: { $0.i("auto") == 1 }) { scheduleBG() }
     }
