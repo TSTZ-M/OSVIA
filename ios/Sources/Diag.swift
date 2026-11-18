@@ -6,20 +6,31 @@ import Darwin
 // 信号处理函数里只做最基本的写文件，写完恢复默认处理并重新抛出，让系统照常生成崩溃报告。
 private var crashFD: Int32 = -1
 private let crashFrames = UnsafeMutablePointer<UnsafeMutableRawPointer?>.allocate(capacity: 64)
+private let crashHead = UnsafeMutablePointer<UInt8>.allocate(capacity: 8)
 
+// 信号处理函数里不能分配内存（崩在 malloc 里时会死锁），所以头部用预先分配好的缓冲区。
 private func crashHandler(_ sig: Int32) {
     if crashFD >= 0 {
-        var head: [UInt8] = Array("\n=== SIGNAL ".utf8)
-        head.append(UInt8(48 + (sig / 10) % 10))
-        head.append(UInt8(48 + sig % 10))
-        head.append(10)
-        _ = head.withUnsafeBufferPointer { write(crashFD, $0.baseAddress, $0.count) }
+        write(crashFD, "\n=== SIGNAL ", 12)
+        crashHead[0] = UInt8(48 + (sig / 10) % 10)
+        crashHead[1] = UInt8(48 + sig % 10)
+        crashHead[2] = 10
+        write(crashFD, crashHead, 3)
         let n = backtrace(crashFrames, 64)
         backtrace_symbols_fd(crashFrames, n, crashFD)
         fsync(crashFD)
     }
     signal(sig, SIG_DFL)
     raise(sig)
+}
+
+// Objective-C 异常：信号处理函数里拿不到原因，这里把名字、原因和调用栈写下来
+private func crashException(_ e: NSException) {
+    guard crashFD >= 0 else { return }
+    let t = "\n=== EXCEPTION \(e.name.rawValue)\n\(e.reason ?? "")\n" + e.callStackSymbols.prefix(40).joined(separator: "\n") + "\n"
+    let d = Array(t.utf8)
+    _ = d.withUnsafeBufferPointer { write(crashFD, $0.baseAddress, $0.count) }
+    fsync(crashFD)
 }
 
 // MARK: 诊断：记录关键步骤（崩溃后能看到最后做了什么）+ 接收系统的崩溃报告（MetricKit，次日送达）
@@ -40,7 +51,8 @@ enum Diag {
     // 记一条。直接追加到文件，进程崩溃了也已经落盘
     static func mark(_ s: String) {
         let line = stamp.string(from: Date()) + " " + s + "\n"
-        queue.async {
+        // 同步写：紧接着崩溃时，最后一条记录也已经落盘
+        queue.sync {
             let u = fileURL
             if let h = try? FileHandle(forWritingTo: u) {
                 h.seekToEndOfFile()
@@ -78,7 +90,51 @@ enum Diag {
         // 保留上一次的现场，满 20KB 就重新开始
         if let a = try? FileManager.default.attributesOfItem(atPath: u.path), (a[.size] as? Int ?? 0) > 20_000 { try? FileManager.default.removeItem(at: u) }
         crashFD = open(u.path, O_WRONLY | O_CREAT | O_APPEND, 0o644)
-        for s in [SIGTRAP, SIGABRT, SIGSEGV, SIGBUS, SIGILL, SIGFPE] { signal(s, crashHandler) }
+        // 备用栈：栈溢出导致的崩溃也能走到处理函数
+        let size = 64 * 1024
+        var ss = stack_t(ss_sp: UnsafeMutableRawPointer.allocate(byteCount: size, alignment: 16), ss_size: size, ss_flags: 0)
+        sigaltstack(&ss, nil)
+        for sg in [SIGTRAP, SIGABRT, SIGSEGV, SIGBUS, SIGILL, SIGFPE] {
+            var act = sigaction()
+            act.__sigaction_u.__sa_handler = crashHandler
+            act.sa_flags = SA_ONSTACK
+            sigemptyset(&act.sa_mask)
+            sigaction(sg, &act, nil)
+        }
+        NSSetUncaughtExceptionHandler(crashException)
+    }
+
+    // 把标准错误输出存进文件：Swift 的 fatalError、数组越界、CheckedContinuation 重复 resume 等
+    // 崩溃原因都是写到这里的，不存下来就永远看不到。每次启动把上一次的挪到 stderr-prev.log。
+    private static func captureStderr(abnormal: Bool) {
+        let d = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let cur = d.appendingPathComponent("stderr.log")
+        let prev = d.appendingPathComponent("stderr-prev.log")
+        let keep = d.appendingPathComponent("crash-stderr.txt")
+        let fm = FileManager.default
+        try? fm.removeItem(at: prev)
+        if fm.fileExists(atPath: cur.path) { try? fm.moveItem(at: cur, to: prev) }
+        // 上次异常退出：把它的错误输出留下来，直到用户复制或忽略
+        if abnormal, let data = try? Data(contentsOf: prev), !data.isEmpty {
+            try? Data(data.suffix(8000)).write(to: keep)
+        }
+        // 接着调试器（Xcode）运行时保留控制台输出，不重定向
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        if sysctl(&mib, 4, &info, &size, nil, 0) == 0, (info.kp_proc.p_flag & P_TRACED) != 0 { return }
+        let fd = open(cur.path, O_WRONLY | O_CREAT | O_APPEND, 0o644)
+        if fd >= 0 {
+            dup2(fd, 2)
+            close(fd)
+        }
+    }
+
+    // 上一次异常退出时的错误输出（没有就是空串）
+    static func stderrTail() -> String {
+        let keep = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("crash-stderr.txt")
+        guard let d = try? Data(contentsOf: keep), !d.isEmpty else { return "" }
+        return String(String(decoding: d, as: UTF8.self).suffix(2500))
     }
 
     // 全新安装时 Application Support 目录还不存在：日志和崩溃现场文件都建不出来，第一次崩溃就什么线索也没有。启动第一件事先把目录建好。
@@ -88,7 +144,7 @@ enum Diag {
     }
 
     // 有没有值得看的线索：崩溃现场、异常退出记录、系统崩溃报告
-    static var hasLead: Bool { !trace().isEmpty || !lastAbnormal.isEmpty || !reports().isEmpty }
+    static var hasLead: Bool { !trace().isEmpty || !lastAbnormal.isEmpty || !reports().isEmpty || !stderrTail().isEmpty }
 
     // 看过了（或已复制发给开发者）：清掉线索，横幅不再出现
     static func acknowledge() {
@@ -97,6 +153,7 @@ enum Diag {
         try? FileManager.default.removeItem(at: traceURL)
         crashFD = open(traceURL.path, O_WRONLY | O_CREAT | O_APPEND, 0o644)
         for u in reports() { try? FileManager.default.removeItem(at: u) }
+        try? FileManager.default.removeItem(at: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("crash-stderr.txt"))
         SafetyState.shared.refresh()
     }
 
@@ -105,6 +162,8 @@ enum Diag {
         var s = "OSVIA 诊断（\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")，构建 \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")，\(ProcessInfo.processInfo.operatingSystemVersionString)，内存 \(ProcessInfo.processInfo.physicalMemory >> 30) GB）\n"
         let t = trace()
         if !t.isEmpty { s += "\n崩溃现场：\n" + t + "\n" }
+        let er = stderrTail()
+        if !er.isEmpty { s += "\n上次异常退出时的错误输出：\n" + er + "\n" }
         let a = lastAbnormal
         if !a.isEmpty { s += "\n" + a + "\n" }
         for r in reports().prefix(2) { s += "\n系统崩溃报告 " + r.lastPathComponent + "\n" + summary(r) }
@@ -120,6 +179,7 @@ enum Diag {
             let t = tail(14)
             ud.set(stamp.string(from: Date()) + " 上次在前台异常结束，最后的记录：\n" + t, forKey: "diag.abnormal")
         }
+        captureStderr(abnormal: abnormal)
         installCrashHandler()
         ud.set(false, forKey: activeKey)
         trimLog()
