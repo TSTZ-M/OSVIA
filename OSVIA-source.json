@@ -12,14 +12,14 @@
       "iconURL": "https://raw.githubusercontent.com/TSTZ-M/OSVIA/main/ios/Sources/Assets.xcassets/AppIcon.appiconset/icon.png",
       "version": "0.9.21",
       "versionDate": "2026-11-18T05:44:20Z",
-      "downloadURL": "https://github.com/TSTZ-M/OSVIA/releases/download/OSVIA-21/OSVIA.ipa",
+      "downloadURL": "https://raw.githubusercontent.com/TSTZ-M/OSVIA/ipa/OSVIA-21.ipa",
       "size": 11713515,
       "versions": [
         {
           "version": "0.9.21",
           "buildVersion": "21",
           "date": "2026-11-18T05:44:20Z",
-          "downloadURL": "https://github.com/TSTZ-M/OSVIA/releases/download/OSVIA-21/OSVIA.ipa",
+          "downloadURL": "https://raw.githubusercontent.com/TSTZ-M/OSVIA/ipa/OSVIA-21.ipa",
           "size": 11713515
         }
       ],

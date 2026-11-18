@@ -15,6 +15,8 @@ BUILD=$(plutil -extract CFBundleVersion raw "$TMP/Info.plist")
 SIZE=$(stat -f%z "$IPA")
 DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 BASE="https://github.com/$REPO/releases/download/OSVIA-$BUILD"
+# 下载地址：优先用环境变量 OSVIA_IPA_URL（raw.githubusercontent.com 上的 ipa 分支，国内更稳），否则回退到 Release
+URL="${OSVIA_IPA_URL:-$BASE/OSVIA.ipa}"
 ICON="https://raw.githubusercontent.com/$REPO/main/ios/Sources/Assets.xcassets/AppIcon.appiconset/icon.png"
 cat > "$ROOT/OSVIA-source.json" <<EOF
 {
@@ -31,14 +33,14 @@ cat > "$ROOT/OSVIA-source.json" <<EOF
       "iconURL": "$ICON",
       "version": "$VER",
       "versionDate": "$DATE",
-      "downloadURL": "$BASE/OSVIA.ipa",
+      "downloadURL": "$URL",
       "size": $SIZE,
       "versions": [
         {
           "version": "$VER",
           "buildVersion": "$BUILD",
           "date": "$DATE",
-          "downloadURL": "$BASE/OSVIA.ipa",
+          "downloadURL": "$URL",
           "size": $SIZE
         }
       ],

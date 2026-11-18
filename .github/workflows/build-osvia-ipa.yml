@@ -88,8 +88,46 @@ jobs:
           # 只保留最近 5 个版本
           gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].tag_name' | grep -E '^OSVIA-[0-9]+$' | sort -t- -k2 -n -r | tail -n +6 | while read -r t; do gh release delete "$t" --cleanup-tag -y || true; done
 
+      - name: Publish IPA to ipa branch (raw.githubusercontent.com download path)
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          N=${{ github.run_number }}
+          W=$(mktemp -d)
+          cd "$W"
+          git init -q -b ipa
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if git fetch -q --depth=1 origin ipa 2>/dev/null; then git checkout -q -f -B ipa FETCH_HEAD; fi
+          cp "$GITHUB_WORKSPACE/ios/OSVIA.ipa" "OSVIA-$N.ipa"
+          # 只保留最近 3 个版本；每次用孤立提交覆盖，仓库不会越长越大
+          ls OSVIA-*.ipa | sort -t- -k2 -n -r | tail -n +4 | xargs -r rm -f
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git checkout -q --orphan ipa-new
+          git add -A
+          git commit -q -m "ipa build $N"
+          git push -q -f origin ipa-new:ipa
+
       - name: Update OSVIA-source.json from the real IPA
-        run: bash tools/make-osvia-source.sh OSVIA.ipa
+        run: |
+          N=${{ github.run_number }}
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/ipa/OSVIA-$N.ipa"
+          SIZE=$(stat -f%z OSVIA.ipa)
+          GOT=0
+          for i in 1 2 3 4 5 6; do
+            GOT=$(curl -fsSL --max-time 90 -o /dev/null -w '%{size_download}' "$URL" || echo 0)
+            [ "$GOT" = "$SIZE" ] && break
+            sleep 5
+          done
+          if [ "$GOT" = "$SIZE" ]; then
+            echo "raw ok: $URL"
+            OSVIA_IPA_URL="$URL" bash tools/make-osvia-source.sh OSVIA.ipa
+          else
+            echo "raw not ready, fall back to release URL"
+            bash tools/make-osvia-source.sh OSVIA.ipa
+          fi
 
       - name: Commit OSVIA-source.json
         working-directory: .
