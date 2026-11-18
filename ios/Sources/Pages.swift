@@ -33,12 +33,12 @@ struct KBView: View {
                 }
                 Section("我的文档") {
                     if docs.isEmpty { Text("还没有文档，点右上角「导入」").foregroundStyle(.secondary) }
-                    ForEach(docs.indices, id: \.self) { i in
+                    ForEach(Array(docs.enumerated()), id: \.offset) { i, elem in
                         HStack(spacing: 12) {
-                            Image(systemName: icon(docs[i].s("name"))).foregroundStyle(Color.accentColor).frame(width: 26)
+                            Image(systemName: icon(elem.s("name"))).foregroundStyle(Color.accentColor).frame(width: 26)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(title(docs[i].s("name"))).lineLimit(1)
-                                Text("\(docs[i].i("n")) 个片段").font(.subheadline).foregroundStyle(.secondary)
+                                Text(title(elem.s("name"))).lineLimit(1)
+                                Text("\(elem.i("n")) 个片段").font(.subheadline).foregroundStyle(.secondary)
                             }
                         }
                         .padding(.vertical, 3)
@@ -211,13 +211,13 @@ struct SkillsView: View {
             }
             Section("我的技能") {
                 if skills.isEmpty { Text("还没有技能，先在上面创建一个").foregroundStyle(.secondary) }
-                ForEach(skills.indices, id: \.self) { i in
+                ForEach(Array(skills.enumerated()), id: \.offset) { i, elem in
                     NavigationLink {
-                        SkillRunView(name: skills[i].s("name"))
+                        SkillRunView(name: elem.s("name"))
                     } label: {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(skills[i].s("name")).font(.headline)
-                            Text(skills[i].s("desc")).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                            Text(elem.s("name")).font(.headline)
+                            Text(elem.s("desc")).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
                         }
                         .padding(.vertical, 4)
                     }
@@ -362,13 +362,13 @@ struct ConnectorsView: View {
             }
             Section("已连接") {
                 if rows.isEmpty { Text("还没有连接器，点右上角添加").foregroundStyle(.secondary) }
-                ForEach(rows.indices, id: \.self) { i in
+                ForEach(Array(rows.enumerated()), id: \.offset) { i, elem in
                     NavigationLink {
-                        ConnectorRunView(name: rows[i].s("name"))
+                        ConnectorRunView(name: elem.s("name"))
                     } label: {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(rows[i].s("name")).font(.headline)
-                            Text(Connectors.kindName(rows[i].s("kind"))).font(.subheadline).foregroundStyle(.secondary)
+                            Text(elem.s("name")).font(.headline)
+                            Text(Connectors.kindName(elem.s("kind"))).font(.subheadline).foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 4)
                     }
