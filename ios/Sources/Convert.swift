@@ -116,7 +116,7 @@ enum Convert {
             case "rtf":
                 guard let d = Office.rtfData(text) else { throw err("编码失败") }
                 try d.write(to: dst)
-            case "html": try MD.pre(text).write(to: dst, atomically: true, encoding: .utf8)
+            case "html": try MDHTML.pre(text).write(to: dst, atomically: true, encoding: .utf8)
             default: try text.write(to: dst, atomically: true, encoding: .utf8)
             }
             return [dst]
@@ -287,7 +287,7 @@ enum Convert {
         }
         func tableHTML(_ r: [[String]]) -> String {
             func e(_ s: String) -> String { s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;") }
-            return MD.page("<table>" + r.map { row in "<tr>" + row.map { "<td>\(e($0))</td>" }.joined() + "</tr>" }.joined() + "</table>")
+            return MDHTML.page("<table>" + r.map { row in "<tr>" + row.map { "<td>\(e($0))</td>" }.joined() + "</tr>" }.joined() + "</table>")
         }
 
         let dst = out(base, t)
@@ -300,7 +300,7 @@ enum Convert {
         case "txt": try (rows.map { csvOut($0, "\t") } ?? plain).write(to: dst, atomically: true, encoding: .utf8)
         case "html":
             let h: String
-            if let r = rows { h = tableHTML(r) } else if ext == "md" { h = MD.html(raw) } else if isHTML { h = raw } else { h = MD.pre(raw) }
+            if let r = rows { h = tableHTML(r) } else if ext == "md" { h = MDHTML.html(raw) } else if isHTML { h = raw } else { h = MDHTML.pre(raw) }
             try h.write(to: dst, atomically: true, encoding: .utf8)
         case "docx":
             let text = rows.map { csvOut($0, "\t") } ?? plain
@@ -311,7 +311,7 @@ enum Convert {
         case "pdf":
             let html: String?
             if let r = rows { html = tableHTML(r) }
-            else if ext == "md" { html = MD.html(raw) }
+            else if ext == "md" { html = MDHTML.html(raw) }
             else if isHTML { html = (try? String(contentsOf: src, encoding: .utf8)) ?? raw }
             else { html = nil }
             if let html {

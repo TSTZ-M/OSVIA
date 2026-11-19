@@ -119,7 +119,7 @@ enum TextExport {
         let dst = Convert.out(String(b.prefix(30)), ext)
         switch ext {
         case "docx": try Office.docx(text).write(to: dst)
-        case "html": try MD.pre(text).write(to: dst, atomically: true, encoding: .utf8)
+        case "html": try MDHTML.pre(text).write(to: dst, atomically: true, encoding: .utf8)
         case "pdf": try await MainActor.run { try Convert.textPDF(text, dst) }
         default: try text.write(to: dst, atomically: true, encoding: .utf8)
         }

@@ -405,7 +405,7 @@ enum Office {
 }
 
 // MARK: 极简 Markdown → HTML（转 PDF、网页、Word 时用）
-enum MD {
+enum MDHTML {
     private static func esc(_ s: String) -> String {
         s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;")
     }
