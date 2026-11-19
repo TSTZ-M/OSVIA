@@ -71,10 +71,8 @@ final class KB {
     func text(of url: URL) -> String {
         let ext = url.pathExtension.lowercased()
         if ext == "pdf" { return PDFDocument(url: url)?.string ?? "" }
+        if Office.exts.contains(ext) { return Office.text(of: url) }
         guard Self.textExt.contains(ext), let d = try? Data(contentsOf: url) else { return "" }
-        if ext == "rtf", let a = try? NSAttributedString(data: d, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil) {
-            return a.string
-        }
         let gb = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)))
         var s = String(data: d, encoding: .utf8) ?? String(data: d, encoding: gb) ?? ""
         if ext == "html" || ext == "htm" {

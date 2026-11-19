@@ -5,10 +5,12 @@ import AVFoundation
 import ImageIO
 import UniformTypeIdentifiers
 
-// 文件格式互转：图片 / PDF / 文本 / 表格 / 视频
+// 文件格式互转：图片 / PDF / Word / Excel / 文本 / 表格 / 网页 / 视频 / 音频
 enum Convert {
     static let imgExt = ["jpg", "jpeg", "png", "heic", "heif", "tiff", "tif", "bmp", "gif", "webp"]
     static let vidExt = ["mp4", "mov", "m4v"]
+    static let audExt = ["m4a", "mp3", "wav", "caf", "aac", "aiff", "aif", "flac"]
+    static var docExt: Set<String> { KB.textExt.union(Office.exts) }
 
     static func err(_ s: String) -> NSError { NSError(domain: "转换", code: 1, userInfo: [NSLocalizedDescriptionKey: s]) }
 
@@ -18,24 +20,55 @@ enum Convert {
 
     static func normalize(_ s: String) -> String {
         let t = s.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: ". "))
-        let m = ["jpeg": "jpg", "压缩": "compress", "音频": "m4a", "mp3": "m4a", "文本": "txt", "文字": "txt", "表格": "csv",
-                 "markdown": "md", "网页": "html", "图片": "png", "视频": "mp4", "heif": "heic", "tif": "tiff"]
+        let m = ["jpeg": "jpg", "压缩": "compress", "音频": "m4a", "提取音频": "m4a", "mp3": "m4a", "文本": "txt", "文字": "txt", "表格": "csv",
+                 "markdown": "md", "网页": "html", "图片": "png", "视频": "mp4", "heif": "heic", "tif": "tiff",
+                 "word": "docx", "doc": "docx", "excel": "xlsx", "xls": "xlsx", "静音": "mute", "去声音": "mute", "去除声音": "mute",
+                 "去音频": "mute", "无声": "mute", "wave": "wav", "aif": "aiff"]
         return m[t] ?? t
+    }
+
+    // 某种格式的文件能转成什么（转换页与聊天快捷操作共用）
+    static func targets(for e: String) -> [String] {
+        let list: [String]
+        if imgExt.contains(e) { list = ["jpg", "png", "heic", "pdf", "txt", "docx", "compress", "tiff", "gif", "bmp"] }
+        else if vidExt.contains(e) { list = ["mp4", "mov", "m4a", "wav", "mute", "compress", "jpg"] }
+        else if audExt.contains(e) { list = ["m4a", "wav", "caf"] }
+        else {
+            switch e {
+            case "pdf": list = ["docx", "txt", "md", "rtf", "html", "png", "jpg"]
+            case "docx", "rtf", "odt": list = ["pdf", "docx", "txt", "md", "html", "rtf"]
+            case "pptx", "odp": list = ["txt", "md", "docx"]
+            case "xlsx": list = ["csv", "json", "md", "html", "tsv", "txt", "pdf"]
+            case "ods": list = ["txt", "md"]
+            case "csv", "tsv", "json": list = ["xlsx", "csv", "json", "md", "html", "tsv", "txt", "pdf", "docx"]
+            case "md": list = ["docx", "pdf", "html", "txt", "rtf", "xlsx"]
+            case "html", "htm": list = ["pdf", "md", "txt", "docx"]
+            default: list = ["docx", "pdf", "md", "html", "rtf", "xlsx"]
+            }
+        }
+        return list.filter { $0 != e && !(e == "jpeg" && $0 == "jpg") }
     }
 
     static func run(_ src: URL, to target: String) async throws -> [URL] {
         let ext = src.pathExtension.lowercased()
         let t = normalize(target)
         let base = src.deletingPathExtension().lastPathComponent
-        if imgExt.contains(ext) { return try image(src, base, t) }
-        if ext == "pdf" { return try pdf(src, base, t) }
+        if imgExt.contains(ext) { return try await Task.detached(priority: .userInitiated) { try Convert.image(src, base, t) }.value }
+        if ext == "pdf" { return try await pdf(src, base, t) }
         if vidExt.contains(ext) { return [try await video(src, base, t)] }
-        if KB.textExt.contains(ext) { return [try await doc(src, base, ext, t)] }
+        if audExt.contains(ext) { return [try await audio(src, base, t)] }
+        if docExt.contains(ext) { return [try await doc(src, base, ext, t)] }
         throw err("暂不支持 .\(ext) 转 .\(t)")
     }
 
     // MARK: 图片
     static func image(_ src: URL, _ base: String, _ t: String) throws -> [URL] {
+        if t == "compress" {
+            guard let cg = OCR.cg(src, maxPixel: 2048), let d = UIImage(cgImage: cg).jpegData(compressionQuality: 0.6) else { throw err("无法读取图片") }
+            let dst = out(base + "-压缩", "jpg")
+            try d.write(to: dst)
+            return [dst]
+        }
         guard let img = UIImage(contentsOfFile: src.path) else { throw err("无法读取图片") }
         let dst = out(base, t)
         switch t {
@@ -58,24 +91,37 @@ enum Convert {
             CGImageDestinationAddImage(dest, cg, nil)
             guard CGImageDestinationFinalize(dest) else { throw err("编码失败") }
         case "txt":
-            let text = OCR.text(src)
+            let text = OCR.fullText(src)
             if text.isEmpty { throw err("没有识别到文字") }
             try text.write(to: dst, atomically: true, encoding: .utf8)
+        case "docx":
+            let text = OCR.fullText(src)
+            if text.isEmpty { throw err("没有识别到文字") }
+            try Office.docx(text).write(to: dst)
         default:
             throw err("图片不能转成 \(t)")
         }
         return [dst]
     }
 
-    // MARK: PDF
-    static func pdf(_ src: URL, _ base: String, _ t: String) throws -> [URL] {
+    // MARK: PDF（扫描件没有文字层时，逐页识别）
+    static func pdf(_ src: URL, _ base: String, _ t: String) async throws -> [URL] {
         guard let doc = PDFDocument(url: src) else { throw err("无法打开 PDF") }
-        if t == "txt" {
-            let d = out(base, "txt")
-            try (doc.string ?? "").write(to: d, atomically: true, encoding: .utf8)
-            return [d]
+        if ["txt", "md", "docx", "rtf", "html"].contains(t) {
+            let text = await pdfText(doc)
+            guard !text.isEmpty else { throw err("没有读到文字") }
+            let dst = out(base, t)
+            switch t {
+            case "docx": try Office.docx(text).write(to: dst)
+            case "rtf":
+                guard let d = Office.rtfData(text) else { throw err("编码失败") }
+                try d.write(to: dst)
+            case "html": try MD.pre(text).write(to: dst, atomically: true, encoding: .utf8)
+            default: try text.write(to: dst, atomically: true, encoding: .utf8)
+            }
+            return [dst]
         }
-        guard t == "png" || t == "jpg" else { throw err("PDF 可转成 png、jpg、txt") }
+        guard t == "png" || t == "jpg" else { throw err("PDF 可转成 docx、txt、md、rtf、html、png、jpg") }
         var outs: [URL] = []
         for i in 0..<min(doc.pageCount, 20) {
             guard let p = doc.page(at: i) else { continue }
@@ -87,6 +133,23 @@ enum Convert {
             outs.append(d)
         }
         return outs
+    }
+
+    static func pdfText(_ doc: PDFDocument) async -> String {
+        let direct = (doc.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if direct.count >= 30 { return direct }
+        var parts: [String] = []
+        for i in 0..<min(doc.pageCount, 30) {
+            guard let p = doc.page(at: i) else { continue }
+            let sz = p.bounds(for: .mediaBox).size
+            let k = 2000 / max(sz.width, sz.height, 1)
+            let img = p.thumbnail(of: CGSize(width: sz.width * k, height: sz.height * k), for: .mediaBox)
+            guard let cg = img.cgImage else { continue }
+            let s = await Task.detached(priority: .userInitiated) { OCR.text(cg) }.value
+            if !s.isEmpty { parts.append(s) }
+        }
+        let ocr = parts.joined(separator: "\n\n")
+        return ocr.isEmpty ? direct : ocr
     }
 
     // MARK: 视频
@@ -101,6 +164,8 @@ enum Convert {
             try (t == "png" ? img.pngData() : img.jpegData(compressionQuality: 0.9))?.write(to: d)
             return d
         }
+        if t == "wav" || t == "caf" || t == "aiff" { return try await audioPCM(src, base, t) }
+        if t == "mute" { return try await mute(asset, base, src.pathExtension) }
         let preset: String
         let type: AVFileType
         let ext: String
@@ -109,54 +174,159 @@ enum Convert {
         case "mov": preset = AVAssetExportPresetHighestQuality; type = .mov; ext = "mov"
         case "compress": preset = AVAssetExportPreset1280x720; type = .mp4; ext = "mp4"
         case "mp4": preset = AVAssetExportPresetHighestQuality; type = .mp4; ext = "mp4"
-        default: throw err("视频可转成 mp4、mov、m4a、jpg 或 压缩")
+        default: throw err("视频可转成 mp4、mov、m4a、wav、jpg，或「去除声音」「压缩」")
         }
+        if t == "m4a", (try await asset.loadTracks(withMediaType: .audio)).isEmpty { throw err("这个视频没有声音") }
         guard let s = AVAssetExportSession(asset: asset, presetName: preset) else { throw err("无法创建导出任务") }
         let dst = out(base, ext)
         try await s.export(to: dst, as: type)
         return dst
     }
 
-    // MARK: 文本与表格
-    static func doc(_ src: URL, _ base: String, _ ext: String, _ t: String) async throws -> URL {
-        let raw = KB.shared.text(of: src)
-        guard !raw.isEmpty else { throw err("文件为空或无法读取") }
-        var content = raw
-        let tableSrc = ["csv", "tsv", "json"].contains(ext) || (ext == "md" && raw.contains("|"))
-        if tableSrc || ["csv", "tsv", "json"].contains(t) {
-            let rows: [[String]]
-            switch ext {
-            case "json": rows = jsonRows(raw)
-            case "md": rows = mdRows(raw)
-            case "csv": rows = csvParse(raw, ",")
-            default: rows = csvParse(raw, "\t")
-            }
-            guard !rows.isEmpty else { throw err("没有识别到表格") }
-            switch t {
-            case "csv": content = csvOut(rows, ",")
-            case "tsv", "txt", "pdf": content = csvOut(rows, "\t")
-            case "json": content = jsonOut(rows)
-            case "md": content = mdOut(rows)
-            case "html": content = "<meta charset=utf-8><table border=1>" + rows.map { r in "<tr>" + r.map { c in "<td>\(c)</td>" }.joined() + "</tr>" }.joined() + "</table>"
-            default: throw err("表格可转成 csv、json、md、html、tsv、txt、pdf")
-            }
-        } else if t == "html" {
-            content = "<meta charset=utf-8><pre style='white-space:pre-wrap'>" + raw + "</pre>"
-        } else if !["txt", "md", "pdf"].contains(t) {
-            throw err("文本可转成 txt、md、html、pdf")
+    // 去掉视频里的声音：只保留画面轨道，直接封装，不重新编码，画质无损
+    static func mute(_ asset: AVURLAsset, _ base: String, _ srcExt: String) async throws -> URL {
+        guard let vt = try await asset.loadTracks(withMediaType: .video).first else { throw err("没有找到视频画面") }
+        let dur = try await asset.load(.duration)
+        let comp = AVMutableComposition()
+        guard let ct = comp.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) else { throw err("无法创建视频轨道") }
+        try ct.insertTimeRange(CMTimeRange(start: .zero, duration: dur), of: vt, at: .zero)
+        ct.preferredTransform = try await vt.load(.preferredTransform)
+        guard let s = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetPassthrough) else { throw err("无法创建导出任务") }
+        let mov = srcExt.lowercased() == "mov"
+        let dst = out(base + "-无声", mov ? "mov" : "mp4")
+        try await s.export(to: dst, as: mov ? .mov : .mp4)
+        return dst
+    }
+
+    // MARK: 音频
+    static func audio(_ src: URL, _ base: String, _ t: String) async throws -> URL {
+        switch t {
+        case "m4a":
+            guard let s = AVAssetExportSession(asset: AVURLAsset(url: src), presetName: AVAssetExportPresetAppleM4A) else { throw err("无法创建导出任务") }
+            let dst = out(base, "m4a")
+            try await s.export(to: dst, as: .m4a)
+            return dst
+        case "wav", "caf", "aiff":
+            return try await audioPCM(src, base, t)
+        default:
+            throw err("音频可转成 m4a、wav、caf（系统不支持编码 MP3）")
         }
+    }
+
+    // 解码成 16 位 PCM 再写成 wav / caf / aiff；视频和各种音频都能作为来源
+    static func audioPCM(_ src: URL, _ base: String, _ t: String) async throws -> URL {
+        let asset = AVURLAsset(url: src)
+        guard let track = try await asset.loadTracks(withMediaType: .audio).first else { throw err("没有找到声音（视频可能本来就是无声的）") }
+        let reader = try AVAssetReader(asset: asset)
+        let settings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: t == "aiff",
+            AVLinearPCMIsNonInterleaved: false,
+            AVSampleRateKey: 44100,
+            AVNumberOfChannelsKey: 2
+        ]
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: settings)
+        guard reader.canAdd(output) else { throw err("无法读取声音") }
+        reader.add(output)
+        let type: AVFileType = t == "caf" ? .caf : (t == "aiff" ? .aiff : .wav)
         let dst = out(base, t)
-        if t == "pdf" {
-            try await MainActor.run { try textPDF(content, dst) }
+        try? FileManager.default.removeItem(at: dst)
+        let writer = try AVAssetWriter(outputURL: dst, fileType: type)
+        let input = AVAssetWriterInput(mediaType: .audio, outputSettings: settings)
+        input.expectsMediaDataInRealTime = false
+        guard writer.canAdd(input) else { throw err("无法写入 \(t)") }
+        writer.add(input)
+        guard reader.startReading(), writer.startWriting() else { throw err("无法开始转换：" + (writer.error?.localizedDescription ?? reader.error?.localizedDescription ?? "")) }
+        writer.startSession(atSourceTime: .zero)
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            input.requestMediaDataWhenReady(on: DispatchQueue(label: "osvia.pcm")) {
+                while input.isReadyForMoreMediaData {
+                    if let b = output.copyNextSampleBuffer(), input.append(b) { continue }
+                    input.markAsFinished()
+                    c.resume()
+                    return
+                }
+            }
+        }
+        await writer.finishWriting()
+        guard writer.status == .completed else { throw err("转换失败：" + (writer.error?.localizedDescription ?? "未知错误")) }
+        return dst
+    }
+
+    // MARK: 文本、文档与表格
+    static func doc(_ src: URL, _ base: String, _ ext: String, _ t: String) async throws -> URL {
+        var rows: [[String]]?
+        var raw = ""
+        if ext == "xlsx" {
+            let sh = Office.sheets(of: src)
+            guard let first = sh.first else { throw err("没有读到表格内容") }
+            rows = first.rows
+            raw = csvOut(first.rows, "\t")
         } else {
-            try content.write(to: dst, atomically: true, encoding: .utf8)
+            raw = KB.shared.text(of: src)
+            guard !raw.isEmpty else { throw err("文件为空或无法读取") }
+            switch ext {
+            case "csv": rows = csvParse(raw, ",")
+            case "tsv": rows = csvParse(raw, "\t")
+            case "json": rows = jsonRows(raw)
+            case "md": rows = raw.contains("|") ? mdRows(raw) : nil
+            default: break
+            }
+        }
+        if rows?.isEmpty == true { rows = nil }
+        let isHTML = ext == "html" || ext == "htm"
+        let plain = isHTML ? (Web.clean((try? String(contentsOf: src, encoding: .utf8)) ?? raw, limit: 5_000_000).text) : raw
+
+        // 目标是表格，但来源是文本：一行一行变成一行表格
+        func asRows() -> [[String]] {
+            if let r = rows { return r }
+            let lines = plain.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            return lines.map { $0.contains("\t") ? $0.components(separatedBy: "\t") : [$0] }
+        }
+        func tableHTML(_ r: [[String]]) -> String {
+            func e(_ s: String) -> String { s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;") }
+            return MD.page("<table>" + r.map { row in "<tr>" + row.map { "<td>\(e($0))</td>" }.joined() + "</tr>" }.joined() + "</table>")
+        }
+
+        let dst = out(base, t)
+        switch t {
+        case "csv": try csvOut(asRows(), ",").write(to: dst, atomically: true, encoding: .utf8)
+        case "tsv": try csvOut(asRows(), "\t").write(to: dst, atomically: true, encoding: .utf8)
+        case "json": try jsonOut(asRows()).write(to: dst, atomically: true, encoding: .utf8)
+        case "xlsx": try Office.xlsx(asRows()).write(to: dst)
+        case "md": try (rows.map { mdOut($0) } ?? plain).write(to: dst, atomically: true, encoding: .utf8)
+        case "txt": try (rows.map { csvOut($0, "\t") } ?? plain).write(to: dst, atomically: true, encoding: .utf8)
+        case "html":
+            let h: String
+            if let r = rows { h = tableHTML(r) } else if ext == "md" { h = MD.html(raw) } else if isHTML { h = raw } else { h = MD.pre(raw) }
+            try h.write(to: dst, atomically: true, encoding: .utf8)
+        case "docx":
+            let text = rows.map { csvOut($0, "\t") } ?? plain
+            try Office.docx(text).write(to: dst)
+        case "rtf":
+            guard let d = Office.rtfData(rows.map { csvOut($0, "\t") } ?? plain) else { throw err("编码失败") }
+            try d.write(to: dst)
+        case "pdf":
+            let html: String?
+            if let r = rows { html = tableHTML(r) }
+            else if ext == "md" { html = MD.html(raw) }
+            else if isHTML { html = (try? String(contentsOf: src, encoding: .utf8)) ?? raw }
+            else { html = nil }
+            if let html {
+                try await MainActor.run { try htmlPDF(html, dst) }
+            } else {
+                let content = plain
+                try await MainActor.run { try textPDF(content, dst) }
+            }
+        default:
+            throw err("\(ext) 不能转成 \(t)，可以转成：" + targets(for: ext).joined(separator: "、"))
         }
         return dst
     }
 
-    static func textPDF(_ text: String, _ dst: URL) throws {
-        let fmt = UISimpleTextPrintFormatter(text: text)
-        fmt.font = UIFont.systemFont(ofSize: 12)
+    private static func renderPDF(_ fmt: UIPrintFormatter, _ dst: URL) throws {
         let r = UIPrintPageRenderer()
         r.addPrintFormatter(fmt, startingAtPageAt: 0)
         let page = CGRect(x: 0, y: 0, width: 595, height: 842)
@@ -170,6 +340,16 @@ enum Convert {
         }
         UIGraphicsEndPDFContext()
         try (data as Data).write(to: dst)
+    }
+
+    static func textPDF(_ text: String, _ dst: URL) throws {
+        let fmt = UISimpleTextPrintFormatter(text: text)
+        fmt.font = UIFont.systemFont(ofSize: 12)
+        try renderPDF(fmt, dst)
+    }
+
+    static func htmlPDF(_ html: String, _ dst: URL) throws {
+        try renderPDF(UIMarkupTextPrintFormatter(markupText: html), dst)
     }
 
     static func csvParse(_ s: String, _ delim: Character) -> [[String]] {

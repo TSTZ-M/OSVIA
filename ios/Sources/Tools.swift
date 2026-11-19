@@ -102,7 +102,7 @@ struct ConvertFile: Tool {
     let name = "convert_file"
     let description = "把用户最近发送的文件转换成目标格式，结果会作为文件返回给用户"
     @Generable struct Arguments {
-        @Guide(description: "目标格式：jpg png heic pdf txt csv json md html tsv mp4 mov m4a，或「压缩」") var target: String
+        @Guide(description: "目标格式：jpg png heic pdf txt docx xlsx rtf csv json md html tsv mp4 mov m4a wav，或「压缩」「mute」（去掉视频声音）") var target: String
     }
     func call(arguments a: Arguments) async throws -> String {
         guard let u = await MainActor.run(body: { Agent.shared.lastFile }) else { return "还没有文件，请先发送或选择文件" }

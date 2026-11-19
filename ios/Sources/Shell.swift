@@ -10,6 +10,7 @@ final class AppState: ObservableObject {
     static let shared = AppState()
     @Published var drawer = false
     @Published var page: AppPage?
+    @Published var tool: ToolRequest?   // 从「+」托盘或聊天快捷操作打开的工具（网页文字、识别文字、去水印……）
     @Published var voiceTick = 0   // 小组件「语音」：数值变化时对话页开始听写
 }
 
@@ -63,6 +64,7 @@ struct RootView: View {
         .translationTask(l10n.config) { session in await l10n.run(session) }
         .onAppear { l10n.ensureTranslation() }
         .sheet(item: $state.page) { PageSheet(page: $0).id(l10n.version) }
+        .sheet(item: $state.tool) { ToolSheet(req: $0).id(l10n.version) }
     }
 }
 

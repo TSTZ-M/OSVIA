@@ -128,15 +128,28 @@ struct ToolboxView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible())], spacing: 14) {
-                    card("AI 记忆中心", "导入其他 AI 的记忆，让助理越用越懂你", "brain.head.profile") { MemoryHubView() }
-                    card("MCP 服务", "连接外部工具与数据，让助理能做更多事", "puzzlepiece.extension") { MCPView() }
-                    card("屏幕翻译", "截图一键翻译整屏，译文贴回原位", "character.bubble") { ScreenTranslateView() }
-                    card("文件转换", "图片、PDF、表格、视频互相转换", "arrow.triangle.2.circlepath") { ConvertView() }
-                    card("脚本技能", "一句话生成处理文字的小脚本", "wand.and.stars") { SkillsView() }
-                    card("连接器", "连接快捷指令、Scriptable 和各种接口", "link") { ConnectorsView() }
-                    card("快捷指令", "把本 App 的动作加入系统快捷指令", "square.stack.3d.up.fill") { ShortcutsView() }
-                    Button { showClock = true } label: { cardBody("系统时钟闹钟", "把闹钟写进「时钟」，并自检内置闹钟", "alarm") }
+                VStack(alignment: .leading, spacing: 22) {
+                    section("提取与识别") {
+                        kind(.web)
+                        kind(.ocr)
+                        kind(.translateImage)
+                        card("屏幕翻译", "截图一键翻译整屏，译文贴回原位", "camera.viewfinder") { ScreenTranslateView() }
+                    }
+                    section("转换与处理") {
+                        kind(.convert)
+                        kind(.wmImage)
+                        kind(.wmVideo)
+                        kind(.audio)
+                        kind(.mute)
+                    }
+                    section("助理能力") {
+                        card("AI 记忆中心", "导入其他 AI 的记忆，让助理越用越懂你", "brain.head.profile") { MemoryHubView() }
+                        card("MCP 服务", "连接外部工具与数据，让助理能做更多事", "puzzlepiece.extension") { MCPView() }
+                        card("脚本技能", "一句话生成处理文字的小脚本", "curlybraces") { SkillsView() }
+                        card("连接器", "连接快捷指令、Scriptable 和各种接口", "link") { ConnectorsView() }
+                        card("快捷指令", "把本 App 的动作加入系统快捷指令", "square.stack.3d.up.fill") { ShortcutsView() }
+                        Button { showClock = true } label: { cardBody("系统时钟闹钟", "把闹钟写进「时钟」，并自检内置闹钟", "alarm") }
+                    }
                 }
                 .padding(16)
             }
@@ -147,18 +160,29 @@ struct ToolboxView: View {
         }
     }
 
-    func cardBody(_ t: String, _ s: String, _ icon: String) -> some View {
+    func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: icon).font(.title2).foregroundStyle(Brand.mint)
-                .frame(width: 46, height: 46).background(Brand.mint.opacity(0.14))
-                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-            Text(t).font(.headline).foregroundStyle(Brand.ink)
-            Text(s).font(.subheadline).foregroundStyle(Brand.sub).multilineTextAlignment(.leading)
+            Text(LocalizedStringKey(title)).font(.system(size: 13, weight: .semibold)).foregroundStyle(Brand.sub).padding(.leading, 4)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) { content() }
         }
-        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
-        .padding(14)
+    }
+
+    func kind(_ k: ToolKind) -> some View {
+        NavigationLink { k.destination() } label: { cardBody(k.title, k.blurb, k.icon) }
+    }
+
+    func cardBody(_ t: String, _ s: String, _ icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon).font(.system(size: 19, weight: .medium)).foregroundStyle(Brand.mint)
+                .frame(width: 42, height: 42).background(Brand.mint.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Text(LocalizedStringKey(t)).font(.system(size: 15.5, weight: .semibold)).foregroundStyle(Brand.ink)
+            Text(LocalizedStringKey(s)).font(.system(size: 12.5)).foregroundStyle(Brand.sub).multilineTextAlignment(.leading).lineLimit(3)
+        }
+        .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
+        .padding(13)
         .background(Brand.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     func card<D: View>(_ t: String, _ s: String, _ icon: String, @ViewBuilder _ dest: @escaping () -> D) -> some View {

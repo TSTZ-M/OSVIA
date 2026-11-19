@@ -278,11 +278,14 @@ final class ScreenTranslator: ObservableObject {
 }
 
 struct ScreenTranslateView: View {
+    let title: String
     @ObservedObject private var t = ScreenTranslator.shared
     @AppStorage("transTarget") private var target = "auto"
     @State private var item: PhotosPickerItem?
 
     private let langs: [(String, String)] = [("auto", "自动"), ("zh-Hans", "简体中文"), ("en", "English"), ("ja", "日本語"), ("ko", "한국어")]
+
+    init(title: String = "屏幕翻译") { self.title = title }
 
     var body: some View {
         ScrollView {
@@ -366,7 +369,7 @@ struct ScreenTranslateView: View {
             .padding(16)
         }
         .background(Brand.page)
-        .navigationTitle("屏幕翻译")
+        .navigationTitle(LocalizedStringKey(title))
         .navigationBarTitleDisplayMode(.inline)
         .translationTask(t.config) { session in await t.run(session) }
         .onAppear { t.runPending() }

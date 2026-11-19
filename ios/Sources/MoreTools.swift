@@ -17,6 +17,7 @@ enum MoreTools {
         s += "- calendar_free {\"days\":3,\"minutes\":60,\"from\":\"09:00\",\"to\":\"18:00\"}：在用户日历里找连续空闲的时间段（约时间、排日程时用，比 agenda 自己推算准）\n"
         s += "- photos_find {\"keywords\":[\"cat\",\"beach\"],\"days\":30,\"limit\":6}：按画面内容在相册里找照片（本机识别，不上传）。keywords 用英文的常见物体或场景词，如 cat dog food beach mountain sunset flower car document baby；留空 = 取最近的照片。找到的缩略图附在回复下方\n"
         s += "- search_files {\"q\":\"关键词\"}：在工作区的文件名和文件内容里搜索\n"
+        s += Toolkit.doc()
         return s
     }
 
@@ -29,6 +30,7 @@ enum MoreTools {
         case "calendar_free": return await calendarFree(a, trace)
         case "search_files": return searchFiles(str(a, "q"), trace)
         case "photos_find": return await photosFind(a, trace)
+        case "extract_web", "convert", "remove_watermark", "translate_image": return await Toolkit.run(c, trace: trace)
         default: return await Hands2.run(c, trace: trace, cloud: cloud)
         }
     }
