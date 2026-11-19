@@ -365,7 +365,7 @@ final class Agent: ObservableObject {
 
     // 本地大模型可用时，用它从任何语言的句子里提取闹钟、提醒、日程（中文规则没认出来的也会在这里兜底）。云端大脑启用时由它自己调用工具，这里跳过
     private func localIntent(_ t: String) async -> String? {
-        guard LocalLLM.shared.canUse, !CloudLLM.ready, t.count <= 200 else { return nil }
+        guard ModelPref.effective == .local, t.count <= 200 else { return nil }
         let low = t.lowercased()
         let ks = ["alarm", "remind", "wake", "schedule", "meeting", "appointment", "timer", "闹钟", "提醒", "叫我", "日程", "起床", "アラーム", "リマインド", "알람", "알림", "despert", "recordar", "rappel", "réveil", "wecker", "erinner", "sveglia", "ricord", "будильник", "напомни", "uyandır", "hatırlat", "đánh thức", "nhắc", "ปลุก", "เตือน", "bangunkan", "ingatkan", "منبه", "ذكرني", "अलार्म", "याद"]
         guard ks.contains(where: { low.contains($0) }) else { return nil }
@@ -624,7 +624,7 @@ final class Agent: ObservableObject {
     // 回答入口：先用云端大脑（用户填了免费密钥才会启用），失败或没启用就用本机模型
     private func ask(_ t: String, ctx: String, hasFile: Bool, mid: UUID, imageMode: Bool = false) async -> String {
         var note = ""
-        if CloudLLM.ready {
+        if ModelPref.effective == .cloud {
             Live.set(.thinking)
             let r = await Brain.ask(
                 history: imageMode ? [] : history(),
@@ -644,7 +644,7 @@ final class Agent: ObservableObject {
 
     private func askOffline(_ t: String, ctx: String, hasFile: Bool, mid: UUID, imageMode: Bool) async -> String {
         // 本地大模型已下载并开启时优先用它
-        if LocalLLM.shared.canUse { return await askLocal(t, ctx: ctx, mid: mid, imageMode: imageMode) }
+        if ModelPref.offline == .local { return await askLocal(t, ctx: ctx, mid: mid, imageMode: imageMode) }
         switch SystemLanguageModel.default.availability {
         case .available:
             break

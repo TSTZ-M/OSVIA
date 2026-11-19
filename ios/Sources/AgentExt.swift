@@ -34,6 +34,27 @@ extension Agent {
         busy = false
     }
 
+    // 附件上的一键转换：不经过大模型，转完把文件直接放进对话
+    func quickConvert(_ files: [URL], to target: String, label: String) async {
+        guard !busy else { return }
+        busy = true
+        attachments = []
+        lastFile = files.last
+        post("user", label, files: files)
+        var outs: [URL] = []
+        var errs: [String] = []
+        for f in files {
+            do { outs += try await Convert.run(f, to: target) } catch { errs.append(f.lastPathComponent + "：" + error.localizedDescription) }
+        }
+        if outs.isEmpty {
+            post("assistant", "转换失败。\n" + errs.joined(separator: "\n"))
+        } else {
+            let tip = errs.isEmpty ? "" : "\n\n没转成功：\n" + errs.joined(separator: "\n")
+            post("assistant", "已完成，共 \(outs.count) 个文件。点开可预览，长按可分享或存入相册。" + tip, files: outs)
+        }
+        busy = false
+    }
+
     // 调用连接器：结果直接显示在对话里
     func runConnector(_ name: String, _ input: String, shown: String? = nil) async {
         guard !busy else { return }

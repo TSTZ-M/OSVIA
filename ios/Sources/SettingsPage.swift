@@ -9,7 +9,10 @@ struct AppSettingsView: View {
     @AppStorage("autoSend") private var autoSend = false
     @AppStorage("liveOn") private var liveOn = true
     @AppStorage("cloudOn") private var cloudOn = true
+    @AppStorage("modelMode") private var modeRaw = "auto"
+    @AppStorage("transTarget") private var transTarget = "auto"
     @ObservedObject private var local = LocalLLM.shared
+    @ObservedObject private var state = AppState.shared
     @State private var exportURL: URL?
     @State private var confirmChats = false
     @State private var confirmKB = false
@@ -17,6 +20,32 @@ struct AppSettingsView: View {
     @State private var copied = false
 
     private let themes: [(Int, String)] = [(0, "跟随系统"), (1, "浅色"), (2, "深色")]
+    private let transLangs: [(String, String)] = [("auto", "自动"), ("zh-Hans", "简体中文"), ("en", "English"), ("ja", "日本語"), ("ko", "한국어"),
+                                                  ("fr", "Français"), ("de", "Deutsch"), ("es", "Español"), ("ru", "Русский")]
+
+    private var version: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
+        return b.isEmpty ? v : "\(v) (\(b))"
+    }
+
+    // 系统设置风格的图标行
+    private func badge(_ icon: String, _ color: Color) -> some View {
+        Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            .frame(width: 29, height: 29).background(color)
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    private func row(_ icon: String, _ color: Color, _ title: String, value: String = "") -> some View {
+        HStack(spacing: 12) {
+            badge(icon, color)
+            Text(LocalizedStringKey(title)).foregroundStyle(Brand.ink)
+            if !value.isEmpty {
+                Spacer(minLength: 8)
+                Text(verbatim: value).foregroundStyle(Brand.sub).lineLimit(1)
+            }
+        }
+    }
 
     private var modelStatus: String {
         switch SystemLanguageModel.default.availability {
@@ -37,100 +66,87 @@ struct AppSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // 三个选项做成系统风格的勾选行：点哪个就立刻切换，勾选状态始终和当前主题一致
-                Section("外观") {
-                    ForEach(themes, id: \.0) { item in
-                        Button {
-                            appearance = item.0
-                            AppTheme.apply(item.0)
-                        } label: {
-                            HStack {
-                                Text(item.1).foregroundStyle(Brand.ink)
-                                Spacer()
-                                if appearance == item.0 { Image(systemName: "checkmark").foregroundStyle(Brand.ink) }
-                            }
-                            .contentShape(Rectangle())
+                // 顶部：应用信息
+                Section {
+                    HStack(spacing: 14) {
+                        LogoMark(size: 52)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(Brand.name).font(.title3.weight(.semibold))
+                            Text(L10n.tr(Brand.tagline)).font(.subheadline).foregroundStyle(Brand.sub)
+                            Text(L10n.tr("版本") + " " + version).font(.caption).foregroundStyle(Brand.sub)
                         }
+                        Spacer(minLength: 0)
                     }
+                    .padding(.vertical, 4)
                 }
-                Section("语言") {
-                    NavigationLink {
-                        LanguagePage()
-                    } label: {
-                        HStack {
-                            Text("应用语言")
-                            Spacer()
-                            Text(L10n.currentName).foregroundStyle(Brand.sub)
-                        }
-                    }
+
+                // 模型：选用哪个、各自怎么配置，放在一起
+                Section {
+                    Picker(selection: $modeRaw) {
+                        ForEach(ModelMode.allCases) { m in Text(LocalizedStringKey(m.title)).tag(m.rawValue) }
+                    } label: { row("cpu", .indigo, "回答使用的模型") }
+                    NavigationLink { CloudPage() } label: { row("cloud", .blue, "云端大脑", value: cloudSummary) }
+                    NavigationLink { LocalModelPage() } label: { row("externaldrive", .teal, "本地大模型", value: localSummary) }
+                    row("apple.logo", .gray, "系统自带模型", value: L10n.tr(modelStatus))
+                } header: {
+                    Text("AI 模型")
+                } footer: {
+                    Text(L10n.tr("当前实际使用：") + ModelPref.label + "。" + L10n.tr("聊天输入框里的模型按钮也能随时切换。"))
                 }
+
                 Section("对话") {
-                    NavigationLink {
-                        CloudPage()
-                    } label: {
-                        HStack {
-                            Text("云端大脑")
-                            Spacer()
-                            Text(cloudSummary).foregroundStyle(Brand.sub)
-                        }
-                    }
-                    NavigationLink {
-                        LocalModelPage()
-                    } label: {
-                        HStack {
-                            Text("本地大模型")
-                            Spacer()
-                            Text(localSummary).foregroundStyle(Brand.sub)
-                        }
-                    }
-                    Toggle("保存对话记录", isOn: $saveHistory).toggleStyle(SwitchToggleStyle(tint: .green))
-                    Picker("回答风格", selection: $style) {
+                    Picker(selection: $style) {
                         Text("简洁").tag(0)
                         Text("详细").tag(1)
+                    } label: { row("text.alignleft", .orange, "回答风格") }
+                    Toggle(isOn: $saveHistory) { row("clock.arrow.circlepath", .green, "保存对话记录") }
+                        .toggleStyle(SwitchToggleStyle(tint: .green))
+                    Toggle(isOn: $autoSend) { row("mic", .red, "语音说完后自动发送") }
+                        .toggleStyle(SwitchToggleStyle(tint: .green))
+                }
+
+                Section {
+                    Button { state.page = .tools } label: { row("wrench.and.screwdriver", Brand.mint, "工具箱：网页提取、识别、转换、去水印") }
+                    Picker(selection: $transTarget) {
+                        ForEach(transLangs, id: \.0) { l in Text(LocalizedStringKey(l.1)).tag(l.0) }
+                    } label: { row("character.bubble", .purple, "翻译目标语言") }
+                    Button { showClock = true } label: { row("alarm", .orange, "系统时钟闹钟与自检") }
+                    Toggle(isOn: $liveOn) { row("capsule.portrait", .black, "灵动岛与实时活动") }
+                        .toggleStyle(SwitchToggleStyle(tint: .green))
+                } header: {
+                    Text("工具与提醒")
+                } footer: {
+                    Text("灵动岛显示思考、闹钟与任务倒计时。翻译目标语言选「自动」时，外语译成系统语言，系统语言译成英文。")
+                }
+
+                Section("外观与语言") {
+                    Picker(selection: $appearance) {
+                        ForEach(themes, id: \.0) { t in Text(LocalizedStringKey(t.1)).tag(t.0) }
+                    } label: { row("circle.lefthalf.filled", .gray, "外观") }
+                    .onChange(of: appearance) { _, v in AppTheme.apply(v) }
+                    NavigationLink { LanguagePage() } label: { row("globe", .blue, "应用语言", value: L10n.currentName) }
+                }
+
+                Section("隐私与数据") {
+                    Button { openSettings() } label: { row("hand.raised", .blue, "通知、照片、相机、麦克风等权限") }
+                    if let u = exportURL {
+                        ShareLink(item: u) { row("square.and.arrow.up", .green, "导出全部对话") }
                     }
-                    Toggle("语音说完后自动发送", isOn: $autoSend).toggleStyle(SwitchToggleStyle(tint: .green))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("本机模型")
-                        Text(modelStatus).font(.footnote).foregroundStyle(.secondary)
-                    }
+                    Button(role: .destructive) { confirmChats = true } label: { row("trash", .red, "清空所有对话") }
+                    Button(role: .destructive) { confirmKB = true } label: { row("books.vertical", .red, "清空知识库") }
                 }
-                Section("闹钟与连接") {
-                    Button { showClock = true } label: { Label("系统时钟闹钟与自检", systemImage: "alarm") }
-                }
-                Section("灵动岛与实时活动") {
-                    Toggle("在灵动岛显示思考、闹钟与任务倒计时", isOn: $liveOn).toggleStyle(SwitchToggleStyle(tint: .green))
-                }
-                Section("权限") {
-                    Button { openSettings() } label: { Label("通知、闹钟、照片、相机、麦克风等权限", systemImage: "gearshape") }
-                }
-                Section("诊断") {
-                    NavigationLink {
-                        DiagView()
-                    } label: {
-                        HStack {
-                            Label("诊断与崩溃线索", systemImage: "stethoscope")
+
+                Section("支持") {
+                    NavigationLink { DiagView() } label: {
+                        HStack(spacing: 12) {
+                            badge("stethoscope", .pink)
+                            Text("诊断与崩溃线索").foregroundStyle(Brand.ink)
                             if !Diag.lastAbnormal.isEmpty { Spacer(); Text("有记录").font(.footnote).foregroundStyle(.orange) }
                         }
                     }
-                }
-                Section("数据") {
-                    if let u = exportURL {
-                        ShareLink(item: u) { Label("导出全部对话", systemImage: "square.and.arrow.up") }
-                    }
-                    Button(role: .destructive) { confirmChats = true } label: { Label("清空所有对话", systemImage: "trash") }
-                    Button(role: .destructive) { confirmKB = true } label: { Label("清空知识库", systemImage: "trash") }
-                }
-                Section("关于") {
                     HStack(spacing: 12) {
-                        LogoMark(size: 48)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(Brand.name).font(.headline)
-                            Text(L10n.tr(Brand.tagline) + " · " + L10n.tr("版本") + " 1.0").font(.subheadline).foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    HStack {
-                        Text("开发者微信")
+                        badge("message", .green)
+                        Text("开发者微信").foregroundStyle(Brand.ink)
                         Spacer()
                         Text("TSTZ-M").foregroundStyle(.secondary)
                         Button {
@@ -141,6 +157,7 @@ struct AppSettingsView: View {
                     }
                 }
             }
+            .pickerStyle(.menu)
             .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { exportURL = exportAll() }

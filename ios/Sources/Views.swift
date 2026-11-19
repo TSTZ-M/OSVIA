@@ -136,9 +136,12 @@ struct FileCard: View {
         if isImage { return ("photo", "图片") }
         if ext == "pdf" { return ("doc.richtext", "PDF 文档") }
         if ["csv", "tsv", "json"].contains(ext) { return ("tablecells", "表格数据") }
+        if ["xlsx", "ods"].contains(ext) { return ("tablecells", "Excel 表格") }
+        if ["docx", "odt"].contains(ext) { return ("doc.text", "Word 文档") }
+        if ["pptx", "odp"].contains(ext) { return ("rectangle.on.rectangle", "演示文稿") }
         if ["txt", "md", "html", "rtf"].contains(ext) { return ("doc.text", "文本文档") }
         if Convert.vidExt.contains(ext) { return ("film", "视频") }
-        if ext == "m4a" { return ("waveform", "音频") }
+        if Convert.audExt.contains(ext) { return ("waveform", "音频") }
         return ("doc", "文件")
     }
 

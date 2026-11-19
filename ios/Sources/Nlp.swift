@@ -258,10 +258,16 @@ enum Router {
     static func convert(_ t: String, file: URL) async -> (String, [URL])? {
         let low = t.lowercased()
         var target: String?
+        if ["去水印", "去除水印", "去掉水印", "消除水印", "移除水印", "remove watermark"].contains(where: { low.contains($0) }) {
+            let vid = Convert.vidExt.contains(file.pathExtension.lowercased())
+            AppState.shared.tool = ToolRequest(kind: vid ? .wmVideo : .wmImage, files: [file])
+            return ("已打开「" + (vid ? "视频" : "图片") + "去水印」：在画面上框出水印位置，再点「去除水印」。", [])
+        }
         if low.contains("识别文字") || low.contains("提取文字") || low.contains("ocr") || low.contains("转文字") || low.contains("转成文字") { target = "txt" }
         else if low.contains("压缩") { target = "compress" }
+        else if ["去除声音", "去掉声音", "去掉音频", "去除音频", "静音", "去声音", "去音频", "删除声音", "mute"].contains(where: { low.contains($0) }) { target = "mute" }
         else if low.contains("提取音频") || low.contains("转音频") { target = "m4a" }
-        else if let re = try? NSRegularExpression(pattern: "(?:转成|转为|转换成|转换为|转|变成|导出为|导出成|另存为)\\s*(pdf|png|jpg|jpeg|heic|txt|csv|json|md|html|tsv|mp4|mov|m4a|文本|表格|图片|网页)"),
+        else if let re = try? NSRegularExpression(pattern: "(?:转成|转为|转换成|转换为|转|变成|导出为|导出成|另存为)\\s*(pdf|png|jpg|jpeg|heic|txt|csv|json|md|html|tsv|mp4|mov|m4a|wav|docx|doc|xlsx|xls|word|excel|rtf|文本|表格|图片|网页|音频|视频)"),
                   let m = re.firstMatch(in: low, range: NSRange(low.startIndex..., in: low)),
                   let r = Range(m.range(at: 1), in: low) {
             target = String(low[r])

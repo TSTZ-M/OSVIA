@@ -10,12 +10,33 @@ enum Features {
     - 天气：说「北京天气」「明天要带伞吗」，查过一次后只说「天气」就行
     - 联网搜索、读网页：问最新消息、价格，或发一个链接让我总结
     - 屏幕翻译：截屏后说「翻译屏幕」，译文贴回原图；工具箱里有一键用法
-    - 文件与图片：转成 PDF / PNG、识别图片文字、压缩、提取音频
+    - 网页文字：发网址说「提取文字」，去掉广告只留正文，可翻译、导出
+    - 图片：识别文字（多张、扫描 PDF 也行）、翻译图片并贴回原位、本机去水印
+    - 文档互转：Word、Excel、PDF、Markdown、网页、CSV、JSON、图片互相转换；发文件后点输入框上的按钮就行
+    - 视频与音频：去水印、提取音频、去除声音、压缩、转 m4a / wav
     - 知识库与记忆：说「记住……」，以后提问时我会自动翻一翻
     - 脚本技能：一句话做一个处理文字的小脚本，在 工具箱 → 脚本技能 里使用
     做不到的事：操作别的 App、代替你点击屏幕、在后台常驻运行。
     想让回答更聪明：设置 → 云端大脑，填一个免费密钥。
     """
+
+    private static func toolRoute(_ s: String, _ low: String) -> ToolRequest? {
+        func has(_ k: [String]) -> Bool { k.contains { low.contains($0) } }
+        // 带网址 + 要正文
+        if let u = Agent.firstURL(in: s), has(["提取文字", "提取正文", "提取网页", "提取内容", "网页文字", "抓取正文", "抓取网页", "网页正文", "全文"]), !has(["总结", "摘要", "翻译", "summar"]) {
+            return ToolRequest(kind: .web, text: u.absoluteString)
+        }
+        guard s.count <= 10 else { return nil }
+        if has(["视频去水印", "去视频水印"]) { return ToolRequest(kind: .wmVideo) }
+        if has(["去水印", "去除水印", "去掉水印", "消除水印"]) { return ToolRequest(kind: .wmImage) }
+        if has(["提取音频"]) { return ToolRequest(kind: .audio) }
+        if has(["去除声音", "去掉声音", "视频静音", "视频去声音"]) { return ToolRequest(kind: .mute) }
+        if has(["提取网页", "网页提取", "网页文字"]) { return ToolRequest(kind: .web) }
+        if has(["识别文字", "图片转文字", "提取图片文字", "图片文字"]) { return ToolRequest(kind: .ocr) }
+        if has(["格式转换", "文件转换", "转换格式"]) { return ToolRequest(kind: .convert) }
+        if has(["翻译图片", "图片翻译"]) { return ToolRequest(kind: .translateImage) }
+        return nil
+    }
 
     static func route(_ t: String) async -> String? {
         let s = t.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -26,6 +47,12 @@ enum Features {
         if s.count <= 16 && tr.contains(where: { s.contains($0) }) {
             ScreenTranslator.shared.request(data: nil)
             return "已打开屏幕翻译，正在翻译相册里最新的一张截图。先截屏再说这句话效果最好。"
+        }
+
+        // 动手工具：说一句就打开对应的工具页
+        if let k = Self.toolRoute(s, low) {
+            AppState.shared.tool = k
+            return "已打开「\(k.kind.title)」。"
         }
 
         // 能力介绍（只匹配简短的提问，避免抢走正常的长问题）

@@ -24,6 +24,10 @@ struct PickedMovie: Transferable {
 
 // MARK: 文件转换：可以从相册选照片或视频，也可以从「文件」App 选
 struct ConvertView: View {
+    let initial: URL?
+    let preset: String
+    let title: String
+    let videosOnly: Bool
     @State private var file: URL?
     @State private var showPick = false
     @State private var showPhotos = false
@@ -35,25 +39,36 @@ struct ConvertView: View {
     @State private var err = ""
     @State private var preview: URL?
 
+    init(initial: URL? = nil, preset: String = "", title: String = "文件转换", videosOnly: Bool = false) {
+        self.initial = initial
+        self.preset = preset
+        self.title = title
+        self.videosOnly = videosOnly
+    }
+
     static let names: [String: String] = [
         "jpg": "JPG 图片", "png": "PNG 图片", "heic": "HEIC 图片", "pdf": "PDF", "tiff": "TIFF 图片", "gif": "GIF 图片", "bmp": "BMP 图片",
-        "txt": "文字", "csv": "CSV 表格", "json": "JSON", "md": "Markdown", "html": "网页", "tsv": "TSV 表格",
-        "mp4": "MP4 视频", "mov": "MOV 视频", "m4a": "音频", "compress": "压缩视频"
+        "txt": "文字 TXT", "csv": "CSV 表格", "json": "JSON", "md": "Markdown", "html": "网页 HTML", "tsv": "TSV 表格",
+        "docx": "Word 文档", "xlsx": "Excel 表格", "rtf": "RTF 文档",
+        "mp4": "MP4 视频", "mov": "MOV 视频", "m4a": "M4A 音频", "wav": "WAV 音频", "caf": "CAF 音频", "mute": "去除声音", "compress": "压缩"
+    ]
+
+    // 聊天里快捷按钮的短名
+    static let short: [String: String] = [
+        "docx": "Word", "xlsx": "Excel", "pdf": "PDF", "txt": "文字", "md": "Markdown", "html": "网页", "rtf": "RTF", "csv": "CSV",
+        "json": "JSON", "png": "PNG", "jpg": "JPG", "heic": "HEIC", "tiff": "TIFF", "gif": "GIF", "bmp": "BMP", "tsv": "TSV",
+        "mp4": "MP4", "mov": "MOV", "m4a": "音频", "wav": "WAV", "caf": "CAF"
     ]
 
     var targets: [String] {
         guard let f = file else { return [] }
-        let e = f.pathExtension.lowercased()
-        if Convert.imgExt.contains(e) { return ["jpg", "png", "heic", "pdf", "tiff", "gif", "bmp", "txt"] }
-        if e == "pdf" { return ["png", "jpg", "txt"] }
-        if Convert.vidExt.contains(e) { return ["mp4", "mov", "m4a", "compress", "jpg"] }
-        return ["csv", "json", "md", "html", "txt", "tsv", "pdf"]
+        return Convert.targets(for: f.pathExtension.lowercased())
     }
 
     var body: some View {
         List {
             Section {
-                Button { showPhotos = true } label: { Label("从相册选择照片或视频", systemImage: "photo.on.rectangle") }
+                Button { showPhotos = true } label: { Label(videosOnly ? "从相册选择视频" : "从相册选择照片或视频", systemImage: "photo.on.rectangle") }
                 Button { showPick = true } label: { Label("从「文件」App 选择", systemImage: "folder") }
                 if loading {
                     HStack(spacing: 8) { ProgressView(); Text("正在读取…").foregroundStyle(.secondary) }
@@ -90,23 +105,28 @@ struct ConvertView: View {
                     ForEach(outs, id: \.self) { u in
                         VStack(alignment: .leading, spacing: 8) {
                             FileCard(url: u, preview: $preview)
-                            if Convert.imgExt.contains(u.pathExtension.lowercased()) || Convert.vidExt.contains(u.pathExtension.lowercased()) {
-                                Button("存入相册") { saveToPhotos(u) }
+                            HStack(spacing: 16) {
+                                if Convert.imgExt.contains(u.pathExtension.lowercased()) || Convert.vidExt.contains(u.pathExtension.lowercased()) {
+                                    Button("存入相册") { saveToPhotos(u) }
+                                }
+                                ShareLink(item: u) { Text("分享") }
                             }
+                            .buttonStyle(.borderless)
                         }
                         .listRowSeparator(.hidden)
                     }
                 }
             }
             Section {
-                Text("支持图片、PDF、表格（CSV、JSON、Markdown、网页）、文本、视频互相转换，也能识别图片中的文字。")
+                Text(videosOnly ? "视频不会上传，全部在手机上处理。" : "支持图片、PDF、Word、Excel、表格、网页、文本、视频、音频互相转换，也能识别图片和扫描件里的文字。全部在手机上处理，不上传。")
                     .font(.subheadline).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("文件转换")
+        .navigationTitle(LocalizedStringKey(title))
         .navigationBarTitleDisplayMode(.inline)
         .quickLookPreview($preview)
-        .photosPicker(isPresented: $showPhotos, selection: $photoItems, maxSelectionCount: 1, matching: .any(of: [.images, .videos]))
+        .task { if let u = initial, file == nil { setFile(u) } }
+        .photosPicker(isPresented: $showPhotos, selection: $photoItems, maxSelectionCount: 1, matching: videosOnly ? PHPickerFilter.videos : PHPickerFilter.any(of: [.images, .videos]))
         .onChange(of: photoItems) { _, items in
             guard let it = items.first else { return }
             photoItems = []
@@ -123,7 +143,7 @@ struct ConvertView: View {
         file = u
         outs = []
         err = ""
-        target = targets.first ?? ""
+        target = targets.contains(preset) ? preset : (targets.first ?? "")
     }
 
     // 相册选中的照片或视频 → 落地成文件

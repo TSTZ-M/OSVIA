@@ -14,6 +14,7 @@ struct ChatView: View {
     @State private var showFile = false
     @State private var showShare = false
     @State private var showClock = false
+    @State private var showTray = false
     @State private var showConnectors = false
     @State private var conns: [Row] = []
     @State private var activeConn = ""
@@ -116,6 +117,7 @@ struct ChatView: View {
                 } message: {
                     Text(verbatim: agent.confirm?.detail ?? "")
                 }
+                .onChange(of: focus) { _, f in if f { showTray = false } }
                 .onChange(of: state.page) { _, p in if p == nil { refreshCounts() } }
                 .onChange(of: state.voiceTick) { _, _ in voice.start() }
                 .onAppear {
@@ -143,6 +145,7 @@ struct ChatView: View {
                 .padding(.bottom, 12)
             }
             .scrollDismissesKeyboard(.interactively)
+            .simultaneousGesture(TapGesture().onEnded { if showTray { showTray = false } })
             .onChange(of: agent.msgs.count) { _, _ in proxy.scrollTo("end", anchor: .bottom) }
             .onChange(of: agent.msgs.last?.text) { _, _ in proxy.scrollTo("end", anchor: .bottom) }
         }
@@ -207,8 +210,36 @@ struct ChatView: View {
         }
     }
 
-    // MARK: 输入卡片
+    // MARK: 输入栏 = 输入卡片 + 展开的托盘（托盘在输入框下面，聊天内容自动上移，不遮挡）
     var inputBar: some View {
+        VStack(spacing: 0) {
+            inputCard
+            if showTray && !voice.listening {
+                AttachTray(
+                    conns: conns, activeConn: activeConn,
+                    onCamera: { closeTray { showCamera = true } },
+                    onPhoto: { closeTray { showPhoto = true } },
+                    onFile: { closeTray { showFile = true } },
+                    onPaste: { closeTray { paste() } },
+                    onTool: { k in closeTray { state.tool = ToolRequest(kind: k, files: agent.attachments.map { $0.url }) } },
+                    onPage: { p in closeTray { state.page = p } },
+                    onClock: { closeTray { showClock = true } },
+                    onConn: { n in closeTray { activeConn = activeConn == n ? "" : n } },
+                    onConnManage: { closeTray { showConnectors = true } }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .background(Brand.bg)
+        .animation(.spring(response: 0.3, dampingFraction: 0.88), value: showTray)
+    }
+
+    func closeTray(_ then: @escaping () -> Void) {
+        showTray = false
+        then()
+    }
+
+    var inputCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !voice.error.isEmpty { Text(voice.error).font(.footnote).foregroundStyle(.red) }
             if !notice.isEmpty { Text(notice).font(.footnote).foregroundStyle(.red) }
@@ -222,9 +253,10 @@ struct ChatView: View {
                     .focused($focus)
                     .font(.system(size: 17))
                     .foregroundStyle(Brand.ink)
-                HStack(spacing: 10) {
-                    plusMenu
-                    Spacer()
+                HStack(spacing: 8) {
+                    plusButton
+                    ModelPill()
+                    Spacer(minLength: 4)
                     actionButton
                 }
             }
@@ -256,34 +288,22 @@ struct ChatView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    var plusMenu: some View {
-        Menu {
-            Menu {
-                ForEach(Array(conns.enumerated()), id: \.offset) { i, elem in
-                    Button { activeConn = elem.s("name") } label: {
-                        Label(elem.s("name"), systemImage: Connectors.icon(elem.s("kind")))
-                    }
-                }
-                Button { showConnectors = true } label: {
-                    Label(conns.isEmpty ? "添加连接器…" : "添加与管理…", systemImage: "slider.horizontal.3")
-                }
-            } label: { Label("连接器", systemImage: "link") }
-            Button { state.page = .mail } label: { Label("邮箱", systemImage: "envelope") }
-            Button { state.page = .mcp } label: { Label("MCP 服务", systemImage: "puzzlepiece.extension") }
-            Button { state.page = .memory } label: { Label("AI 记忆", systemImage: "brain.head.profile") }
-            Button { showClock = true } label: { Label("系统时钟闹钟", systemImage: "alarm") }
-            Divider()
-            Button { showCamera = true } label: { Label("拍照", systemImage: "camera") }
-            Button { showPhoto = true } label: { Label("照片", systemImage: "photo") }
-            Button { showFile = true } label: { Label("文件", systemImage: "paperclip") }
-            Button { paste() } label: { Label("粘贴", systemImage: "doc.on.clipboard") }
+    var plusButton: some View {
+        Button {
+            focus = false
+            UISelectionFeedbackGenerator().selectionChanged()
+            showTray.toggle()
         } label: {
             Image(systemName: activeConn.isEmpty ? "plus" : "link")
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(Brand.ink)
+                .rotationEffect(.degrees(showTray && activeConn.isEmpty ? 45 : 0))
                 .frame(width: 36, height: 36)
+                .background(showTray ? Brand.userBubble : Color.clear)
+                .clipShape(Circle())
                 .overlay(Circle().stroke(Brand.line, lineWidth: 1))
         }
+        .accessibilityLabel("添加")
     }
 
     // 空 → 语音；有内容 → 发送；生成中 → 停止
@@ -347,16 +367,39 @@ struct ChatView: View {
                 .padding(.top, 8)
                 .padding(.trailing, 8)
             }
-            if agent.attachments.contains(where: { Files.isImage($0.url) }) {
+            if !chipItems.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        chip("识别文字")
-                        chip("转成PDF")
-                        chip("转成PNG")
+                        ForEach(chipItems, id: \.1) { c in chip(c.0, c.1) }
                     }
                 }
             }
         }
+    }
+
+    // 根据附件类型给出一键操作：不经过大模型，点了直接做
+    var chipItems: [(String, String)] {
+        let urls = agent.attachments.map { $0.url }
+        guard let f = urls.first else { return [] }
+        let e = f.pathExtension.lowercased()
+        func conv(_ t: String) -> (String, String) {
+            switch t {
+            case "compress": return ("压缩", "conv:compress")
+            case "mute": return ("去除声音", "conv:mute")
+            case "m4a": return (Convert.vidExt.contains(e) ? "提取音频" : "转音频", "conv:m4a")
+            default: return ("转" + (ConvertView.short[t] ?? t), "conv:" + t)
+            }
+        }
+        if urls.allSatisfy({ Files.isImage($0) }) {
+            return [("识别文字", "ocr"), ("翻译图片", "trans"), ("去水印", "wm"), conv("pdf"), conv("docx"), conv("compress")]
+        }
+        if Convert.vidExt.contains(e) {
+            return [conv("m4a"), conv("mute"), ("去水印", "wmv"), conv("compress"), conv("wav")]
+        }
+        var list = Convert.targets(for: e).prefix(4).map { conv($0) }
+        if e == "pdf" { list.insert(("识别文字", "ocrpdf"), at: 0) }
+        list.append(("更多", "more"))
+        return list
     }
 
     func thumb(_ u: URL) -> some View {
@@ -374,17 +417,40 @@ struct ChatView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    func chip(_ t: String) -> some View {
-        Button(t) {
-            input = t
-            send()
+    func chip(_ t: String, _ key: String) -> some View {
+        Button(LocalizedStringKey(t)) { runChip(key, t) }
+            .font(.subheadline)
+            .foregroundStyle(Brand.ink)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Brand.userBubble)
+            .clipShape(Capsule())
+    }
+
+    func runChip(_ key: String, _ title: String) {
+        let urls = agent.attachments.map { $0.url }
+        guard !urls.isEmpty, !agent.busy else { return }
+        focus = false
+        showTray = false
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        switch key {
+        case "ocr":
+            Task { await agent.recognize(urls) }
+        case "ocrpdf":
+            Task { await agent.quickConvert(urls, to: "txt", label: "识别文字") }
+        case "trans":
+            guard let u = urls.first(where: { Files.isImage($0) }), let d = Files.normalizedJPEG(from: u, maxPixel: 3000) else { return }
+            agent.attachments = []
+            ScreenTranslator.shared.request(data: d)
+        case "wm": state.tool = ToolRequest(kind: .wmImage, files: urls)
+        case "wmv": state.tool = ToolRequest(kind: .wmVideo, files: urls)
+        case "more": state.tool = ToolRequest(kind: .convert, files: urls)
+        default:
+            if key.hasPrefix("conv:") {
+                let t = String(key.dropFirst(5))
+                Task { await agent.quickConvert(urls, to: t, label: title) }
+            }
         }
-        .font(.subheadline)
-        .foregroundStyle(Brand.ink)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Brand.userBubble)
-        .clipShape(Capsule())
     }
 
     // MARK: 发送：识别文字 → 当前连接器 → 「用 XX 查 YY」→ 普通对话
@@ -393,6 +459,7 @@ struct ChatView: View {
         let files = agent.attachments.map { $0.url }
         input = ""
         focus = false
+        showTray = false
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         if voice.listening { voice.stop() }
         if t.trimmingCharacters(in: .whitespaces) == "识别文字", !files.isEmpty, files.allSatisfy({ Files.isImage($0) }) {
