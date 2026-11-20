@@ -524,7 +524,8 @@ struct RedactView: View {
                 return Redact.analyze(cg)
             }.value
             hits = r
-            chosen = Set(Redact.Kind.allCases.filter { $0 != .all && r.contains(where: { h in h.kind == $0 }) })
+            let present = Set(r.map { $0.kind })
+            chosen = present.subtracting([.all])
             analyzed = true
             busy = false
         }
