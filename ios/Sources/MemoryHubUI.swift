@@ -69,7 +69,7 @@ struct MemoryHubView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
                         Label("刚才复制的内容可以一键导入", systemImage: "doc.on.clipboard.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                            .fontSz(15, weight: .semibold)
                             .foregroundStyle(Brand.ink)
                         pasteButton
                     }
@@ -92,7 +92,7 @@ struct MemoryHubView: View {
                         Label {
                             Text(verbatim: L10n.f("已导入 {} 条", "\(r.ids.count)") + (r.found > r.ids.count ? L10n.f("，{} 条已存在", "\(r.found - r.ids.count)") : ""))
                         } icon: { Image(systemName: "checkmark.circle.fill").foregroundStyle(Brand.mint) }
-                            .font(.system(size: 16, weight: .semibold))
+                            .fontSz(16, weight: .semibold)
                         Text("助理已读取这些记忆，并更新了对你的理解，下次对话就会用上。").font(.footnote).foregroundStyle(Brand.sub)
                         if !r.ids.isEmpty {
                             Button("撤销这次导入", role: .destructive) {
@@ -110,9 +110,9 @@ struct MemoryHubView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("从其他 AI 带来记忆").font(.system(size: 16, weight: .semibold)).foregroundStyle(Brand.ink)
+                    Text("从其他 AI 带来记忆").fontSz(16, weight: .semibold).foregroundStyle(Brand.ink)
                     Text("① 选一个 AI，我会复制导出指令并打开它，你在那边发送\n② 复制它的回复，回来点「粘贴」，自动导入")
-                        .font(.system(size: 13.5)).foregroundStyle(Brand.sub)
+                        .fontSz(13.5).foregroundStyle(Brand.sub)
                     HStack(spacing: 10) {
                         Button {
                             jump = JumpJob(title: "选择要导出记忆的 AI",
@@ -120,7 +120,7 @@ struct MemoryHubView: View {
                                            prompt: Memory.exportPrompt, remember: true)
                         } label: {
                             Label("选择 AI 导出", systemImage: "arrow.up.forward.app")
-                                .font(.system(size: 15, weight: .semibold))
+                                .fontSz(15, weight: .semibold)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 9)
                         }
@@ -136,7 +136,7 @@ struct MemoryHubView: View {
 
             if !profile.isEmpty {
                 Section {
-                    Text(verbatim: profile).font(.system(size: 14.5)).foregroundStyle(Brand.ink)
+                    Text(verbatim: profile).fontSz(14.5).foregroundStyle(Brand.ink)
                     Button {
                         busy = true
                         Task {
@@ -268,7 +268,7 @@ struct MemoryHubView: View {
                 .background(Brand.mint.opacity(0.14))
                 .clipShape(Circle())
             Text(verbatim: "\(count)")
-                .font(.system(size: 38, weight: .semibold, design: .rounded))
+                .fontSz(38, weight: .semibold, design: .rounded)
                 .foregroundStyle(Brand.ink)
                 .contentTransition(.numericText())
             Text("条记忆，每次对话都会自然地用上")
@@ -375,7 +375,7 @@ struct JumpSheet: View {
                             ForEach(Jump.groups, id: \.self) { g in
                                 Button { group = g } label: {
                                     Text(verbatim: L10n.tr(g))
-                                        .font(.system(size: 13.5, weight: .medium))
+                                        .fontSz(13.5, weight: .medium)
                                         .foregroundStyle(group == g ? Brand.onMint : Brand.ink)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 7)
@@ -403,7 +403,7 @@ struct JumpSheet: View {
                     }
                     DisclosureGroup(isExpanded: $showPrompt) {
                         Text(verbatim: job.prompt)
-                            .font(.system(size: 12.5, design: .monospaced))
+                            .fontSz(12.5, design: .monospaced)
                             .foregroundStyle(Brand.sub)
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -474,7 +474,7 @@ struct JumpSheet: View {
             HStack(spacing: 10) {
                 AIIcon(service: s, size: 34)
                 Text(verbatim: s.name)
-                    .font(.system(size: 14.5, weight: .medium))
+                    .fontSz(14.5, weight: .medium)
                     .foregroundStyle(Brand.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -555,7 +555,7 @@ struct ImportSheet: View {
                 Section {
                     TextEditor(text: $raw)
                         .frame(minHeight: 220)
-                        .font(.system(size: 15))
+                        .fontSz(15)
                         .overlay(alignment: .topLeading) {
                             if raw.isEmpty {
                                 Text("粘贴其他 AI 导出的记忆，或直接写：每条一行").foregroundStyle(Brand.sub.opacity(0.7)).padding(.top, 8).padding(.leading, 5).allowsHitTesting(false)
@@ -596,12 +596,12 @@ struct ImportSheet: View {
                             if picked.contains(it.id) { picked.remove(it.id) } else { picked.insert(it.id) }
                         } label: {
                             Image(systemName: picked.contains(it.id) ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 21))
+                                .fontSz(21)
                                 .foregroundStyle(picked.contains(it.id) ? Brand.mint : Brand.sub.opacity(0.5))
                         }
                         .buttonStyle(.plain)
                         VStack(alignment: .leading, spacing: 4) {
-                            TextField("", text: $it.text, axis: .vertical).font(.system(size: 15.5))
+                            TextField("", text: $it.text, axis: .vertical).fontSz(15.5)
                             Picker("", selection: $it.cat) {
                                 ForEach(Memory.cats, id: \.self) { c in Text(c).tag(c) }
                             }
@@ -698,7 +698,7 @@ struct MemoryListView: View {
                         ForEach(["全部"] + Memory.cats, id: \.self) { c in
                             Button { withAnimation(.snappy(duration: 0.2)) { cat = c } } label: {
                                 Text(c)
-                                    .font(.system(size: 13.5, weight: .medium))
+                                    .fontSz(13.5, weight: .medium)
                                     .foregroundStyle(cat == c ? Brand.onMint : Brand.ink)
                                     .padding(.horizontal, 13)
                                     .padding(.vertical, 7)
@@ -749,11 +749,11 @@ struct MemoryListView: View {
                     .background(Brand.mint.opacity(0.14))
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(verbatim: r.s("text")).font(.system(size: 15.5)).foregroundStyle(Brand.ink).multilineTextAlignment(.leading)
+                    Text(verbatim: r.s("text")).fontSz(15.5).foregroundStyle(Brand.ink).multilineTextAlignment(.leading)
                     HStack(spacing: 6) {
-                        if pinned { Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(Brand.mint) }
+                        if pinned { Image(systemName: "pin.fill").fontSz(10).foregroundStyle(Brand.mint) }
                         Text(verbatim: r.s("cat") + " · " + r.s("src") + " · " + Sys.friendly(Date(timeIntervalSince1970: r.d("ts"))))
-                            .font(.system(size: 11.5))
+                            .fontSz(11.5)
                             .foregroundStyle(Brand.sub)
                     }
                 }

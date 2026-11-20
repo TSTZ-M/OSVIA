@@ -30,15 +30,15 @@ struct ProcessView: View {
                     if streaming {
                         ProgressView().controlSize(.mini).tint(Brand.mint)
                     } else {
-                        Image(systemName: "checkmark.circle.fill").font(.system(size: 14)).foregroundStyle(Brand.mint)
+                        Image(systemName: "checkmark.circle.fill").fontSz(14).foregroundStyle(Brand.mint)
                     }
                     Text(verbatim: summary)
-                        .font(.system(size: 13.5, weight: .medium))
+                        .fontSz(13.5, weight: .medium)
                         .foregroundStyle(live ? Brand.ink : Brand.sub)
                         .lineLimit(1)
                     Spacer(minLength: 6)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
+                        .fontSz(11, weight: .semibold)
                         .foregroundStyle(Brand.sub.opacity(0.7))
                         .rotationEffect(.degrees(expanded ? 90 : 0))
                 }
@@ -78,7 +78,7 @@ struct StepRow: View {
                 ZStack {
                     Circle().fill(tint.opacity(0.15)).frame(width: 26, height: 26)
                     Image(systemName: step.state == 2 ? "exclamationmark" : step.kind.icon)
-                        .font(.system(size: 12, weight: .semibold))
+                        .fontSz(12, weight: .semibold)
                         .foregroundStyle(tint)
                         .symbolEffect(.pulse, isActive: step.state == 0)
                 }
@@ -88,11 +88,11 @@ struct StepRow: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: step.title)
-                    .font(.system(size: 14, weight: .medium))
+                    .fontSz(14, weight: .medium)
                     .foregroundStyle(step.state == 0 ? Brand.ink : Brand.ink.opacity(0.85))
                 if !step.detail.isEmpty {
                     Text(verbatim: step.detail)
-                        .font(.system(size: 12.5))
+                        .fontSz(12.5)
                         .foregroundStyle(Brand.sub)
                         .lineLimit(step.kind == .plan ? 10 : 2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -105,7 +105,7 @@ struct StepRow: View {
                 ProgressView().controlSize(.mini).padding(.top, 7)
             } else if step.secs >= 0.5 {
                 Text(verbatim: String(format: "%.1fs", step.secs))
-                    .font(.system(size: 11.5).monospacedDigit())
+                    .fontSz(11.5).monospacedDigit()
                     .foregroundStyle(Brand.sub.opacity(0.8))
                     .padding(.top, 7)
             }
@@ -119,7 +119,7 @@ struct SourceChips: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("来源").font(.system(size: 12, weight: .semibold)).foregroundStyle(Brand.sub)
+            Text("来源").fontSz(12, weight: .semibold).foregroundStyle(Brand.sub)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(sources) { s in
@@ -127,18 +127,18 @@ struct SourceChips: View {
                             Link(destination: u) {
                                 HStack(spacing: 7) {
                                     Text(verbatim: "\(s.n)")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .fontSz(11, weight: .bold)
                                         .foregroundStyle(Brand.onMint)
                                         .frame(width: 18, height: 18)
                                         .background(Brand.mint)
                                         .clipShape(Circle())
                                     VStack(alignment: .leading, spacing: 0) {
                                         Text(verbatim: s.title)
-                                            .font(.system(size: 12.5, weight: .medium))
+                                            .fontSz(12.5, weight: .medium)
                                             .foregroundStyle(Brand.ink)
                                             .lineLimit(1)
                                         Text(verbatim: s.host)
-                                            .font(.system(size: 11))
+                                            .fontSz(11)
                                             .foregroundStyle(Brand.sub)
                                             .lineLimit(1)
                                     }

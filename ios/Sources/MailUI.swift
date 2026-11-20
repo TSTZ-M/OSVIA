@@ -137,8 +137,8 @@ struct MailView: View {
 
     private func point(_ icon: String, _ text: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon).font(.system(size: 14)).foregroundStyle(Brand.mint).frame(width: 20)
-            Text(text).font(.system(size: 14.5)).foregroundStyle(Brand.sub)
+            Image(systemName: icon).fontSz(14).foregroundStyle(Brand.mint).frame(width: 20)
+            Text(text).fontSz(14.5).foregroundStyle(Brand.sub)
         }
     }
 
@@ -241,8 +241,8 @@ struct MailView: View {
             UISelectionFeedbackGenerator().selectionChanged()
         } label: {
             HStack(spacing: 5) {
-                Text(title).font(.system(size: 14, weight: .medium))
-                if n > 0 { Text(verbatim: "\(n)").font(.system(size: 12, weight: .semibold, design: .rounded)).opacity(0.75) }
+                Text(title).fontSz(14, weight: .medium)
+                if n > 0 { Text(verbatim: "\(n)").fontSz(12, weight: .semibold, design: .rounded).opacity(0.75) }
             }
             .padding(.horizontal, 13)
             .padding(.vertical, 7)
@@ -317,30 +317,30 @@ struct MailRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 5) {
                     Text(verbatim: name.isEmpty ? addr : name)
-                        .font(.system(size: 15.5, weight: unread ? .semibold : .regular))
+                        .fontSz(15.5, weight: unread ? .semibold : .regular)
                         .foregroundStyle(Brand.ink)
                         .lineLimit(1)
                     if r.i("flagged") == 1 {
-                        Image(systemName: "star.fill").font(.system(size: 11)).foregroundStyle(.orange)
+                        Image(systemName: "star.fill").fontSz(11).foregroundStyle(.orange)
                     }
                     Spacer(minLength: 6)
                     Text(verbatim: Mail.shortStamp(r.d("ts")))
-                        .font(.system(size: 12.5))
+                        .fontSz(12.5)
                         .foregroundStyle(unread ? Brand.mint : Brand.sub)
                 }
                 Text(verbatim: r.s("subject").isEmpty ? L10n.tr("（无主题）") : r.s("subject"))
-                    .font(.system(size: 14.5, weight: unread ? .medium : .regular))
+                    .fontSz(14.5, weight: unread ? .medium : .regular)
                     .foregroundStyle(Brand.ink)
                     .lineLimit(1)
                 Text(verbatim: r.s("summary"))
-                    .font(.system(size: 13))
+                    .fontSz(13)
                     .foregroundStyle(Brand.sub)
                     .lineLimit(2)
                 if cat == "urgent" || cat == "reply" || !r.s("act").isEmpty {
                     HStack(spacing: 6) {
                         if cat == "urgent" || cat == "reply" {
                             Text(verbatim: L10n.tr(Mail.catName(cat)))
-                                .font(.system(size: 11, weight: .semibold))
+                                .fontSz(11, weight: .semibold)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 2)
                                 .foregroundStyle(cat == "urgent" ? Color.orange : Brand.mint)
@@ -348,7 +348,7 @@ struct MailRow: View {
                         }
                         if !r.s("act").isEmpty {
                             Text(verbatim: r.s("act"))
-                                .font(.system(size: 11.5, weight: .medium))
+                                .fontSz(11.5, weight: .medium)
                                 .foregroundStyle(Brand.sub)
                                 .lineLimit(1)
                         }
@@ -390,7 +390,7 @@ struct MailDetailView: View {
                 } else if let m = mail {
                     if !m.attachments.isEmpty { attachments(m.attachments) }
                     Text(verbatim: m.text.isEmpty ? L10n.tr("（这封邮件没有可显示的文字内容）") : m.text)
-                        .font(.system(size: 15.5))
+                        .fontSz(15.5)
                         .lineSpacing(3)
                         .foregroundStyle(Brand.ink)
                         .textSelection(.enabled)
@@ -398,7 +398,7 @@ struct MailDetailView: View {
                 if let u = unsub, !loading {
                     Button { showUnsub = true } label: {
                         Label { Text(verbatim: L10n.f("退订 {}", Mail.unsubName(row))) } icon: { Image(systemName: "bell.slash") }
-                            .font(.system(size: 14, weight: .medium))
+                            .fontSz(14, weight: .medium)
                     }
                     .buttonStyle(.bordered)
                     .tint(Brand.sub)
@@ -476,24 +476,24 @@ struct MailDetailView: View {
         let addr = r.s("from_addr")
         return VStack(alignment: .leading, spacing: 12) {
             Text(verbatim: r.s("subject").isEmpty ? L10n.tr("（无主题）") : r.s("subject"))
-                .font(.system(size: 22, weight: .semibold))
+                .fontSz(22, weight: .semibold)
                 .foregroundStyle(Brand.ink)
             HStack(spacing: 12) {
                 SenderAvatar(name: name, addr: addr, size: 46)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(verbatim: name.isEmpty ? addr : name)
-                            .font(.system(size: 16, weight: .semibold))
+                            .fontSz(16, weight: .semibold)
                             .foregroundStyle(Brand.ink)
                             .lineLimit(1)
-                        if r.i("flagged") == 1 { Image(systemName: "star.fill").font(.system(size: 12)).foregroundStyle(.orange) }
+                        if r.i("flagged") == 1 { Image(systemName: "star.fill").fontSz(12).foregroundStyle(.orange) }
                     }
                     Text(verbatim: addr)
-                        .font(.system(size: 12.5))
+                        .fontSz(12.5)
                         .foregroundStyle(Brand.sub)
                         .lineLimit(1)
                     Text(verbatim: Mail.stamp(r.d("ts")))
-                        .font(.system(size: 12.5))
+                        .fontSz(12.5)
                         .foregroundStyle(Brand.sub)
                 }
                 Spacer(minLength: 0)
@@ -506,11 +506,11 @@ struct MailDetailView: View {
         let tint: Color = cat == "urgent" ? .orange : Brand.mint
         return VStack(alignment: .leading, spacing: 6) {
             Label { Text(verbatim: L10n.tr(Mail.catName(cat))) } icon: { Image(systemName: "sparkles") }
-                .font(.system(size: 12.5, weight: .semibold))
+                .fontSz(12.5, weight: .semibold)
                 .foregroundStyle(tint)
-            Text(verbatim: r.s("summary")).font(.system(size: 15)).foregroundStyle(Brand.ink)
+            Text(verbatim: r.s("summary")).fontSz(15).foregroundStyle(Brand.ink)
             if !r.s("act").isEmpty {
-                Text(verbatim: L10n.tr("建议：") + r.s("act")).font(.system(size: 13.5)).foregroundStyle(Brand.sub)
+                Text(verbatim: L10n.tr("建议：") + r.s("act")).fontSz(13.5).foregroundStyle(Brand.sub)
             }
         }
         .padding(12)
@@ -524,7 +524,7 @@ struct MailDetailView: View {
             ForEach(Array(names.prefix(6).enumerated()), id: \.offset) { _, n in
                 HStack(spacing: 8) {
                     Image(systemName: Self.fileIcon(n)).foregroundStyle(Brand.mint).frame(width: 20)
-                    Text(verbatim: n).font(.system(size: 13.5)).foregroundStyle(Brand.ink).lineLimit(1).truncationMode(.middle)
+                    Text(verbatim: n).fontSz(13.5).foregroundStyle(Brand.ink).lineLimit(1).truncationMode(.middle)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)
@@ -532,7 +532,7 @@ struct MailDetailView: View {
                 .background(Brand.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             if names.count > 6 {
-                Text(verbatim: L10n.f("还有 {} 个附件", "\(names.count - 6)")).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
+                Text(verbatim: L10n.f("还有 {} 个附件", "\(names.count - 6)")).fontSz(12.5).foregroundStyle(Brand.sub)
             }
         }
     }
@@ -796,7 +796,7 @@ struct MailAccountsView: View {
 
             if !report.isEmpty {
                 Section("诊断结果") {
-                    Text(verbatim: report).font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
+                    Text(verbatim: report).fontSz(12, design: .monospaced).textSelection(.enabled)
                     Button { UIPasteboard.general.string = report } label: { Label("复制", systemImage: "doc.on.doc") }
                 }
             }
@@ -805,8 +805,8 @@ struct MailAccountsView: View {
                 Section("自动处理记录") {
                     ForEach(logs, id: \.rid) { l in
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(verbatim: l.s("text")).font(.system(size: 14)).foregroundStyle(Brand.ink)
-                            Text(verbatim: Mail.stamp(l.d("ts"))).font(.system(size: 12)).foregroundStyle(Brand.sub)
+                            Text(verbatim: l.s("text")).fontSz(14).foregroundStyle(Brand.ink)
+                            Text(verbatim: Mail.stamp(l.d("ts"))).fontSz(12).foregroundStyle(Brand.sub)
                         }
                     }
                 }

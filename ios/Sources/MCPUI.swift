@@ -57,8 +57,8 @@ struct MCPView: View {
                         HStack(spacing: 12) {
                             Circle().fill(dot(r)).frame(width: 9, height: 9)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(verbatim: r.s("name")).font(.system(size: 16, weight: .medium)).foregroundStyle(Brand.ink)
-                                Text(verbatim: sub(r)).font(.system(size: 12.5)).foregroundStyle(Brand.sub).lineLimit(1)
+                                Text(verbatim: r.s("name")).fontSz(16, weight: .medium).foregroundStyle(Brand.ink)
+                                Text(verbatim: sub(r)).fontSz(12.5).foregroundStyle(Brand.sub).lineLimit(1)
                             }
                         }
                     }
@@ -70,8 +70,8 @@ struct MCPView: View {
                     ForEach(presets) { p in
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(verbatim: p.name).font(.system(size: 16, weight: .medium)).foregroundStyle(Brand.ink)
-                                Text(p.about).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
+                                Text(verbatim: p.name).fontSz(16, weight: .medium).foregroundStyle(Brand.ink)
+                                Text(p.about).fontSz(12.5).foregroundStyle(Brand.sub)
                             }
                             Spacer(minLength: 8)
                             if adding == p.name {
@@ -97,8 +97,8 @@ struct MCPView: View {
                     ForEach(oauthPresets) { p in
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(verbatim: p.name).font(.system(size: 16, weight: .medium)).foregroundStyle(Brand.ink)
-                                Text(p.about).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
+                                Text(verbatim: p.name).fontSz(16, weight: .medium).foregroundStyle(Brand.ink)
+                                Text(p.about).fontSz(12.5).foregroundStyle(Brand.sub)
                             }
                             Spacer(minLength: 8)
                             if adding == p.name {
@@ -337,10 +337,10 @@ struct MCPDetailView: View {
                 ForEach(Array(tools.enumerated()), id: \.offset) { i, elem in
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
-                            Text(verbatim: elem.name).font(.system(size: 15, weight: .semibold, design: .monospaced)).foregroundStyle(Brand.ink)
+                            Text(verbatim: elem.name).fontSz(15, weight: .semibold, design: .monospaced).foregroundStyle(Brand.ink)
                             if elem.readOnly {
                                 Text("只读")
-                                    .font(.system(size: 10.5, weight: .semibold))
+                                    .fontSz(10.5, weight: .semibold)
                                     .foregroundStyle(Brand.mint)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
@@ -349,7 +349,7 @@ struct MCPDetailView: View {
                             }
                         }
                         if !elem.desc.isEmpty {
-                            Text(verbatim: String(elem.desc.prefix(240))).font(.system(size: 12.5)).foregroundStyle(Brand.sub)
+                            Text(verbatim: String(elem.desc.prefix(240))).fontSz(12.5).foregroundStyle(Brand.sub)
                         }
                     }
                     .padding(.vertical, 2)

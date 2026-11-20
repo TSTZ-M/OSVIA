@@ -144,7 +144,7 @@ struct GalleryPicker: View {
 
     var denied: some View {
         VStack(spacing: 14) {
-            Image(systemName: "photo.on.rectangle.angled").font(.system(size: 40)).foregroundStyle(Brand.sub)
+            Image(systemName: "photo.on.rectangle.angled").fontSz(40).foregroundStyle(Brand.sub)
             Text("没有相册权限").font(.headline)
             Text("到 设置 → \(Brand.name) → 照片，选择「所有照片」，就能看到整个相册。").font(.subheadline).foregroundStyle(Brand.sub).multilineTextAlignment(.center)
             Button("打开设置") { openSettings() }.buttonStyle(.borderedProminent)

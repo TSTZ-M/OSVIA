@@ -20,7 +20,7 @@ enum Brand {
     static let line = Color(UIColor.separator)
     static let ink = Color(UIColor.label)
     static let sub = Color(UIColor.secondaryLabel)
-    static let serif = Font.system(size: 17, design: .serif)
+    static let serif = Font.system(.body, design: .serif)
 
     // 品牌点缀色（薄荷绿）：只用在「正在进行」「可操作」的地方——发送按钮、过程时间线、来源编号、功能入口。浅色模式用深一档以保证白字对比度
     static let mint = Color(UIColor { t in
@@ -28,5 +28,5 @@ enum Brand {
     })
     static let onMint = Color(UIColor { t in t.userInterfaceStyle == .dark ? UIColor.black : UIColor.white })
     // 回答正文：系统字体，行距舒展
-    static let body = Font.system(size: 16.5)
+    static let body = Font.system(.body)
 }

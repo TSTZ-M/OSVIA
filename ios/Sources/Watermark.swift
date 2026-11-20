@@ -563,7 +563,7 @@ struct WatermarkView: View {
 
     private var picker: some View {
         VStack(spacing: 12) {
-            Image(systemName: video ? "film" : "photo.badge.checkmark").font(.system(size: 40)).foregroundStyle(Brand.mint).padding(.top, 20)
+            Image(systemName: video ? "film" : "photo.badge.checkmark").fontSz(40).foregroundStyle(Brand.mint).padding(.top, 20)
             Text(video ? "选一个带水印的视频" : "选一张带水印的图片").font(.headline).foregroundStyle(Brand.ink)
             Button { showPhotos = true } label: { Label("从相册选择", systemImage: "photo.on.rectangle").frame(maxWidth: .infinity) }
                 .buttonStyle(.borderedProminent).controlSize(.large)

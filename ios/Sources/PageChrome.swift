@@ -15,8 +15,9 @@ struct PageCloseButton: View {
 
     var body: some View {
         Button { dismiss() } label: {
-            Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Brand.ink)
+            Image(systemName: "xmark").fontSz(15, weight: .semibold).foregroundStyle(Brand.ink)
         }
+        .accessibilityLabel("关闭")
     }
 }
 

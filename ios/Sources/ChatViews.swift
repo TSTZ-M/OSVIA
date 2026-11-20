@@ -65,14 +65,17 @@ struct ChatView: View {
                             hideKeyboard()
                             state.drawer = true
                         } label: { Image(systemName: "line.3.horizontal").foregroundStyle(Brand.ink) }
+                        .accessibilityLabel("菜单")
                     }
                     ToolbarItem(placement: .principal) {
-                        Text(title).font(.system(size: 17, weight: .semibold, design: .serif)).foregroundStyle(Brand.ink).lineLimit(1)
+                        Text(title).fontSz(17, weight: .semibold, design: .serif).foregroundStyle(Brand.ink).lineLimit(1)
                     }
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         Button { showShare = true } label: { Image(systemName: "square.and.arrow.up").foregroundStyle(Brand.ink) }
                             .disabled(agent.msgs.isEmpty)
+                            .accessibilityLabel("分享对话")
                         Button { agent.newChat() } label: { Image(systemName: "square.and.pencil").foregroundStyle(Brand.ink) }
+                            .accessibilityLabel("新对话")
                     }
                 }
                 .sheet(isPresented: $showShare) { ShareView() }
@@ -155,7 +158,7 @@ struct ChatView: View {
         VStack(alignment: .leading, spacing: 16) {
             LogoMark(size: 48).padding(.top, 36)
             Text("\(greeting)，我是\(Brand.name)")
-                .font(.system(size: 30, weight: .regular, design: .serif))
+                .fontSz(30, weight: .regular, design: .serif)
                 .foregroundStyle(Brand.ink)
             Text("能联网查证、读网页、精确计算，记得你的偏好，还能连接 MCP 工具。")
                 .font(Brand.serif)
@@ -167,7 +170,7 @@ struct ChatView: View {
                             mcpCount > 0 ? L10n.f("已启用 {} 个", "\(mcpCount)") : L10n.tr("连接外部工具与数据")) { state.page = .mcp }
             }
             .padding(.top, 4)
-            Text("试试这样说").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Brand.sub).padding(.top, 6)
+            Text("试试这样说").fontSz(12.5, weight: .semibold).foregroundStyle(Brand.sub).padding(.top, 6)
             VStack(spacing: 8) {
                 ForEach(ideas, id: \.1) { idea in
                     Button {
@@ -175,8 +178,8 @@ struct ChatView: View {
                         focus = true
                     } label: {
                         HStack(spacing: 12) {
-                            Image(systemName: idea.0).font(.system(size: 15)).foregroundStyle(Brand.mint).frame(width: 24)
-                            Text(idea.1).font(.system(size: 15.5)).foregroundStyle(Brand.ink).multilineTextAlignment(.leading)
+                            Image(systemName: idea.0).fontSz(15).foregroundStyle(Brand.mint).frame(width: 24)
+                            Text(idea.1).fontSz(15.5).foregroundStyle(Brand.ink).multilineTextAlignment(.leading)
                             Spacer(minLength: 0)
                         }
                         .padding(.horizontal, 14)
@@ -200,8 +203,8 @@ struct ChatView: View {
                     .frame(width: 34, height: 34)
                     .background(Brand.mint.opacity(0.14))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                Text(title).font(.system(size: 15.5, weight: .semibold)).foregroundStyle(Brand.ink)
-                Text(verbatim: sub).font(.system(size: 12.5)).foregroundStyle(Brand.sub).multilineTextAlignment(.leading).lineLimit(2)
+                Text(title).fontSz(15.5, weight: .semibold).foregroundStyle(Brand.ink)
+                Text(verbatim: sub).fontSz(12.5).foregroundStyle(Brand.sub).multilineTextAlignment(.leading).lineLimit(2)
             }
             .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
             .padding(12)
@@ -251,7 +254,7 @@ struct ChatView: View {
                 TextField(activeConn.isEmpty ? "发消息给 \(Brand.name)" : "发给「\(activeConn)」的内容", text: $input, axis: .vertical)
                     .lineLimit(1...6)
                     .focused($focus)
-                    .font(.system(size: 17))
+                    .fontSz(17)
                     .foregroundStyle(Brand.ink)
                 HStack(spacing: 8) {
                     plusButton
@@ -280,7 +283,8 @@ struct ChatView: View {
             let h = Connectors.hint(activeConn)
             if !h.isEmpty { Text(h).font(.footnote).foregroundStyle(Brand.sub).lineLimit(1) }
             Spacer()
-            Button { activeConn = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Brand.sub) }
+            Button { activeConn = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Brand.sub).frame(minWidth: 32, minHeight: 32) }
+                .accessibilityLabel("退出连接器")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -327,6 +331,7 @@ struct ChatView: View {
                 .clipShape(Circle())
                 .animation(.easeOut(duration: 0.15), value: empty)
         }
+        .accessibilityLabel(agent.busy ? "停止" : (empty ? "语音输入" : "发送"))
     }
 
     var listeningBar: some View {
@@ -347,6 +352,7 @@ struct ChatView: View {
                 Image(systemName: "checkmark").font(.system(size: 16, weight: .semibold)).foregroundStyle(Brand.onAccent)
                     .frame(width: 36, height: 36).background(Brand.accent).clipShape(Circle())
             }
+            .accessibilityLabel("完成")
         }
     }
 
@@ -359,8 +365,10 @@ struct ChatView: View {
                             thumb(a.url).onTapGesture { preview = a.url }
                             Button { agent.attachments.removeAll { $0.id == a.id } } label: {
                                 Image(systemName: "xmark.circle.fill").foregroundStyle(.white, Color.black.opacity(0.6))
+                                    .padding(6).contentShape(Rectangle())
                             }
-                            .offset(x: 6, y: -6)
+                            .accessibilityLabel("移除附件")
+                            .offset(x: 10, y: -10)
                         }
                     }
                 }
@@ -391,13 +399,16 @@ struct ChatView: View {
             }
         }
         if urls.allSatisfy({ Files.isImage($0) }) {
-            return [("识别文字", "ocr"), ("翻译图片", "trans"), ("去水印", "wm"), conv("pdf"), conv("docx"), conv("compress")]
+            return [("识别文字", "ocr"), ("翻译图片", "trans"), ("去水印", "wm"), ("抠图", "cutout"), ("打码", "redact"), ("读二维码", "qr"), ("图片处理", "imgedit"), conv("pdf"), conv("docx")]
         }
         if Convert.vidExt.contains(e) {
             return [conv("m4a"), conv("mute"), ("去水印", "wmv"), conv("compress"), conv("wav")]
         }
         var list = Convert.targets(for: e).prefix(4).map { conv($0) }
-        if e == "pdf" { list.insert(("识别文字", "ocrpdf"), at: 0) }
+        if e == "pdf" {
+            list.insert(("识别文字", "ocrpdf"), at: 0)
+            list.insert(("PDF 工具", "pdftool"), at: 1)
+        }
         list.append(("更多", "more"))
         return list
     }
@@ -444,6 +455,11 @@ struct ChatView: View {
             ScreenTranslator.shared.request(data: d)
         case "wm": state.tool = ToolRequest(kind: .wmImage, files: urls)
         case "wmv": state.tool = ToolRequest(kind: .wmVideo, files: urls)
+        case "cutout": state.tool = ToolRequest(kind: .cutout, files: urls)
+        case "redact": state.tool = ToolRequest(kind: .redact, files: urls)
+        case "qr": state.tool = ToolRequest(kind: .qr, files: urls)
+        case "imgedit": state.tool = ToolRequest(kind: .imageEdit, files: urls)
+        case "pdftool": state.tool = ToolRequest(kind: .pdf, files: urls)
         case "more": state.tool = ToolRequest(kind: .convert, files: urls)
         default:
             if key.hasPrefix("conv:") {

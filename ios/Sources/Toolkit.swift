@@ -212,7 +212,7 @@ struct ResultTextPanel: View {
                 Spacer()
             }
             ScrollView {
-                Text(verbatim: String(text.prefix(30_000))).font(.system(size: 15)).foregroundStyle(Brand.ink)
+                Text(verbatim: String(text.prefix(30_000))).fontSz(15).foregroundStyle(Brand.ink)
                     .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxHeight: 280)
@@ -236,7 +236,7 @@ struct ResultTextPanel: View {
                         } label: { Image(systemName: "square.and.arrow.up") }
                     }
                     ScrollView {
-                        Text(verbatim: translated).font(.system(size: 15)).foregroundStyle(Brand.ink)
+                        Text(verbatim: translated).fontSz(15).foregroundStyle(Brand.ink)
                             .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(maxHeight: 280)
@@ -505,8 +505,8 @@ struct OCRView: View {
     private func source(_ icon: String, _ label: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 20)).foregroundStyle(Brand.mint)
-                Text(label).font(.system(size: 12.5)).foregroundStyle(Brand.ink)
+                Image(systemName: icon).fontSz(20).foregroundStyle(Brand.mint)
+                Text(label).fontSz(12.5).foregroundStyle(Brand.ink)
             }
             .frame(maxWidth: .infinity, minHeight: 62)
             .background(Brand.card)
@@ -584,15 +584,21 @@ enum PDFTextOCR {
 
 // MARK: 工具入口：工具箱卡片、「+」托盘、聊天快捷操作共用
 enum ToolKind: String, Identifiable, CaseIterable {
-    case web, ocr, translateImage, convert, wmImage, wmVideo, audio, mute
+    case web, ocr, scan, translateImage, convert, pdf, imageEdit, cutout, redact, qr, wmImage, wmVideo, audio, mute
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .web: return "网页文字"
         case .ocr: return "识别文字"
+        case .scan: return "文档扫描"
         case .translateImage: return "翻译图片"
         case .convert: return "格式转换"
+        case .pdf: return "PDF 工具"
+        case .imageEdit: return "图片处理"
+        case .cutout: return "抠图换底"
+        case .redact: return "图片打码"
+        case .qr: return "二维码"
         case .wmImage: return "图片去水印"
         case .wmVideo: return "视频去水印"
         case .audio: return "提取音频"
@@ -604,8 +610,14 @@ enum ToolKind: String, Identifiable, CaseIterable {
         switch self {
         case .web: return "粘贴网址，一键取出正文，可翻译、导出"
         case .ocr: return "识别图片里的文字，支持多张、PDF 扫描件"
+        case .scan: return "拍文件自动裁边拉直，生成可搜索的 PDF"
         case .translateImage: return "把图里的文字翻成你的语言并贴回原位"
         case .convert: return "Word、Excel、PDF、图片、表格、视频互相转换"
+        case .pdf: return "合并、拆分、压缩、加密、加页码、加水印"
+        case .imageEdit: return "缩小、压缩到指定大小、旋转、裁剪、清除位置信息"
+        case .cutout: return "一键去背景，证件照换白、蓝、红底"
+        case .redact: return "自动给手机号、身份证、银行卡、人脸打码"
+        case .qr: return "读取二维码和条形码，也能生成二维码"
         case .wmImage: return "框出水印，本机一键去除"
         case .wmVideo: return "逐帧去除固定位置的水印，声音保留"
         case .audio: return "从视频里取出声音，存成 m4a 或 wav"
@@ -617,8 +629,14 @@ enum ToolKind: String, Identifiable, CaseIterable {
         switch self {
         case .web: return "globe"
         case .ocr: return "text.viewfinder"
+        case .scan: return "doc.viewfinder"
         case .translateImage: return "character.bubble"
         case .convert: return "arrow.triangle.2.circlepath"
+        case .pdf: return "doc.richtext"
+        case .imageEdit: return "crop"
+        case .cutout: return "person.crop.rectangle"
+        case .redact: return "eye.slash"
+        case .qr: return "qrcode"
         case .wmImage: return "wand.and.stars"
         case .wmVideo: return "film"
         case .audio: return "waveform"
@@ -631,8 +649,14 @@ enum ToolKind: String, Identifiable, CaseIterable {
         switch self {
         case .web: WebExtractView(initial: text)
         case .ocr: OCRView(initial: files.filter { Files.isImage($0) || $0.pathExtension.lowercased() == "pdf" })
+        case .scan: ScanView()
         case .translateImage: ScreenTranslateView(title: "翻译图片")
         case .convert: ConvertView(initial: files.first)
+        case .pdf: PDFToolView(initial: files.filter { $0.pathExtension.lowercased() == "pdf" || Files.isImage($0) })
+        case .imageEdit: ImageToolView(initial: files)
+        case .cutout: CutoutView(initial: files.first(where: { Files.isImage($0) }))
+        case .redact: RedactView(initial: files.first(where: { Files.isImage($0) }))
+        case .qr: QRView(initial: files)
         case .wmImage: WatermarkView(video: false, initial: files.first(where: { Files.isImage($0) }))
         case .wmVideo: WatermarkView(video: true, initial: files.first(where: { Convert.vidExt.contains($0.pathExtension.lowercased()) }))
         case .audio: ConvertView(initial: files.first, preset: "m4a", title: "提取音频", videosOnly: true)
@@ -654,6 +678,7 @@ struct ToolSheet: View {
     var body: some View {
         NavigationStack { req.kind.destination(files: req.files, text: req.text) }
             .environment(\.isPageRoot, true)
+            .dynamicTypeSize(...DynamicTypeSize.accessibility3)
             .background(Brand.page.ignoresSafeArea())
             .presentationBackground(Brand.page)
     }

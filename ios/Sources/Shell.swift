@@ -61,6 +61,7 @@ struct RootView: View {
         .overlay(alignment: .top) { SafetyBanner() }
         .environment(\.locale, L10n.locale)
         .environment(\.layoutDirection, L10n.rtl ? .rightToLeft : .leftToRight)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility3)
         .translationTask(l10n.config) { session in await l10n.run(session) }
         .onAppear { l10n.ensureTranslation() }
         .sheet(item: $state.page) { PageSheet(page: $0).id(l10n.version) }
@@ -88,7 +89,7 @@ struct DrawerView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 LogoMark(size: 34)
-                Text(Brand.name).font(.system(size: 20, weight: .semibold, design: .serif)).foregroundStyle(Brand.ink)
+                Text(Brand.name).fontSz(20, weight: .semibold, design: .serif).foregroundStyle(Brand.ink)
                 Spacer()
             }
             .padding(.horizontal, 18)
@@ -157,8 +158,8 @@ struct DrawerView: View {
     func item(_ icon: String, _ title: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 14) {
-                Image(systemName: icon).font(.system(size: 18)).frame(width: 26).foregroundStyle(Brand.ink)
-                Text(title).font(.system(size: 17)).foregroundStyle(Brand.ink)
+                Image(systemName: icon).fontSz(18).frame(width: 26).foregroundStyle(Brand.ink)
+                Text(title).fontSz(17).foregroundStyle(Brand.ink)
                 Spacer()
             }
             .padding(.horizontal, 12)
@@ -174,7 +175,7 @@ struct DrawerView: View {
             state.drawer = false
         } label: {
             Text(r.s("title").isEmpty ? "新对话" : r.s("title"))
-                .font(.system(size: 16))
+                .fontSz(16)
                 .foregroundStyle(Brand.ink)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -220,6 +221,7 @@ struct PageSheet: View {
             }
         }
         .environment(\.isPageRoot, true)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility3)
         .background(Brand.page.ignoresSafeArea())
         .presentationBackground(Brand.page)
         .onAppear { DispatchQueue.main.async { AppTheme.apply(appearance) } }

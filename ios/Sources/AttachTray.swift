@@ -46,7 +46,7 @@ struct AttachTray: View {
                 source("folder", "文件", onFile)
                 source("doc.on.clipboard", "粘贴", onPaste)
             }
-            Text("动手工具").font(.system(size: 12, weight: .semibold)).foregroundStyle(Brand.sub)
+            Text("动手工具").fontSz(12, weight: .semibold).foregroundStyle(Brand.sub)
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHGrid(rows: [GridItem(.fixed(72), spacing: 6), GridItem(.fixed(72), spacing: 6)], spacing: 8) {
                     ForEach(items) { it in tile(it) }
@@ -65,8 +65,8 @@ struct AttachTray: View {
     private func source(_ icon: String, _ label: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 20, weight: .medium)).foregroundStyle(Brand.ink)
-                Text(label).font(.system(size: 12.5)).foregroundStyle(Brand.ink)
+                Image(systemName: icon).fontSz(20, weight: .medium).foregroundStyle(Brand.ink)
+                Text(label).fontSz(12.5).foregroundStyle(Brand.ink)
             }
             .frame(maxWidth: .infinity, minHeight: 66)
             .background(Brand.codeBg)
@@ -86,7 +86,7 @@ struct AttachTray: View {
                     .background(it.accent ? Brand.mint.opacity(0.14) : Brand.userBubble)
                     .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(selected ? Brand.mint : .clear, lineWidth: 1.5))
-                Text(LocalizedStringKey(it.title)).font(.system(size: 11.5)).foregroundStyle(Brand.sub).lineLimit(1)
+                Text(LocalizedStringKey(it.title)).fontSz(11.5).foregroundStyle(Brand.sub).lineLimit(1)
             }
             .frame(width: 72)
         }

@@ -179,6 +179,7 @@ struct ExportMenu: View {
         } label: {
             Image(systemName: "square.and.arrow.up")
         }
+        .accessibilityLabel("导出")
     }
 }
 
