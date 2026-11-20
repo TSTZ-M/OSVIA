@@ -118,7 +118,7 @@ struct MessageView: View {
     }
 
     var actions: some View {
-        HStack(spacing: 20) {
+        HStack(spacing: 0) {
             Button {
                 UIPasteboard.general.string = m.text
                 copied = true
@@ -126,18 +126,22 @@ struct MessageView: View {
                     try? await Task.sleep(nanoseconds: 1_500_000_000)
                     copied = false
                 }
-            } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }
+            } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc").frame(minWidth: 40, minHeight: 36).contentShape(Rectangle()) }
+                .accessibilityLabel("复制")
             Button { speaker.toggle(m.text, id: m.id) } label: {
-                Image(systemName: speaker.speakingId == m.id ? "speaker.slash" : "speaker.wave.2")
+                Image(systemName: speaker.speakingId == m.id ? "speaker.slash" : "speaker.wave.2").frame(minWidth: 40, minHeight: 36).contentShape(Rectangle())
             }
+            .accessibilityLabel(speaker.speakingId == m.id ? "停止朗读" : "朗读")
             ExportMenu(text: m.text)
+                .frame(minWidth: 40, minHeight: 36)
             if isLast {
-                Button { onRegenerate() } label: { Image(systemName: "arrow.clockwise") }
+                Button { onRegenerate() } label: { Image(systemName: "arrow.clockwise").frame(minWidth: 40, minHeight: 36).contentShape(Rectangle()) }
+                    .accessibilityLabel("重新生成")
             }
         }
         .fontSz(15)
         .foregroundStyle(Brand.sub)
-        .padding(.top, 2)
+        .padding(.leading, -10)
     }
 }
 
