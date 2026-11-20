@@ -11,7 +11,8 @@ enum Features {
     - 联网搜索、读网页：问最新消息、价格，或发一个链接让我总结
     - 屏幕翻译：截屏后说「翻译屏幕」，译文贴回原图；工具箱里有一键用法
     - 网页文字：发网址说「提取文字」，去掉广告只留正文，可翻译、导出
-    - 图片：识别文字（多张、扫描 PDF 也行）、翻译图片并贴回原位、本机去水印
+    - 图片：识别文字（多张、扫描 PDF 也行）、翻译图片并贴回原位、本机去水印、抠图换证件照底色、自动打码手机号身份证人脸、压缩到指定大小
+    - 文件：文档扫描成可搜索 PDF、PDF 合并拆分压缩加密、二维码读取与生成、zip 打包解压
     - 文档互转：Word、Excel、PDF、Markdown、网页、CSV、JSON、图片互相转换；发文件后点输入框上的按钮就行
     - 视频与音频：去水印、提取音频、去除声音、压缩、转 m4a / wav
     - 知识库与记忆：说「记住……」，以后提问时我会自动翻一翻
@@ -34,6 +35,13 @@ enum Features {
         if has(["提取网页", "网页提取", "网页文字"]) { return ToolRequest(kind: .web) }
         if has(["识别文字", "图片转文字", "提取图片文字", "图片文字"]) { return ToolRequest(kind: .ocr) }
         if has(["格式转换", "文件转换", "转换格式"]) { return ToolRequest(kind: .convert) }
+        let files = Agent.shared.attachments.map { $0.url }
+        if has(["扫描文档", "文档扫描", "扫描文件", "扫描件", "扫描成pdf", "扫描成 pdf"]) { return ToolRequest(kind: .scan) }
+        if has(["二维码", "扫码", "条形码", "条码"]) { return ToolRequest(kind: .qr, files: files) }
+        if has(["抠图", "去背景", "去除背景", "换背景", "证件照", "换底色"]) { return ToolRequest(kind: .cutout, files: files) }
+        if has(["打码", "遮挡隐私", "隐私打码", "马赛克"]) { return ToolRequest(kind: .redact, files: files) }
+        if has(["pdf工具", "pdf 工具", "合并pdf", "合并 pdf", "拆分pdf", "拆分 pdf", "压缩pdf", "压缩 pdf", "pdf加密", "pdf 加密", "pdf加页码"]) { return ToolRequest(kind: .pdf, files: files) }
+        if has(["图片处理", "压缩图片", "图片压缩", "缩小图片", "改图片大小", "清除位置", "去除exif", "去除 exif"]) { return ToolRequest(kind: .imageEdit, files: files) }
         if has(["翻译图片", "图片翻译"]) { return ToolRequest(kind: .translateImage) }
         return nil
     }

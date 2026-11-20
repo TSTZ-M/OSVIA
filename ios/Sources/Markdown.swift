@@ -168,7 +168,7 @@ struct MDBlockView: View, Equatable {
             Text(MD.attr(s)).font(Brand.body).lineSpacing(6).foregroundStyle(Brand.ink)
         case .heading(let n, let s):
             Text(MD.attr(s))
-                .font(.system(size: n == 1 ? 23 : (n == 2 ? 20 : 17.5), weight: .semibold))
+                .fontSz(n == 1 ? 23 : (n == 2 ? 20 : 17.5), weight: .semibold)
                 .foregroundStyle(Brand.ink)
                 .padding(.top, 6)
         case .bullet(let m, let s, let indent):
@@ -205,7 +205,7 @@ struct MDBlockView: View, Equatable {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    Text(src).font(.system(size: 14, design: .monospaced)).foregroundStyle(Brand.ink).padding(12)
+                    Text(src).fontSz(14, design: .monospaced).foregroundStyle(Brand.ink).padding(12)
                 }
             }
             .background(Brand.codeBg)
@@ -229,7 +229,7 @@ struct MDTable: View {
                     GridRow {
                         ForEach(0..<cols, id: \.self) { c in
                             Text(MD.attr(c < rows[r].count ? rows[r][c] : ""))
-                                .font(.system(size: 14.5, weight: r == 0 ? .semibold : .regular))
+                                .fontSz(14.5, weight: r == 0 ? .semibold : .regular)
                                 .foregroundStyle(Brand.ink)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 9)

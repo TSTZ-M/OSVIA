@@ -85,7 +85,7 @@ struct MessageView: View {
             ForEach(m.files, id: \.self) { FileCard(url: $0, preview: $preview) }
             if !m.text.isEmpty {
                 Text(m.text)
-                    .font(.system(size: 17))
+                    .fontSz(17)
                     .foregroundStyle(Brand.ink)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 11)
@@ -135,7 +135,7 @@ struct MessageView: View {
                 Button { onRegenerate() } label: { Image(systemName: "arrow.clockwise") }
             }
         }
-        .font(.system(size: 15))
+        .fontSz(15)
         .foregroundStyle(Brand.sub)
         .padding(.top, 2)
     }

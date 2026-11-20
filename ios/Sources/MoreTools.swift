@@ -18,6 +18,7 @@ enum MoreTools {
         s += "- photos_find {\"keywords\":[\"cat\",\"beach\"],\"days\":30,\"limit\":6}：按画面内容在相册里找照片（本机识别，不上传）。keywords 用英文的常见物体或场景词，如 cat dog food beach mountain sunset flower car document baby；留空 = 取最近的照片。找到的缩略图附在回复下方\n"
         s += "- search_files {\"q\":\"关键词\"}：在工作区的文件名和文件内容里搜索\n"
         s += Toolkit.doc()
+        s += Toolkit2.doc()
         return s
     }
 
@@ -31,6 +32,7 @@ enum MoreTools {
         case "search_files": return searchFiles(str(a, "q"), trace)
         case "photos_find": return await photosFind(a, trace)
         case "extract_web", "convert", "remove_watermark", "translate_image": return await Toolkit.run(c, trace: trace)
+        case "pdf_tool", "redact", "cutout", "scan_code", "image_edit", "zip", "unzip": return await Toolkit2.run(c, trace: trace)
         default: return await Hands2.run(c, trace: trace, cloud: cloud)
         }
     }

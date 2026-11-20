@@ -166,7 +166,7 @@ struct FileCard: View {
             }
         } else {
             HStack(spacing: 8) {
-                Image(systemName: kind.0).font(.system(size: 18)).foregroundStyle(Brand.ink)
+                Image(systemName: kind.0).fontSz(18).foregroundStyle(Brand.ink)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(kind.1).font(.subheadline.weight(.medium)).foregroundStyle(Brand.ink)
                     Text(sizeText).font(.caption).foregroundStyle(Brand.sub)

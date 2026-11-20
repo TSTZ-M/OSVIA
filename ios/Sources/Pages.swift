@@ -132,11 +132,17 @@ struct ToolboxView: View {
                     section("提取与识别") {
                         kind(.web)
                         kind(.ocr)
+                        kind(.scan)
                         kind(.translateImage)
+                        kind(.qr)
                         card("屏幕翻译", "截图一键翻译整屏，译文贴回原位", "camera.viewfinder") { ScreenTranslateView() }
                     }
                     section("转换与处理") {
                         kind(.convert)
+                        kind(.pdf)
+                        kind(.imageEdit)
+                        kind(.cutout)
+                        kind(.redact)
                         kind(.wmImage)
                         kind(.wmVideo)
                         kind(.audio)
@@ -162,7 +168,7 @@ struct ToolboxView: View {
 
     func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(LocalizedStringKey(title)).font(.system(size: 13, weight: .semibold)).foregroundStyle(Brand.sub).padding(.leading, 4)
+            Text(LocalizedStringKey(title)).fontSz(13, weight: .semibold).foregroundStyle(Brand.sub).padding(.leading, 4)
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) { content() }
         }
     }
@@ -176,8 +182,8 @@ struct ToolboxView: View {
             Image(systemName: icon).font(.system(size: 19, weight: .medium)).foregroundStyle(Brand.mint)
                 .frame(width: 42, height: 42).background(Brand.mint.opacity(0.14))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            Text(LocalizedStringKey(t)).font(.system(size: 15.5, weight: .semibold)).foregroundStyle(Brand.ink)
-            Text(LocalizedStringKey(s)).font(.system(size: 12.5)).foregroundStyle(Brand.sub).multilineTextAlignment(.leading).lineLimit(3)
+            Text(LocalizedStringKey(t)).fontSz(15.5, weight: .semibold).foregroundStyle(Brand.ink)
+            Text(LocalizedStringKey(s)).fontSz(12.5).foregroundStyle(Brand.sub).multilineTextAlignment(.leading).lineLimit(3)
         }
         .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
         .padding(13)

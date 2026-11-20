@@ -104,13 +104,13 @@ struct ModelPill: View {
             Button { state.page = .settings } label: { Label("模型设置…", systemImage: "slider.horizontal.3") }
         } label: {
             HStack(spacing: 5) {
-                Image(systemName: ModelPref.icon).font(.system(size: 12, weight: .medium))
-                Text(verbatim: ModelPref.label).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                Image(systemName: "chevron.up.chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(Brand.sub)
+                Image(systemName: ModelPref.icon).fontSz(12, weight: .medium)
+                Text(verbatim: ModelPref.label).fontSz(13, weight: .medium).lineLimit(1)
+                Image(systemName: "chevron.up.chevron.down").fontSz(8, weight: .bold).foregroundStyle(Brand.sub)
             }
             .foregroundStyle(Brand.ink)
             .padding(.horizontal, 10)
-            .frame(height: 36)
+            .frame(minHeight: 36)
             .frame(maxWidth: 190)
             .background(Brand.userBubble)
             .clipShape(Capsule())

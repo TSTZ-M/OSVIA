@@ -281,21 +281,21 @@ struct DiagView: View {
             }
             if !trace.isEmpty {
                 Section("崩溃现场") {
-                    Text(verbatim: trace).font(.system(size: 10.5, design: .monospaced)).textSelection(.enabled)
+                    Text(verbatim: trace).fontSz(10.5, design: .monospaced).textSelection(.enabled)
                 }
             }
             if !abnormal.isEmpty {
                 Section("上次异常退出") {
-                    Text(verbatim: abnormal).font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
+                    Text(verbatim: abnormal).fontSz(12, design: .monospaced).textSelection(.enabled)
                 }
             }
             ForEach(reports, id: \.self) { r in
                 Section(r.lastPathComponent) {
-                    Text(verbatim: Diag.summary(r)).font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
+                    Text(verbatim: Diag.summary(r)).fontSz(12, design: .monospaced).textSelection(.enabled)
                 }
             }
             Section("最近记录") {
-                Text(verbatim: log.isEmpty ? "（没有记录）" : log).font(.system(size: 11.5, design: .monospaced)).textSelection(.enabled)
+                Text(verbatim: log.isEmpty ? "（没有记录）" : log).fontSz(11.5, design: .monospaced).textSelection(.enabled)
             }
         }
         .navigationTitle("诊断")
