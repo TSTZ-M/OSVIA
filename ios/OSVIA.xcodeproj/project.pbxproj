@@ -19,8 +19,10 @@
 		18B229A9BBC6B66DFBB2A9F3 /* ClockBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA3347D8B65190E45577B60 /* ClockBridge.swift */; };
 		197DF0534F642A5E5D0CAD2C /* Safety.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CADEF0B566902D8C001BBA5 /* Safety.swift */; };
 		1DEFDDD7278FCA19D468B1DC /* MCPUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30C98F35A8E627B17D50DFC /* MCPUI.swift */; };
+		1E2716C45B28B481CB28CAD9 /* Toolkit2.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9A20155121B2A649DE7A86 /* Toolkit2.swift */; };
 		210B8CB69D11C6C1E715C5E9 /* Skills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4657E80B8BF0B3645C5E8D5B /* Skills.swift */; };
 		219E9E7E9B7F04FCEE3FA650 /* L10nTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F66B7C5B8C7FCEDD99591 /* L10nTable.swift */; };
+		22D92B3A55C2F99FC880AD50 /* PDFTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBD9FFFF8DF55F40A158981 /* PDFTools.swift */; };
 		22EBE94FA761D11DFADE62EB /* MailUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41DAFAB6B8416BD2899F48F3 /* MailUI.swift */; };
 		24FC4DDDFC527FCA68BB5439 /* Calc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A70D2F3CC6178E26B6C0B3 /* Calc.swift */; };
 		2880EAC059C3DC4BE51816D2 /* Nlp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E17C30F6F56FA06C933112 /* Nlp.swift */; };
@@ -58,6 +60,7 @@
 		7593CF3CED16851208A5C50F /* L10nExtra2.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9332C0FB383F2064968EBB4 /* L10nExtra2.swift */; };
 		77532A60DF2C827F1638BD21 /* OSVIALive.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41505DA06B7FD4BDC2A76AA /* OSVIALive.swift */; };
 		7D0774EC06D382125B1DDA9B /* Tasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94C08053FF95F408B5FEF4F3 /* Tasks.swift */; };
+		7E6E7BE1886A3D2B31D59CAE /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA2A2A4E286246F9744801B /* Layout.swift */; };
 		808B688F9980F615ABF8F139 /* SenderAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95E6E61F619D536E4004F0E9 /* SenderAvatar.swift */; };
 		821F9DCACE04DA7D4681C863 /* Pages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD378CF7A1C193B601004E /* Pages.swift */; };
 		8381044BB58722C350A44174 /* AgentExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFAD0B2A860DCA1B9228EDF6 /* AgentExt.swift */; };
@@ -68,6 +71,7 @@
 		906554E6873E40180B32BD94 /* Gallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1EE660C9505756B897B07D8 /* Gallery.swift */; };
 		9316E20216B95CF693177ADA /* Weather.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60CBB12F23D0DB99B04B80E /* Weather.swift */; };
 		9CCBFC2DAD4E79B6912A5F12 /* Office.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1361B412C402CAFCB60F110F /* Office.swift */; };
+		9D5A95A28A2E6F08C0DBC344 /* ToolUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3FC005E5A89A7904D892AB /* ToolUI.swift */; };
 		9D87B3DE6A65E1ABD208C494 /* OpenIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F882E195ACCA0E6D9E6F4D3D /* OpenIntents.swift */; };
 		A4CBCBCC6974BB3F94FB42BD /* AttachTray.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99CCE391C784CE87CE760A61 /* AttachTray.swift */; };
 		A5FAE91F59AD652373ED7B34 /* Digest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E8D0FFB6FF17F96C1469F1 /* Digest.swift */; };
@@ -94,6 +98,7 @@
 		DDE6257AB418C23473F93E73 /* Shell.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A6AC39B41A60DA4EF6B9A1 /* Shell.swift */; };
 		E04DDD39256DAD38346738CA /* BotActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1FE275EA3CB62B3390FAE0 /* BotActivity.swift */; };
 		E4B3848D4025F3A6C18EE46D /* Sys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E6FEA2C297024FA08F11B9E /* Sys.swift */; };
+		E54D393E7236F8636C2E3769 /* VisionTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5955009FBE64C9BC18F6A1BA /* VisionTools.swift */; };
 		E6FD7FA6781E3D17BDC532F2 /* WebSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6ECB48DAE81978A2DF10345 /* WebSearch.swift */; };
 		E7C55FD80BE8922132F38257 /* MoreTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2CCBA2BAD472E680AACB9E /* MoreTools.swift */; };
 		E87D661954C92F7D2CC16FA0 /* Diag.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC6137101BE75E7208EF94B0 /* Diag.swift */; };
@@ -147,6 +152,7 @@
 		385F35EAC7A6F013CFD73513 /* Tools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tools.swift; sourceTree = "<group>"; };
 		3C0993D032B276B0CA207259 /* ProcessUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessUI.swift; sourceTree = "<group>"; };
 		3C4F452CA02A2BA4CC346E8C /* ModelPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPicker.swift; sourceTree = "<group>"; };
+		3EA2A2A4E286246F9744801B /* Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Layout.swift; sourceTree = "<group>"; };
 		41DAFAB6B8416BD2899F48F3 /* MailUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailUI.swift; sourceTree = "<group>"; };
 		4657E80B8BF0B3645C5E8D5B /* Skills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Skills.swift; sourceTree = "<group>"; };
 		46B4BE8002ED539F165BFDC5 /* Web.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Web.swift; sourceTree = "<group>"; };
@@ -159,11 +165,13 @@
 		515BACBDFB953B32A7C4D09A /* TaskAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskAgent.swift; sourceTree = "<group>"; };
 		552390B6E479B9DFBD2AD4AE /* ScreenTranslate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTranslate.swift; sourceTree = "<group>"; };
 		55818AB25CD659A5F3F4AF0A /* MailAutoconfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailAutoconfig.swift; sourceTree = "<group>"; };
+		5955009FBE64C9BC18F6A1BA /* VisionTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionTools.swift; sourceTree = "<group>"; };
 		5F1FE275EA3CB62B3390FAE0 /* BotActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BotActivity.swift; sourceTree = "<group>"; };
 		6190D38476BDB375229A4A15 /* AIIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIIcon.swift; sourceTree = "<group>"; };
 		625D2B5B24305907887C9D18 /* Brain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Brain.swift; sourceTree = "<group>"; };
 		648F5A959FF9F80A6668BC4E /* CloudLLM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudLLM.swift; sourceTree = "<group>"; };
 		6BDD378CF7A1C193B601004E /* Pages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pages.swift; sourceTree = "<group>"; };
+		6EBD9FFFF8DF55F40A158981 /* PDFTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFTools.swift; sourceTree = "<group>"; };
 		7019597CAA2452F89E593FE9 /* MemoryHubUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryHubUI.swift; sourceTree = "<group>"; };
 		784DB26BBC24C42A8389B42B /* AlarmMeta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmMeta.swift; sourceTree = "<group>"; };
 		7A4F66B7C5B8C7FCEDD99591 /* L10nTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTable.swift; sourceTree = "<group>"; };
@@ -200,7 +208,9 @@
 		BED1AA84663C25D2EB051C07 /* BrandMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandMark.swift; sourceTree = "<group>"; };
 		C4F2FA46DD1AAF3B622AFC65 /* Memory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Memory.swift; sourceTree = "<group>"; };
 		C8870B0071451BDC0F9723BE /* Photo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photo.swift; sourceTree = "<group>"; };
+		CD3FC005E5A89A7904D892AB /* ToolUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolUI.swift; sourceTree = "<group>"; };
 		CDD18C62F08E3E1C15D055C0 /* LocalModelPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelPage.swift; sourceTree = "<group>"; };
+		CF9A20155121B2A649DE7A86 /* Toolkit2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toolkit2.swift; sourceTree = "<group>"; };
 		D5E8D0FFB6FF17F96C1469F1 /* Digest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Digest.swift; sourceTree = "<group>"; };
 		D63300A5CED6172454291853 /* PageChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageChrome.swift; sourceTree = "<group>"; };
 		D6C69F34E48B2281E6BBB493 /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
@@ -313,6 +323,7 @@
 				B9332C0FB383F2064968EBB4 /* L10nExtra2.swift */,
 				7A4F66B7C5B8C7FCEDD99591 /* L10nTable.swift */,
 				0F63F20AC69F28D3D5527E2F /* L10nUI.swift */,
+				3EA2A2A4E286246F9744801B /* Layout.swift */,
 				7F8CFE11AF6E6BF419762DDE /* Live.swift */,
 				DA6607C2F5CB82A13BB190D0 /* LocalBrain.swift */,
 				9A3B657C874D94CD116D9910 /* LocalLLM.swift */,
@@ -335,6 +346,7 @@
 				1361B412C402CAFCB60F110F /* Office.swift */,
 				D63300A5CED6172454291853 /* PageChrome.swift */,
 				6BDD378CF7A1C193B601004E /* Pages.swift */,
+				6EBD9FFFF8DF55F40A158981 /* PDFTools.swift */,
 				C8870B0071451BDC0F9723BE /* Photo.swift */,
 				3C0993D032B276B0CA207259 /* ProcessUI.swift */,
 				9CADEF0B566902D8C001BBA5 /* Safety.swift */,
@@ -350,8 +362,11 @@
 				94C08053FF95F408B5FEF4F3 /* Tasks.swift */,
 				25EA8D0EA418BC74F7A9CDF5 /* TasksPage.swift */,
 				243399436BFAAD0722DDBA70 /* Toolkit.swift */,
+				CF9A20155121B2A649DE7A86 /* Toolkit2.swift */,
 				385F35EAC7A6F013CFD73513 /* Tools.swift */,
+				CD3FC005E5A89A7904D892AB /* ToolUI.swift */,
 				D6C69F34E48B2281E6BBB493 /* Views.swift */,
+				5955009FBE64C9BC18F6A1BA /* VisionTools.swift */,
 				95588E9E7B11E31178C22045 /* Watermark.swift */,
 				A60CBB12F23D0DB99B04B80E /* Weather.swift */,
 				46B4BE8002ED539F165BFDC5 /* Web.swift */,
@@ -525,6 +540,7 @@
 				7593CF3CED16851208A5C50F /* L10nExtra2.swift in Sources */,
 				219E9E7E9B7F04FCEE3FA650 /* L10nTable.swift in Sources */,
 				582A294CC241ED39C67893FA /* L10nUI.swift in Sources */,
+				7E6E7BE1886A3D2B31D59CAE /* Layout.swift in Sources */,
 				CA45D57119981C0A1714CC44 /* Live.swift in Sources */,
 				6396737F36C839430D459DDA /* LocalBrain.swift in Sources */,
 				C66029B3857282814CCC4984 /* LocalLLM.swift in Sources */,
@@ -546,6 +562,7 @@
 				2880EAC059C3DC4BE51816D2 /* Nlp.swift in Sources */,
 				9CCBFC2DAD4E79B6912A5F12 /* Office.swift in Sources */,
 				BB204388AB130F5DCCC8BBAA /* OpenIntents.swift in Sources */,
+				22D92B3A55C2F99FC880AD50 /* PDFTools.swift in Sources */,
 				C851A90FA9C224B613488D58 /* PageChrome.swift in Sources */,
 				821F9DCACE04DA7D4681C863 /* Pages.swift in Sources */,
 				C46D8A7F7BC05E1B1C7A5FC2 /* Photo.swift in Sources */,
@@ -562,9 +579,12 @@
 				70FADF79CD2581E0EBDF540A /* TaskAgent.swift in Sources */,
 				7D0774EC06D382125B1DDA9B /* Tasks.swift in Sources */,
 				FC68683145D4A4932802B7CE /* TasksPage.swift in Sources */,
+				9D5A95A28A2E6F08C0DBC344 /* ToolUI.swift in Sources */,
 				4109DD4B6F708203259E2DA3 /* Toolkit.swift in Sources */,
+				1E2716C45B28B481CB28CAD9 /* Toolkit2.swift in Sources */,
 				BEBEBE892FC2E38841786CB9 /* Tools.swift in Sources */,
 				31DFF57FB0982AA9DC5B6D08 /* Views.swift in Sources */,
+				E54D393E7236F8636C2E3769 /* VisionTools.swift in Sources */,
 				506AAED1C6066823E1230B46 /* Watermark.swift in Sources */,
 				9316E20216B95CF693177ADA /* Weather.swift in Sources */,
 				34153481A0BE4F3549E22DC8 /* Web.swift in Sources */,
