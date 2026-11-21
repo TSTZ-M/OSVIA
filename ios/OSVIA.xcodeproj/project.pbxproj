@@ -70,9 +70,11 @@
 		8F9E71961615D2C503EB9FAE /* MCP.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5AA26DFFC633BB4831AD0C9 /* MCP.swift */; };
 		906554E6873E40180B32BD94 /* Gallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1EE660C9505756B897B07D8 /* Gallery.swift */; };
 		9316E20216B95CF693177ADA /* Weather.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60CBB12F23D0DB99B04B80E /* Weather.swift */; };
+		93555225A6E921191838A6EB /* Intents2.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92F04528B17D59DE642C505 /* Intents2.swift */; };
 		9CCBFC2DAD4E79B6912A5F12 /* Office.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1361B412C402CAFCB60F110F /* Office.swift */; };
 		9D5A95A28A2E6F08C0DBC344 /* ToolUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3FC005E5A89A7904D892AB /* ToolUI.swift */; };
 		9D87B3DE6A65E1ABD208C494 /* OpenIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F882E195ACCA0E6D9E6F4D3D /* OpenIntents.swift */; };
+		A03115BC89627175CF963F64 /* MediaTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277AFEE6089C0DFD95B53114 /* MediaTools.swift */; };
 		A4CBCBCC6974BB3F94FB42BD /* AttachTray.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99CCE391C784CE87CE760A61 /* AttachTray.swift */; };
 		A5FAE91F59AD652373ED7B34 /* Digest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E8D0FFB6FF17F96C1469F1 /* Digest.swift */; };
 		A730A58CF381383D28925044 /* OSVIALive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DE1D20BEED090BA644D407DF /* OSVIALive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -143,6 +145,7 @@
 		18D7F458E62F89F51A1357BA /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
 		243399436BFAAD0722DDBA70 /* Toolkit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toolkit.swift; sourceTree = "<group>"; };
 		25EA8D0EA418BC74F7A9CDF5 /* TasksPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksPage.swift; sourceTree = "<group>"; };
+		277AFEE6089C0DFD95B53114 /* MediaTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTools.swift; sourceTree = "<group>"; };
 		28F4ADCE07EFD5D0F8A45F41 /* MailMIME.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailMIME.swift; sourceTree = "<group>"; };
 		2938617CCBEE62C33163F03E /* ConvertUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertUI.swift; sourceTree = "<group>"; };
 		2E2101D21764981A72D73E0C /* SettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPage.swift; sourceTree = "<group>"; };
@@ -208,6 +211,7 @@
 		BED1AA84663C25D2EB051C07 /* BrandMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandMark.swift; sourceTree = "<group>"; };
 		C4F2FA46DD1AAF3B622AFC65 /* Memory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Memory.swift; sourceTree = "<group>"; };
 		C8870B0071451BDC0F9723BE /* Photo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photo.swift; sourceTree = "<group>"; };
+		C92F04528B17D59DE642C505 /* Intents2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intents2.swift; sourceTree = "<group>"; };
 		CD3FC005E5A89A7904D892AB /* ToolUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolUI.swift; sourceTree = "<group>"; };
 		CDD18C62F08E3E1C15D055C0 /* LocalModelPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelPage.swift; sourceTree = "<group>"; };
 		CF9A20155121B2A649DE7A86 /* Toolkit2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toolkit2.swift; sourceTree = "<group>"; };
@@ -317,6 +321,7 @@
 				380DB4CBAA3040EC8F80D4E9 /* Hands2.swift */,
 				4A4A38C4EFF9816807ECD28B /* Inputs.swift */,
 				8AE9B4B23C55E3FB8C91408B /* Intents.swift */,
+				C92F04528B17D59DE642C505 /* Intents2.swift */,
 				48743BBEBF59DC6285EE3B6B /* KB.swift */,
 				A625B7F023B5B36DC013BB01 /* L10n.swift */,
 				914164BE70B66F943CCEA2C9 /* L10nExtra.swift */,
@@ -338,6 +343,7 @@
 				4E9FA8FE73C76A90F5F4E858 /* MCPOAuth.swift */,
 				B30C98F35A8E627B17D50DFC /* MCPUI.swift */,
 				DDBEE5B8CA2F61F0BA1CE1D9 /* Media.swift */,
+				277AFEE6089C0DFD95B53114 /* MediaTools.swift */,
 				C4F2FA46DD1AAF3B622AFC65 /* Memory.swift */,
 				7019597CAA2452F89E593FE9 /* MemoryHubUI.swift */,
 				3C4F452CA02A2BA4CC346E8C /* ModelPicker.swift */,
@@ -534,6 +540,7 @@
 				8E6B3781E94C07BFC941CACA /* Hands2.swift in Sources */,
 				B4B0F662FE12FBC4BEE267E0 /* Inputs.swift in Sources */,
 				B1BFB73B87E476F340A9FC40 /* Intents.swift in Sources */,
+				93555225A6E921191838A6EB /* Intents2.swift in Sources */,
 				F62F3D1A40BFFEC54557D63F /* KB.swift in Sources */,
 				180694628BA90DE649DDBB5E /* L10n.swift in Sources */,
 				02DD83BD8899BBCC59E0CA7E /* L10nExtra.swift in Sources */,
@@ -555,6 +562,7 @@
 				22EBE94FA761D11DFADE62EB /* MailUI.swift in Sources */,
 				EFF379EB9DAFA6825C3FBEAB /* Markdown.swift in Sources */,
 				68B9E58757606440C261ADF4 /* Media.swift in Sources */,
+				A03115BC89627175CF963F64 /* MediaTools.swift in Sources */,
 				A9CE70796FDF808E5798B926 /* Memory.swift in Sources */,
 				8EC3FFA4046713AF57DB4E8E /* MemoryHubUI.swift in Sources */,
 				D7678408016A7AE036083B53 /* ModelPicker.swift in Sources */,
