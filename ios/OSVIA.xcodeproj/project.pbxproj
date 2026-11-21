@@ -109,6 +109,7 @@
 		F62F3D1A40BFFEC54557D63F /* KB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48743BBEBF59DC6285EE3B6B /* KB.swift */; };
 		FACFD288AB268A2258133EDF /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 515132FDE4590D9066A526BA /* Tokenizers */; };
 		FC68683145D4A4932802B7CE /* TasksPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25EA8D0EA418BC74F7A9CDF5 /* TasksPage.swift */; };
+		FF39A030DFFF3CAC6DE5CF67 /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B09D14F0B5F469FF33D5670 /* Storage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -162,6 +163,7 @@
 		48743BBEBF59DC6285EE3B6B /* KB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KB.swift; sourceTree = "<group>"; };
 		49A70D2F3CC6178E26B6C0B3 /* Calc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calc.swift; sourceTree = "<group>"; };
 		4A4A38C4EFF9816807ECD28B /* Inputs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Inputs.swift; sourceTree = "<group>"; };
+		4B09D14F0B5F469FF33D5670 /* Storage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
 		4DB40CE77AE6B917BE5E81F2 /* ChatViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViews.swift; sourceTree = "<group>"; };
 		4E9FA8FE73C76A90F5F4E858 /* MCPOAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPOAuth.swift; sourceTree = "<group>"; };
 		4F2F9FCE5D72ADF412997D85 /* Steps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Steps.swift; sourceTree = "<group>"; };
@@ -363,6 +365,7 @@
 				F8A6AC39B41A60DA4EF6B9A1 /* Shell.swift */,
 				4657E80B8BF0B3645C5E8D5B /* Skills.swift */,
 				4F2F9FCE5D72ADF412997D85 /* Steps.swift */,
+				4B09D14F0B5F469FF33D5670 /* Storage.swift */,
 				8E6FEA2C297024FA08F11B9E /* Sys.swift */,
 				515BACBDFB953B32A7C4D09A /* TaskAgent.swift */,
 				94C08053FF95F408B5FEF4F3 /* Tasks.swift */,
@@ -583,6 +586,7 @@
 				DDE6257AB418C23473F93E73 /* Shell.swift in Sources */,
 				210B8CB69D11C6C1E715C5E9 /* Skills.swift in Sources */,
 				2EE78677FA6B674DA81248E0 /* Steps.swift in Sources */,
+				FF39A030DFFF3CAC6DE5CF67 /* Storage.swift in Sources */,
 				E4B3848D4025F3A6C18EE46D /* Sys.swift in Sources */,
 				70FADF79CD2581E0EBDF540A /* TaskAgent.swift in Sources */,
 				7D0774EC06D382125B1DDA9B /* Tasks.swift in Sources */,
