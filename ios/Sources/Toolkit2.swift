@@ -12,6 +12,8 @@ enum Toolkit2 {
         s += "- cutout {\"name\":\"图片文件名\",\"bg\":\"clear|white|blue|red|gray\",\"crop\":false}：抠出人物或物品主体。clear 输出透明 PNG；white blue red 是证件照底色（输出 JPG）；crop 为 true 时裁到主体边缘\n"
         s += "- scan_code {\"name\":\"图片文件名\"}：读取图片里的二维码、条形码，返回内容（链接、Wi‑Fi、商品码）\n"
         s += "- image_edit {\"name\":\"图片文件名\",\"op\":\"resize|compress|rotate|flip|crop|strip\",\"long_side\":1080,\"max_kb\":500,\"angle\":90,\"flip\":\"h|v\",\"ratio\":\"1:1\"}：图片处理。resize 按长边缩小；compress 压缩到不超过 max_kb；rotate 顺时针旋转；flip 左右(h)或上下(v)翻转；crop 从中心按 ratio（如 1:1 4:3 16:9）裁剪；strip 清除位置、设备型号等隐私信息\n"
+        s += "- media_edit {\"op\":\"trim|gif|speed|frame|merge\",\"names\":[\"文件名\"],\"start\":0,\"end\":10,\"length\":4,\"speed\":2,\"at\":3.5}：音视频剪辑（单位秒）。trim 保留 start 到 end；gif 从 start 起截 length 秒（最长 10）做成 GIF；speed 倍速；frame 截取 at 秒处的画面；merge 按 names 顺序合并多个视频或音频\n"
+        s += "- transcribe {\"name\":\"音频或视频文件名\",\"language\":\"zh-CN|en-US|ja-JP|ko-KR|yue-CN\"}：把录音或视频转成文字（本机识别），同时生成 txt 和 SRT 字幕附在回复下方；language 留空=系统语言。耗时约为音频时长的 1/5 到 1/2，长文件请先告诉用户需要等一会儿\n"
         s += "- zip {\"names\":[\"文件名\",…],\"out\":\"压缩包名\"}：把工作区的文件打成 zip；unzip {\"name\":\"压缩包文件名\"}：解压 zip，文件放进输出目录并附在回复下方\n"
         return s
     }
@@ -23,6 +25,8 @@ enum Toolkit2 {
         case "cutout": return await cutout(c.args, trace)
         case "scan_code": return await scanCode(c.args, trace)
         case "image_edit": return await imageEdit(c.args, trace)
+        case "media_edit": return await mediaEdit(c.args, trace)
+        case "transcribe": return await transcribe(c.args, trace)
         case "zip": return zip(c.args, trace)
         case "unzip": return unzip(c.args, trace)
         default: return nil
@@ -205,6 +209,51 @@ enum Toolkit2 {
             return ToolResult(text: "已处理（\(r.1)），已附在回复下方。")
         } catch {
             return fail(trace, sid, error, "图片处理")
+        }
+    }
+
+    // MARK: 音视频剪辑
+    private static func mediaEdit(_ a: [String: Any], _ trace: Tracer) async -> ToolResult {
+        guard let op = MediaOps.Op.parse(str(a, "op")) else {
+            return ToolResult(text: "op 需要是：trim / gif / speed / frame / merge", ok: false)
+        }
+        let t = targets(a)
+        guard !t.urls.isEmpty else { return noFile }
+        let urls = t.urls
+        let start = num(a, "start") ?? 0
+        let len = num(a, "length") ?? 4
+        let factor = num(a, "speed") ?? 2
+        let at = num(a, "at") ?? 0
+        let sid = trace.begin(.file, "音视频 " + op.title, urls.map { $0.lastPathComponent }.joined(separator: "、"))
+        do {
+            let dur = await MediaOps.duration(urls[0])
+            let end = num(a, "end") ?? dur
+            let r = try await MediaOps.perform(op, files: urls, start: start, end: end, length: len, factor: factor, at: at, width: 480)
+            attach([r], trace)
+            trace.end(sid, detail: r.lastPathComponent)
+            return ToolResult(text: "已完成（\(ToolFS.size(r))），已附在回复下方。")
+        } catch {
+            return fail(trace, sid, error, "处理")
+        }
+    }
+
+    // MARK: 转文字
+    private static func transcribe(_ a: [String: Any], _ trace: Tracer) async -> ToolResult {
+        guard let u = targets(a).urls.first else { return noFile }
+        let sid = trace.begin(.file, "转文字", u.lastPathComponent)
+        do {
+            let r = try await Transcribe.run(u, locale: str(a, "language")) { _ in }
+            let base = ToolFS.base(u)
+            let tx = ToolFS.out(base + "-文字", "txt")
+            try r.text.write(to: tx, atomically: true, encoding: .utf8)
+            let sr = ToolFS.out(base, "srt")
+            try r.srt.write(to: sr, atomically: true, encoding: .utf8)
+            attach([tx, sr], trace)
+            trace.end(sid, detail: L10n.f("{} 字", "\(r.text.count)"))
+            let body = r.text.count > 9000 ? String(r.text.prefix(9000)) + "\n…（已截断，完整内容在 txt 文件里）" : r.text
+            return ToolResult(text: "转写完成，txt 和 SRT 字幕已附在回复下方。内容：\n" + body)
+        } catch {
+            return fail(trace, sid, error, "转文字")
         }
     }
 

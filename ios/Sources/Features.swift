@@ -12,6 +12,7 @@ enum Features {
     - 屏幕翻译：截屏后说「翻译屏幕」，译文贴回原图；工具箱里有一键用法
     - 网页文字：发网址说「提取文字」，去掉广告只留正文，可翻译、导出
     - 图片：识别文字（多张、扫描 PDF 也行）、翻译图片并贴回原位、本机去水印、抠图换证件照底色、自动打码手机号身份证人脸、压缩到指定大小
+    - 音视频：录音/视频转文字并生成字幕、剪切、转 GIF、变速、合并、截取画面
     - 文件：文档扫描成可搜索 PDF、PDF 合并拆分压缩加密、二维码读取与生成、zip 打包解压
     - 文档互转：Word、Excel、PDF、Markdown、网页、CSV、JSON、图片互相转换；发文件后点输入框上的按钮就行
     - 视频与音频：去水印、提取音频、去除声音、压缩、转 m4a / wav
@@ -36,6 +37,9 @@ enum Features {
         if has(["识别文字", "图片转文字", "提取图片文字", "图片文字"]) { return ToolRequest(kind: .ocr) }
         if has(["格式转换", "文件转换", "转换格式"]) { return ToolRequest(kind: .convert) }
         let files = Agent.shared.attachments.map { $0.url }
+        let hasAV = files.contains { Convert.vidExt.contains($0.pathExtension.lowercased()) || Convert.audExt.contains($0.pathExtension.lowercased()) }
+        if has(["录音转文字", "语音转文字", "视频转文字", "音频转文字", "生成字幕", "视频字幕", "转写"]) || (hasAV && has(["转文字", "字幕"])) { return ToolRequest(kind: .transcribe, files: files) }
+        if has(["剪视频", "视频剪辑", "剪切视频", "视频剪切", "转gif", "转 gif", "视频变速", "合并视频", "剪切音频", "音频剪切", "合并音频", "截取画面"]) { return ToolRequest(kind: .media, files: files) }
         if has(["扫描文档", "文档扫描", "扫描文件", "扫描件", "扫描成pdf", "扫描成 pdf"]) { return ToolRequest(kind: .scan) }
         if has(["二维码", "扫码", "条形码", "条码"]) { return ToolRequest(kind: .qr, files: files) }
         if has(["抠图", "去背景", "去除背景", "换背景", "证件照", "换底色"]) { return ToolRequest(kind: .cutout, files: files) }

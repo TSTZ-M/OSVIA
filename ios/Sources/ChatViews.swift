@@ -402,9 +402,13 @@ struct ChatView: View {
             return [("识别文字", "ocr"), ("翻译图片", "trans"), ("去水印", "wm"), ("抠图", "cutout"), ("打码", "redact"), ("读二维码", "qr"), ("图片处理", "imgedit"), conv("pdf"), conv("docx")]
         }
         if Convert.vidExt.contains(e) {
-            return [conv("m4a"), conv("mute"), ("去水印", "wmv"), conv("compress"), conv("wav")]
+            return [("转文字", "transcribe"), ("剪辑", "media"), conv("m4a"), conv("mute"), ("去水印", "wmv"), conv("compress"), conv("wav")]
         }
         var list = Convert.targets(for: e).prefix(4).map { conv($0) }
+        if Convert.audExt.contains(e) {
+            list.insert(("转文字", "transcribe"), at: 0)
+            list.insert(("剪辑", "media"), at: 1)
+        }
         if e == "pdf" {
             list.insert(("识别文字", "ocrpdf"), at: 0)
             list.insert(("PDF 工具", "pdftool"), at: 1)
@@ -460,6 +464,8 @@ struct ChatView: View {
         case "qr": state.tool = ToolRequest(kind: .qr, files: urls)
         case "imgedit": state.tool = ToolRequest(kind: .imageEdit, files: urls)
         case "pdftool": state.tool = ToolRequest(kind: .pdf, files: urls)
+        case "transcribe": state.tool = ToolRequest(kind: .transcribe, files: urls)
+        case "media": state.tool = ToolRequest(kind: .media, files: urls)
         case "more": state.tool = ToolRequest(kind: .convert, files: urls)
         default:
             if key.hasPrefix("conv:") {
