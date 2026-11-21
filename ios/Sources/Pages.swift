@@ -135,6 +135,7 @@ struct ToolboxView: View {
                         kind(.scan)
                         kind(.translateImage)
                         kind(.qr)
+                        kind(.transcribe)
                         card("屏幕翻译", "截图一键翻译整屏，译文贴回原位", "camera.viewfinder") { ScreenTranslateView() }
                     }
                     section("转换与处理") {
@@ -143,6 +144,7 @@ struct ToolboxView: View {
                         kind(.imageEdit)
                         kind(.cutout)
                         kind(.redact)
+                        kind(.media)
                         kind(.wmImage)
                         kind(.wmVideo)
                         kind(.audio)

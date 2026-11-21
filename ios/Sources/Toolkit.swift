@@ -584,7 +584,7 @@ enum PDFTextOCR {
 
 // MARK: 工具入口：工具箱卡片、「+」托盘、聊天快捷操作共用
 enum ToolKind: String, Identifiable, CaseIterable {
-    case web, ocr, scan, translateImage, convert, pdf, imageEdit, cutout, redact, qr, wmImage, wmVideo, audio, mute
+    case web, ocr, scan, translateImage, convert, pdf, imageEdit, cutout, redact, qr, transcribe, media, wmImage, wmVideo, audio, mute
     var id: String { rawValue }
 
     var title: String {
@@ -599,6 +599,8 @@ enum ToolKind: String, Identifiable, CaseIterable {
         case .cutout: return "抠图换底"
         case .redact: return "图片打码"
         case .qr: return "二维码"
+        case .transcribe: return "转文字与字幕"
+        case .media: return "音视频剪辑"
         case .wmImage: return "图片去水印"
         case .wmVideo: return "视频去水印"
         case .audio: return "提取音频"
@@ -618,6 +620,8 @@ enum ToolKind: String, Identifiable, CaseIterable {
         case .cutout: return "一键去背景，证件照换白、蓝、红底"
         case .redact: return "自动给手机号、身份证、银行卡、人脸打码"
         case .qr: return "读取二维码和条形码，也能生成二维码"
+        case .transcribe: return "录音、视频转成文字，并生成 SRT 字幕"
+        case .media: return "剪切、转 GIF、变速、截取画面、合并"
         case .wmImage: return "框出水印，本机一键去除"
         case .wmVideo: return "逐帧去除固定位置的水印，声音保留"
         case .audio: return "从视频里取出声音，存成 m4a 或 wav"
@@ -637,6 +641,8 @@ enum ToolKind: String, Identifiable, CaseIterable {
         case .cutout: return "person.crop.rectangle"
         case .redact: return "eye.slash"
         case .qr: return "qrcode"
+        case .transcribe: return "waveform.and.mic"
+        case .media: return "film"
         case .wmImage: return "wand.and.stars"
         case .wmVideo: return "film"
         case .audio: return "waveform"
@@ -657,6 +663,8 @@ enum ToolKind: String, Identifiable, CaseIterable {
         case .cutout: CutoutView(initial: files.first(where: { Files.isImage($0) }))
         case .redact: RedactView(initial: files.first(where: { Files.isImage($0) }))
         case .qr: QRView(initial: files)
+        case .transcribe: TranscribeView(initial: files.first(where: { Convert.vidExt.contains($0.pathExtension.lowercased()) || Convert.audExt.contains($0.pathExtension.lowercased()) }))
+        case .media: MediaToolView(initial: files)
         case .wmImage: WatermarkView(video: false, initial: files.first(where: { Files.isImage($0) }))
         case .wmVideo: WatermarkView(video: true, initial: files.first(where: { Convert.vidExt.contains($0.pathExtension.lowercased()) }))
         case .audio: ConvertView(initial: files.first, preset: "m4a", title: "提取音频", videosOnly: true)
