@@ -63,7 +63,10 @@ struct RootView: View {
         .environment(\.layoutDirection, L10n.rtl ? .rightToLeft : .leftToRight)
         .dynamicTypeSize(...DynamicTypeSize.accessibility3)
         .translationTask(l10n.config) { session in await l10n.run(session) }
-        .onAppear { l10n.ensureTranslation() }
+        .onAppear {
+            l10n.ensureTranslation()
+            StorageInfo.cleanTempAsync()
+        }
         .sheet(item: $state.page) { PageSheet(page: $0).id(l10n.version) }
         .sheet(item: $state.tool) { ToolSheet(req: $0).id(l10n.version) }
     }

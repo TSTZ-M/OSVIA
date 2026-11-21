@@ -129,6 +129,7 @@ struct AppSettingsView: View {
 
                 Section("隐私与数据") {
                     Button { openSettings() } label: { row("hand.raised", .blue, "通知、照片、相机、麦克风等权限") }
+                    NavigationLink { StoragePage() } label: { row("internaldrive", .gray, "存储空间与清理") }
                     if let u = exportURL {
                         ShareLink(item: u) { row("square.and.arrow.up", .green, "导出全部对话") }
                     }

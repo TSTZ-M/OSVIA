@@ -191,30 +191,34 @@ enum DocEnhance {
 
 enum SearchablePDF {
     // 每页：图片铺满，再把识别出的文字隐形叠在原位，PDF 里就能搜索、选中、复制
-    static func make(_ items: [(CGImage, [OCR.Line])]) -> Data {
+    // 逐页取图并写入，任何时候内存里只有一页，几十页的扫描件也不会撑爆内存
+    static func make(count: Int, page: (Int) -> (CGImage, [OCR.Line])?) -> Data {
         let pageW: CGFloat = 595
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageW, height: 842))
         return renderer.pdfData { ctx in
-            for (cg, lines) in items {
-                let h = pageW * CGFloat(cg.height) / CGFloat(max(cg.width, 1))
-                let size = CGSize(width: pageW, height: h)
-                ctx.beginPage(withBounds: CGRect(origin: .zero, size: size), pageInfo: [:])
-                UIImage(cgImage: cg).draw(in: CGRect(origin: .zero, size: size))
-                let c = ctx.cgContext
-                c.saveGState()
-                c.setTextDrawingMode(.invisible)
-                for l in lines {
-                    let r = CGRect(x: l.box.minX * size.width, y: l.box.minY * size.height, width: l.box.width * size.width, height: l.box.height * size.height)
-                    let fs = max(4, r.height * 0.85)
-                    let attr = NSAttributedString(string: l.text, attributes: [.font: UIFont.systemFont(ofSize: fs)])
-                    let line = CTLineCreateWithAttributedString(attr)
-                    let w = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil))
-                    let sx = w > 0 ? r.width / w : 1
-                    c.textMatrix = CGAffineTransform(a: sx, b: 0, c: 0, d: -1, tx: 0, ty: 0)
-                    c.textPosition = CGPoint(x: r.minX, y: r.maxY - r.height * 0.2)
-                    CTLineDraw(line, c)
+            for i in 0..<count {
+                autoreleasepool {
+                    guard let (cg, lines) = page(i) else { return }
+                    let h = pageW * CGFloat(cg.height) / CGFloat(max(cg.width, 1))
+                    let size = CGSize(width: pageW, height: h)
+                    ctx.beginPage(withBounds: CGRect(origin: .zero, size: size), pageInfo: [:])
+                    UIImage(cgImage: cg).draw(in: CGRect(origin: .zero, size: size))
+                    let c = ctx.cgContext
+                    c.saveGState()
+                    c.setTextDrawingMode(.invisible)
+                    for l in lines {
+                        let r = CGRect(x: l.box.minX * size.width, y: l.box.minY * size.height, width: l.box.width * size.width, height: l.box.height * size.height)
+                        let fs = max(4, r.height * 0.85)
+                        let attr = NSAttributedString(string: l.text, attributes: [.font: UIFont.systemFont(ofSize: fs)])
+                        let line = CTLineCreateWithAttributedString(attr)
+                        let w = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil))
+                        let sx = w > 0 ? r.width / w : 1
+                        c.textMatrix = CGAffineTransform(a: sx, b: 0, c: 0, d: -1, tx: 0, ty: 0)
+                        c.textPosition = CGPoint(x: r.minX, y: r.maxY - r.height * 0.2)
+                        CTLineDraw(line, c)
+                    }
+                    c.restoreGState()
                 }
-                c.restoreGState()
             }
         }
     }
@@ -297,18 +301,19 @@ struct ScanView: View {
         let enh = enhance
         Task {
             let r = await Task<(Data, String)?, Never>.detached(priority: .userInitiated) {
-                var items: [(CGImage, [OCR.Line])] = []
+                let n = min(list.count, 40)
+                guard n > 0 else { return nil }
                 var all: [String] = []
-                for (i, img) in list.prefix(40).enumerated() {
-                    guard var cg = img.cgImage else { continue }
+                let data = SearchablePDF.make(count: n) { i in
+                    guard var cg = list[i].cgImage else { return nil }
+                    cg = ImageOps.resize(cg, longSide: 2200)
                     if enh { cg = DocEnhance.apply(cg) }
                     let lines = OCR.lines(cg)
-                    items.append((cg, lines))
                     let t = lines.map { $0.text }.joined(separator: "\n")
                     if !t.isEmpty { all.append(list.count > 1 ? "—— 第 \(i + 1) 页 ——\n" + t : t) }
+                    return (cg, lines)
                 }
-                guard !items.isEmpty else { return nil }
-                return (SearchablePDF.make(items), all.joined(separator: "\n\n"))
+                return (data, all.joined(separator: "\n\n"))
             }.value
             if let r {
                 let dst = ToolFS.out("扫描-" + Files.stampText(), "pdf")

@@ -288,6 +288,7 @@ enum Transcribe {
         defer { for t in temps { try? FileManager.default.removeItem(at: t) } }
 
         for i in 0..<count {
+            try Task.checkCancellation()
             let from = Double(i) * chunk
             let to = min(total, from + chunk)
             let part: URL
@@ -537,6 +538,7 @@ struct TranscribeView: View {
     @State private var progress: Double = 0
     @State private var busy = false
     @State private var err = ""
+    @State private var job: Task<Void, Never>?
 
     init(initial: URL? = nil) { _file = State(initialValue: initial) }
 
@@ -575,12 +577,16 @@ struct TranscribeView: View {
                     }
                 }
                 if !err.isEmpty { Label(err, systemImage: "exclamationmark.triangle.fill").font(.subheadline).foregroundStyle(.red) }
-                Button { run() } label: {
-                    HStack { if busy { ProgressView() }; Text(busy ? "识别中…" : "开始转文字").frame(maxWidth: .infinity) }
+                if busy {
+                    Button(role: .cancel) { job?.cancel() } label: { Text("取消").frame(maxWidth: .infinity) }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                } else {
+                    Button { run() } label: { Text("开始转文字").frame(maxWidth: .infinity) }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(file == nil)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(busy || file == nil)
 
                 if !text.isEmpty { ResultTextPanel(title: "转写结果", text: text) }
                 if !outs.isEmpty { OutputList(urls: outs) }
@@ -600,7 +606,7 @@ struct TranscribeView: View {
         text = ""
         outs = []
         let id = lang
-        Task {
+        job = Task {
             do {
                 let r = try await Transcribe.run(f, locale: id) { p in Task { @MainActor in progress = p } }
                 text = r.text
@@ -610,10 +616,13 @@ struct TranscribeView: View {
                 let s = ToolFS.out(base, "srt")
                 try r.srt.write(to: s, atomically: true, encoding: .utf8)
                 outs = [t, s]
+            } catch is CancellationError {
+                err = "已取消"
             } catch {
                 err = error.localizedDescription
             }
             busy = false
+            job = nil
         }
     }
 }
