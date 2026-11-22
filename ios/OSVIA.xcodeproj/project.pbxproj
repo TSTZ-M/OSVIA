@@ -79,6 +79,7 @@
 		A5FAE91F59AD652373ED7B34 /* Digest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E8D0FFB6FF17F96C1469F1 /* Digest.swift */; };
 		A730A58CF381383D28925044 /* OSVIALive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DE1D20BEED090BA644D407DF /* OSVIALive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A9CE70796FDF808E5798B926 /* Memory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F2FA46DD1AAF3B622AFC65 /* Memory.swift */; };
+		B0A9319079A334D57A1B2FE2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BA42E76FEA5F2985F91435EA /* PrivacyInfo.xcprivacy */; };
 		B1BFB73B87E476F340A9FC40 /* Intents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AE9B4B23C55E3FB8C91408B /* Intents.swift */; };
 		B4B0F662FE12FBC4BEE267E0 /* Inputs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4A38C4EFF9816807ECD28B /* Inputs.swift */; };
 		B869BDAB78C2E6C4D8D1838A /* MailMIME.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28F4ADCE07EFD5D0F8A45F41 /* MailMIME.swift */; };
@@ -209,6 +210,7 @@
 		B9332C0FB383F2064968EBB4 /* L10nExtra2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nExtra2.swift; sourceTree = "<group>"; };
 		B95B6971DC59560F399B850C /* Mail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mail.swift; sourceTree = "<group>"; };
 		B9BC70B91880117EF16B3D4B /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
+		BA42E76FEA5F2985F91435EA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BC8AFB834A4A6D1C92CB04D9 /* Features.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features.swift; sourceTree = "<group>"; };
 		BED1AA84663C25D2EB051C07 /* BrandMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandMark.swift; sourceTree = "<group>"; };
 		C4F2FA46DD1AAF3B622AFC65 /* Memory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Memory.swift; sourceTree = "<group>"; };
@@ -255,6 +257,7 @@
 			isa = PBXGroup;
 			children = (
 				000E7FBD7725FCEA749D8A56 /* OSVIA.xcconfig */,
+				BA42E76FEA5F2985F91435EA /* PrivacyInfo.xcprivacy */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -486,6 +489,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4AFA00C231C51FA8DDF3E3E6 /* Assets.xcassets in Resources */,
+				B0A9319079A334D57A1B2FE2 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
