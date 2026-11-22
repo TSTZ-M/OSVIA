@@ -10,17 +10,20 @@
       "developerName": "OSVIA",
       "localizedDescription": "OSVIA iOS app. Unsigned IPA, signed on the device by SideStore.",
       "iconURL": "https://raw.githubusercontent.com/TSTZ-M/OSVIA/main/ios/Sources/Assets.xcassets/AppIcon.appiconset/icon.png",
-      "version": "0.9.29",
-      "versionDate": "2026-11-22T07:47:38Z",
-      "downloadURL": "https://testingcf.jsdelivr.net/gh/TSTZ-M/OSVIA@061c31b3bd5af172cf8a0059db83ddfe715abb25/OSVIA-29.ipa",
-      "size": 12668930,
+      "version": "0.9.30",
+      "versionDate": "2026-11-22T12:32:37Z",
+      "versionDescription": "SideStore 源：补上更新说明，更新卡片不再显示 nil",
+      "downloadURL": "https://testingcf.jsdelivr.net/gh/TSTZ-M/OSVIA@aa351eed07c08dd0e70ce8f650317cc122ad95bd/OSVIA-30.ipa",
+      "size": 12668925,
       "versions": [
         {
-          "version": "0.9.29",
-          "buildVersion": "29",
-          "date": "2026-11-22T07:47:38Z",
-          "downloadURL": "https://testingcf.jsdelivr.net/gh/TSTZ-M/OSVIA@061c31b3bd5af172cf8a0059db83ddfe715abb25/OSVIA-29.ipa",
-          "size": 12668930
+          "version": "0.9.30",
+          "buildVersion": "30",
+          "date": "2026-11-22T12:32:37Z",
+          "localizedDescription": "SideStore 源：补上更新说明，更新卡片不再显示 nil",
+          "downloadURL": "https://testingcf.jsdelivr.net/gh/TSTZ-M/OSVIA@aa351eed07c08dd0e70ce8f650317cc122ad95bd/OSVIA-30.ipa",
+          "size": 12668925,
+          "minOSVersion": "26.0"
         }
       ],
       "appPermissions": { "entitlements": [], "privacy": {} }
