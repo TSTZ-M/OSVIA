@@ -140,6 +140,7 @@ jobs:
             echo "not usable: $URL"
           done
           rm -f "$PROBE"
+          export OSVIA_NOTES="$(git log -1 --format=%s | sed -E 's/ \(#[0-9]+\)$//')"
           if [ -n "$PICK" ]; then
             echo "download URL verified: $PICK"
             OSVIA_IPA_URL="$PICK" bash tools/make-osvia-source.sh OSVIA.ipa
