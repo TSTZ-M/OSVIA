@@ -57,7 +57,9 @@ struct OSVIAApp: App {
                 .tint(Brand.accent)
                 .onAppear { AppTheme.apply(appearance) }
                 .onChange(of: appearance) { _, v in AppTheme.apply(v) }
-                .onOpenURL { URLRouter.handle($0) }
+                .onOpenURL { u in
+                    if u.isFileURL { URLRouter.openFile(u) } else { URLRouter.handle(u) }
+                }
         }
         .onChange(of: phase) { _, p in
             if p == .active { Diag.phase(active: true) } else if p == .background { Diag.phase(active: false) }
@@ -81,6 +83,21 @@ struct OSVIAApp: App {
 // 其他应用调用：osvia://ask?q=问题   osvia://run?name=技能名&input=内容&x-success=回调地址
 // 内部回调：osvia://clock（系统时钟闹钟）  osvia://connector（连接器结果）
 enum URLRouter {
+    // 其他 App 的「分享 → OSVIA」或「文件」里的「用 OSVIA 打开」：导入后挂到输入框，下面出现识别、转换、剪辑等一键操作
+    @MainActor static func openFile(_ url: URL) {
+        AppState.shared.drawer = false
+        AppState.shared.page = nil
+        AppState.shared.tool = nil
+        Task { @MainActor in
+            let res = await Files.importFileAsync(url)
+            if let c = res.url {
+                Agent.shared.attachments.append(Attach(url: c))
+            } else {
+                AppState.shared.incomingError = res.error ?? "文件读取失败"
+            }
+        }
+    }
+
     @MainActor static func handle(_ url: URL) {
         guard url.scheme == "osvia" else { return }
         var q: [String: String] = [:]

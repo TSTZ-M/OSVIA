@@ -95,12 +95,13 @@ enum Hands2 {
             var add = (target - cur + 7) % 7
             if add == 0 { add = 7 }
             // “下周X”：本周的 X 已过或就是今天时才进入下一周；用户明确说“下周”时，调用方可再加 days:7
-            let d = cal.date(byAdding: .day, value: add + (((a["days"] as? NSNumber)?.intValue) ?? 0), to: from) ?? from
+            let extra = min(max(((a["days"] as? NSNumber)?.intValue) ?? 0, -100_000), 100_000)
+            let d = cal.date(byAdding: .day, value: add + extra, to: from) ?? from
             return ToolResult(text: "\(show(from)) 之后最近的\(str(a, "weekday"))是 \(show(d))。")
         }
         var d = from
-        let months = (a["months"] as? NSNumber)?.intValue ?? 0
-        let days = (a["days"] as? NSNumber)?.intValue ?? 0
+        let months = min(max((a["months"] as? NSNumber)?.intValue ?? 0, -12_000), 12_000)
+        let days = min(max((a["days"] as? NSNumber)?.intValue ?? 0, -400_000), 400_000)
         if months != 0 { d = cal.date(byAdding: .month, value: months, to: d) ?? d }
         if days != 0 { d = cal.date(byAdding: .day, value: days, to: d) ?? d }
         return ToolResult(text: "\(show(from)) \(months != 0 ? "加 \(months) 个月 " : "")\(days != 0 ? "加 \(days) 天 " : "")= \(show(d))。")

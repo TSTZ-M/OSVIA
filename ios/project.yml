@@ -66,6 +66,17 @@ targets:
           - com.Hao-Yi-Miao.TSTZ-Agent.mail
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: 文件
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.image
+              - com.adobe.pdf
+              - public.movie
+              - public.audio
+              - public.text
+              - public.data
         NSSupportsLiveActivities: true
         CFBundleURLTypes:
           - CFBundleURLName: com.Hao-Yi-Miao.TSTZ-Agent
