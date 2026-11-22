@@ -586,13 +586,14 @@ enum PDFTextOCR {
 
 // MARK: 工具入口：工具箱卡片、「+」托盘、聊天快捷操作共用
 enum ToolKind: String, Identifiable, CaseIterable {
-    case web, ocr, scan, translateImage, convert, pdf, imageEdit, cutout, redact, qr, transcribe, media, wmImage, wmVideo, audio, mute
+    case web, ocr, table, scan, translateImage, convert, pdf, imageEdit, cutout, redact, qr, transcribe, media, wmImage, wmVideo, audio, mute
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .web: return "网页文字"
         case .ocr: return "识别文字"
+        case .table: return "表格识别"
         case .scan: return "文档扫描"
         case .translateImage: return "翻译图片"
         case .convert: return "格式转换"
@@ -614,6 +615,7 @@ enum ToolKind: String, Identifiable, CaseIterable {
         switch self {
         case .web: return "粘贴网址，一键取出正文，可翻译、导出"
         case .ocr: return "识别图片里的文字，支持多张、PDF 扫描件"
+        case .table: return "图片、PDF 里的表格识别成 Excel / CSV"
         case .scan: return "拍文件自动裁边拉直，生成可搜索的 PDF"
         case .translateImage: return "把图里的文字翻成你的语言并贴回原位"
         case .convert: return "Word、Excel、PDF、图片、表格、视频互相转换"
@@ -635,6 +637,7 @@ enum ToolKind: String, Identifiable, CaseIterable {
         switch self {
         case .web: return "globe"
         case .ocr: return "text.viewfinder"
+        case .table: return "tablecells"
         case .scan: return "doc.viewfinder"
         case .translateImage: return "character.bubble"
         case .convert: return "arrow.triangle.2.circlepath"
@@ -657,6 +660,7 @@ enum ToolKind: String, Identifiable, CaseIterable {
         switch self {
         case .web: WebExtractView(initial: text)
         case .ocr: OCRView(initial: files.filter { Files.isImage($0) || $0.pathExtension.lowercased() == "pdf" })
+        case .table: TableView(initial: files.filter { Files.isImage($0) || $0.pathExtension.lowercased() == "pdf" })
         case .scan: ScanView()
         case .translateImage: ScreenTranslateView(title: "翻译图片")
         case .convert: ConvertView(initial: files.first)

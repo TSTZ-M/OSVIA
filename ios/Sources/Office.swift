@@ -400,6 +400,10 @@ enum Office {
     }
 
     static func xlsx(_ rows: [[String]], sheet: String = "Sheet1") -> Data {
+        xlsx(sheets: [(sheet, rows)])
+    }
+
+    private static func sheetXML(_ rows: [[String]]) -> String {
         var data = ""
         for (ri, row) in rows.enumerated() {
             data += "<row r=\"\(ri + 1)\">"
@@ -416,19 +420,49 @@ enum Office {
             }
             data += "</row>"
         }
-        let name = esc(String(sheet.prefix(31)))
-        let ws = head + "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>" + data + "</sheetData></worksheet>"
-        let wb = head + "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"\(docRel)\"><sheets><sheet name=\"\(name)\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>"
-        let wbRels = head + "<Relationships xmlns=\"\(relNS)\"><Relationship Id=\"rId1\" Type=\"\(docRel)/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>"
+        return head + "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>" + data + "</sheetData></worksheet>"
+    }
+
+    /// 多工作表 xlsx：表名去掉 Excel 不允许的字符、截到 31 字、重名自动加序号
+    static func xlsx(sheets: [(name: String, rows: [[String]])]) -> Data {
+        let list = sheets.isEmpty ? [(name: "Sheet1", rows: [[String]]())] : sheets
+        var used = Set<String>()
+        var names: [String] = []
+        for (i, sh) in list.enumerated() {
+            var n = sh.name.components(separatedBy: CharacterSet(charactersIn: "[]:*?/\\")).joined(separator: " ").trimmingCharacters(in: CharacterSet(charactersIn: " '"))
+            if n.isEmpty { n = "Sheet\(i + 1)" }
+            n = String(n.prefix(31))
+            var c = n
+            var k = 2
+            while used.contains(c.lowercased()) {
+                let suffix = "-\(k)"
+                c = String(n.prefix(31 - suffix.count)) + suffix
+                k += 1
+            }
+            used.insert(c.lowercased())
+            names.append(c)
+        }
+        var sheetEls = ""
+        var relEls = ""
+        var typeEls = ""
+        var parts: [(String, Data)] = []
+        for (i, sh) in list.enumerated() {
+            let n = i + 1
+            sheetEls += "<sheet name=\"\(esc(names[i]))\" sheetId=\"\(n)\" r:id=\"rId\(n)\"/>"
+            relEls += "<Relationship Id=\"rId\(n)\" Type=\"\(docRel)/worksheet\" Target=\"worksheets/sheet\(n).xml\"/>"
+            typeEls += "<Override PartName=\"/xl/worksheets/sheet\(n).xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
+            parts.append(("xl/worksheets/sheet\(n).xml", Data(sheetXML(sh.rows).utf8)))
+        }
+        let wb = head + "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"\(docRel)\"><sheets>" + sheetEls + "</sheets></workbook>"
+        let wbRels = head + "<Relationships xmlns=\"\(relNS)\">" + relEls + "</Relationships>"
         let rels = head + "<Relationships xmlns=\"\(relNS)\"><Relationship Id=\"rId1\" Type=\"\(docRel)/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>"
-        let types = head + "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/></Types>"
+        let types = head + "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>" + typeEls + "</Types>"
         return Zip.write([
             ("[Content_Types].xml", Data(types.utf8)),
             ("_rels/.rels", Data(rels.utf8)),
             ("xl/workbook.xml", Data(wb.utf8)),
             ("xl/_rels/workbook.xml.rels", Data(wbRels.utf8)),
-            ("xl/worksheets/sheet1.xml", Data(ws.utf8)),
-        ])
+        ] + parts)
     }
 
     static func rtfData(_ text: String) -> Data? {

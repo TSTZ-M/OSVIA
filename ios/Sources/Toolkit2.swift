@@ -10,6 +10,7 @@ enum Toolkit2 {
         s += "- pdf_tool {\"op\":\"merge|split|extract|rotate|compress|protect|unlock|numbers|watermark|images\",\"names\":[\"文件名\",…],\"pages\":\"1-3,5,8-\",\"angle\":90,\"password\":\"密码\",\"text\":\"水印文字\",\"quality\":\"light|medium|strong\"}：本机处理 PDF。merge 合并多个 PDF/图片（按 names 顺序）；split 拆分（pages 留空=每页一个文件）；extract 只留 pages 指定页；rotate 顺时针旋转 angle 度；compress 压缩体积（页面变图片，文字不可选）；protect 加打开密码；unlock 用 password 解除密码；numbers 加页码；watermark 加斜向水印；images 把多张图片做成 PDF。names 留空=最近的文件；结果附在回复下方\n"
         s += "- redact {\"name\":\"图片文件名\",\"kinds\":[\"phone\",\"idcard\",\"bank\",\"email\",\"url\",\"plate\",\"face\",\"all\"],\"style\":\"mosaic|black\"}：自动找出图里的手机号、身份证号、银行卡号、邮箱、网址、车牌、人脸并打码，导出图同时清除拍摄位置等信息。kinds 留空=手机号+身份证+银行卡+邮箱+车牌+人脸；all=所有文字\n"
         s += "- cutout {\"name\":\"图片文件名\",\"bg\":\"clear|white|blue|red|gray\",\"crop\":false}：抠出人物或物品主体。clear 输出透明 PNG；white blue red 是证件照底色（输出 JPG）；crop 为 true 时裁到主体边缘\n"
+        s += "- table_ocr {\"names\":[\"图片或PDF文件名\",…],\"format\":\"xlsx|csv\"}：识别图片、PDF（最多 30 页）里的表格，导出成 Excel（每个表一个工作表，列数相同的自动合并）或 CSV，文件附在回复下方，同时返回前几行预览。names 留空=最近的文件。用户说「把这张图/这个 PDF 里的表格转成 Excel」时用，不要先 ocr 再自己排版\n"
         s += "- scan_code {\"name\":\"图片文件名\"}：读取图片里的二维码、条形码，返回内容（链接、Wi‑Fi、商品码）\n"
         s += "- image_edit {\"name\":\"图片文件名\",\"op\":\"resize|compress|rotate|flip|crop|strip\",\"long_side\":1080,\"max_kb\":500,\"angle\":90,\"flip\":\"h|v\",\"ratio\":\"1:1\"}：图片处理。resize 按长边缩小；compress 压缩到不超过 max_kb；rotate 顺时针旋转；flip 左右(h)或上下(v)翻转；crop 从中心按 ratio（如 1:1 4:3 16:9）裁剪；strip 清除位置、设备型号等隐私信息\n"
         s += "- media_edit {\"op\":\"trim|gif|speed|frame|merge\",\"names\":[\"文件名\"],\"start\":0,\"end\":10,\"length\":4,\"speed\":2,\"at\":3.5}：音视频剪辑（单位秒）。trim 保留 start 到 end；gif 从 start 起截 length 秒（最长 10）做成 GIF；speed 倍速；frame 截取 at 秒处的画面；merge 按 names 顺序合并多个视频或音频\n"
@@ -23,6 +24,7 @@ enum Toolkit2 {
         case "pdf_tool": return await pdfTool(c.args, trace)
         case "redact": return await redact(c.args, trace)
         case "cutout": return await cutout(c.args, trace)
+        case "table_ocr": return await tableOCR(c.args, trace)
         case "scan_code": return await scanCode(c.args, trace)
         case "image_edit": return await imageEdit(c.args, trace)
         case "media_edit": return await mediaEdit(c.args, trace)
@@ -141,6 +143,27 @@ enum Toolkit2 {
             return ToolResult(text: "已抠出主体（\(bg.title)）并附在回复下方。")
         } catch {
             return fail(trace, sid, error, "抠图")
+        }
+    }
+
+    // MARK: 表格识别
+    private static func tableOCR(_ a: [String: Any], _ trace: Tracer) async -> ToolResult {
+        let t = targets(a)
+        let urls = t.urls.filter { Files.isImage($0) || $0.pathExtension.lowercased() == "pdf" }
+        guard !urls.isEmpty else { return ToolResult(text: "没有找到图片或 PDF。请让用户先发送含表格的图片或 PDF。", ok: false) }
+        let fmt = str(a, "format").lowercased() == "csv" ? "csv" : "xlsx"
+        let sid = trace.begin(.file, "表格识别", urls.map { $0.lastPathComponent }.joined(separator: "、"))
+        do {
+            let r = try await TableOCR.run(urls, format: fmt)
+            attach(r.files, trace)
+            trace.end(sid, detail: L10n.f("{} 个表格", "\(r.found.count)"))
+            var out = "识别到 \(r.found.count) 个表格，已导出 " + r.files.map { $0.lastPathComponent }.joined(separator: "、") + " 并附在回复下方。"
+            if r.merged { out += "列数相同，已合并成一张。" }
+            out += "\n预览：\n" + String(TableOCR.preview(r.found).prefix(2500))
+            out += "\n识别可能有个别错字，提醒用户核对关键数字。一两句话说明即可，不要重复整张表。"
+            return ToolResult(text: out)
+        } catch {
+            return fail(trace, sid, error, "表格识别")
         }
     }
 

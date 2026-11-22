@@ -34,6 +34,7 @@ enum Features {
         if has(["提取音频"]) { return ToolRequest(kind: .audio) }
         if has(["去除声音", "去掉声音", "视频静音", "视频去声音"]) { return ToolRequest(kind: .mute) }
         if has(["提取网页", "网页提取", "网页文字"]) { return ToolRequest(kind: .web) }
+        if has(["表格识别", "识别表格", "提取表格", "图片转表格", "图片转excel", "图片转 excel", "表格转excel", "表格转 excel", "pdf转表格", "pdf 转表格"]) { return ToolRequest(kind: .table, files: Agent.shared.attachments.map { $0.url }) }
         if has(["识别文字", "图片转文字", "提取图片文字", "图片文字"]) { return ToolRequest(kind: .ocr) }
         if has(["格式转换", "文件转换", "转换格式"]) { return ToolRequest(kind: .convert) }
         let files = Agent.shared.attachments.map { $0.url }
