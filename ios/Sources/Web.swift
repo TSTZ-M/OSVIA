@@ -12,7 +12,7 @@ enum Web {
         req.setValue(ua, forHTTPHeaderField: "User-Agent")
         req.setValue("zh-CN,zh;q=0.9,en;q=0.8", forHTTPHeaderField: "Accept-Language")
         req.setValue("text/html,application/xhtml+xml,application/json,text/plain;q=0.9,*/*;q=0.5", forHTTPHeaderField: "Accept")
-        guard let (d, resp) = try? await URLSession.shared.data(for: req) else { return ("", "") }
+        guard let (d, resp) = await fetchCapped(req) else { return ("", "") }
         let ctype = ((resp as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
         if ctype.contains("pdf") {
             let t = PDFDocument(data: d)?.string ?? ""
@@ -31,6 +31,25 @@ enum Web {
         let plain = (ctype.contains("json") || ctype.contains("text/plain") || ctype.contains("markdown") || (ctype.contains("xml") && !ctype.contains("html")))
         if plain { return ("", String(raw.prefix(limit))) }
         return clean(raw, limit: limit)
+    }
+
+    // 流式下载并设上限：模型给的链接可能是几百 MB 的文件，整包读进内存会被系统杀掉
+    // 网页只需要前面一部分（正文截断到 45 万字节），PDF 允许 40 MB
+    static func fetchCapped(_ req: URLRequest, htmlCap: Int = 3_000_000, pdfCap: Int = 40_000_000) async -> (Data, URLResponse)? {
+        guard let (stream, resp) = try? await URLSession.shared.bytes(for: req) else { return nil }
+        let ctype = ((resp as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+        let cap = ctype.contains("pdf") ? pdfCap : htmlCap
+        var out = Data()
+        if resp.expectedContentLength > 0 { out.reserveCapacity(Int(min(resp.expectedContentLength, Int64(cap)))) }
+        do {
+            for try await b in stream {
+                out.append(b)
+                if out.count >= cap { break }
+            }
+        } catch {
+            if out.isEmpty { return nil }
+        }
+        return (out, resp)
     }
 
     static func clean(_ html: String, limit: Int) -> (title: String, text: String) {

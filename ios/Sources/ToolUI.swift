@@ -56,12 +56,14 @@ struct PickSources: View {
         }
         .fileImporter(isPresented: $showFile, allowedContentTypes: types, allowsMultipleSelection: multiple) { r in
             guard let picked = try? r.get() else { return }
-            var add: [URL] = []
-            for u in picked {
-                let res = Files.importFile(u)
-                if let c = res.url { add.append(c) } else if let e = res.error { onError(e) }
+            Task { @MainActor in
+                var add: [URL] = []
+                for u in picked {
+                    let res = await Files.importFileAsync(u)
+                    if let c = res.url { add.append(c) } else if let e = res.error { onError(e) }
+                }
+                if !add.isEmpty { onPick(add) }
             }
-            if !add.isEmpty { onPick(add) }
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker { u, e in

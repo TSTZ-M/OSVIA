@@ -568,8 +568,10 @@ struct WatermarkView: View {
         }
         .fileImporter(isPresented: $showFile, allowedContentTypes: video ? [UTType.movie] : [UTType.image]) { r in
             guard let u = try? r.get() else { return }
-            let res = Files.importFile(u)
-            if let c = res.url { Task { await setSource(c) } } else { err = res.error ?? "文件读取失败" }
+            Task { @MainActor in
+                let res = await Files.importFileAsync(u)
+                if let c = res.url { await setSource(c) } else { err = res.error ?? "文件读取失败" }
+            }
         }
     }
 

@@ -102,9 +102,11 @@ struct ChatView: View {
                 .fileImporter(isPresented: $showFile, allowedContentTypes: [.item], allowsMultipleSelection: true) { r in
                     switch r {
                     case .success(let urls):
-                        for u in urls {
-                            let res = Files.importFile(u)
-                            if let c = res.url { agent.attachments.append(Attach(url: c)) } else if let e = res.error { warn(e) }
+                        Task { @MainActor in
+                            for u in urls {
+                                let res = await Files.importFileAsync(u)
+                                if let c = res.url { agent.attachments.append(Attach(url: c)) } else if let e = res.error { warn(e) }
+                            }
                         }
                     case .failure(let e):
                         warn("无法打开文件：\(e.localizedDescription)")
