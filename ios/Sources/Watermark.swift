@@ -16,14 +16,18 @@ enum Delogo {
 
     private static func one(_ base: UnsafeMutablePointer<UInt8>, _ stride: Int, _ width: Int, _ height: Int,
                             _ rect: CGRect, _ smart: Bool, _ bgra: Bool) {
-        let x0 = max(0, Int(rect.minX.rounded(.down)))
-        let y0 = max(0, Int(rect.minY.rounded(.down)))
-        let x1 = min(width, Int(rect.maxX.rounded(.up)))
-        let y1 = min(height, Int(rect.maxY.rounded(.up)))
+        // 区域坐标可能来自模型参数（NaN / 超大值），先截断到画面范围再转整数，避免 Int() 陷阱崩溃
+        func px(_ v: CGFloat, _ hi: Int) -> Int { v.isFinite ? Int(min(max(v, 0), CGFloat(hi))) : 0 }
+        let x0 = px(rect.minX.rounded(.down), width)
+        let y0 = px(rect.minY.rounded(.down), height)
+        let x1 = px(rect.maxX.rounded(.up), width)
+        let y1 = px(rect.maxY.rounded(.up), height)
         guard x1 - x0 >= 2, y1 - y0 >= 2 else { return }
         let rw = x1 - x0
         let rh = y1 - y0
-        let m = max(16, max(rw, rh) / 2)
+        var m = max(16, max(rw, rh) / 2)
+        // 参考区域太大会吃掉几百 MB 内存：逐步收窄周围的参考范围，总像素控制在 1600 万以内
+        while m > 16, (min(width, x1 + m) - max(0, x0 - m)) * (min(height, y1 + m) - max(0, y0 - m)) > 16_000_000 { m = max(16, m / 2) }
         let cx0 = max(0, x0 - m)
         let cy0 = max(0, y0 - m)
         let cx1 = min(width, x1 + m)
@@ -31,6 +35,7 @@ enum Delogo {
         let cw = cx1 - cx0
         let ch = cy1 - cy0
         guard cw > rw || ch > rh else { return }   // 框住了整张图，没有可参考的周围
+        guard cw * ch <= 24_000_000 else { return }
         let n = cw * ch
         let ro = bgra ? 2 : 0
         let bo = bgra ? 0 : 2
@@ -110,6 +115,8 @@ enum Delogo {
     // 细线条水印（半透明文字）：只挑出和局部中位数差得多的像素，其余纹理保留
     private static func thinMask(_ lum: [Float], _ hole: [Bool], _ w: Int, _ h: Int, _ ring: [Float]) -> [Bool]? {
         let rad = 5
+        // 选区超过 150 万像素时逐点取中位数太慢，直接走普通填充
+        guard hole.reduce(0, { $0 + ($1 ? 1 : 0) }) <= 1_500_000 else { return nil }
         var dev = [Float](repeating: 0, count: w * h)
         var win = [Float](repeating: 0, count: (2 * rad + 1) * (2 * rad + 1))
         var cnt = 0
@@ -263,7 +270,7 @@ enum Delogo {
 
     // MARK: 图片
     static func image(_ src: URL, regions: [CGRect], smart: Bool) throws -> URL {
-        guard let cg = OCR.cg(src, maxPixel: 8192) else { throw Convert.err("无法读取图片") }
+        guard let cg = OCR.cg(src, maxPixel: 6144) else { throw Convert.err("无法读取图片") }
         let w = cg.width
         let h = cg.height
         let png = src.pathExtension.lowercased() == "png"
@@ -335,7 +342,7 @@ enum Delogo {
             AVVideoWidthKey: W,
             AVVideoHeightKey: H,
             AVVideoCompressionPropertiesKey: [
-                AVVideoAverageBitRateKey: max(Int(rate * 1.2), 2_000_000),
+                AVVideoAverageBitRateKey: max(rate.isFinite ? Int(min(rate, 100_000_000) * 1.2) : 0, 2_000_000),
                 AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel
             ]
         ])
@@ -371,6 +378,7 @@ enum Delogo {
         writer.startSession(atSourceTime: .zero)
 
         let group = DispatchGroup()
+        var lastReported = 0.0   // 只在视频写入队列里读写；进度变化不到 1% 不回调，避免刷爆主线程
         group.enter()
         vin.requestMediaDataWhenReady(on: DispatchQueue(label: "osvia.wm.video")) {
             while vin.isReadyForMoreMediaData {
@@ -385,7 +393,11 @@ enum Delogo {
                     CVPixelBufferUnlockBaseAddress(pb, [])
                 }
                 if !vin.append(sb) { vin.markAsFinished(); group.leave(); return }
-                progress(min(1, CMSampleBufferGetPresentationTimeStamp(sb).seconds / total))
+                let pts = CMSampleBufferGetPresentationTimeStamp(sb).seconds
+                if pts.isFinite {
+                    let p = min(1, max(0, pts / total))
+                    if p - lastReported >= 0.01 { lastReported = p; progress(p) }
+                }
             }
         }
         if let ain, let aout {

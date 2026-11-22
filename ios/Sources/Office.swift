@@ -173,8 +173,9 @@ enum Office {
         case "docx": return docx(a)
         case "pptx": return pptx(a)
         case "xlsx":
-            return sheets(a).map { s in
-                (sheets(a).count > 1 ? "【\(s.name)】\n" : "") + Convert.csvOut(s.rows, "\t")
+            let all = sheets(a)
+            return all.map { s in
+                (all.count > 1 ? "【\(s.name)】\n" : "") + Convert.csvOut(s.rows, "\t")
             }.joined(separator: "\n\n")
         case "odt", "ods", "odp": return odf(a)
         default: return ""
@@ -244,8 +245,20 @@ enum Office {
         return tidy(strip(s))
     }
 
+    // 大表格要对每个单元格匹配，正则编译结果缓存起来
+    private static let reLock = NSLock()
+    private static var reCache: [String: NSRegularExpression] = [:]
+    private static func regex(_ p: String) -> NSRegularExpression? {
+        reLock.lock()
+        defer { reLock.unlock() }
+        if let r = reCache[p] { return r }
+        guard let r = try? NSRegularExpression(pattern: p) else { return nil }
+        reCache[p] = r
+        return r
+    }
+
     private static func all(_ s: String, _ pattern: String) -> [[String]] {
-        guard let re = try? NSRegularExpression(pattern: pattern) else { return [] }
+        guard let re = regex(pattern) else { return [] }
         let ns = s as NSString
         return re.matches(in: s, range: NSRange(location: 0, length: ns.length)).map { m in
             (0..<m.numberOfRanges).map { i in m.range(at: i).location == NSNotFound ? "" : ns.substring(with: m.range(at: i)) }
@@ -261,6 +274,7 @@ enum Office {
         for c in ref.uppercased() {
             guard let v = c.asciiValue, v >= 65, v <= 90 else { break }
             n = n * 26 + Int(v - 64)
+            if n > 16_384 { return 16_383 }   // Excel 最多 XFD 列，防止异常文件溢出
         }
         return max(n - 1, 0)
     }
@@ -294,9 +308,11 @@ enum Office {
             let sx = xml(a, path)
             if sx.isEmpty { continue }
             var rows: [[String]] = []
-            for r in all(sx, "<row\\b[^>]*>([\\s\\S]*?)</row>") {
+            for r in all(sx, "<row\\b([^>]*?)(?:/>|>([\\s\\S]*?)</row>)") {
                 var row: [String] = []
-                for c in all(r[1], "<c\\b([^>]*?)(?:/>|>([\\s\\S]*?)</c>)") {
+                let rn = Int(attr(r[1], "r")) ?? 0
+                if !rows.isEmpty, rn > rows.count + 1 { rows.append(contentsOf: [[String]](repeating: [], count: min(rn - rows.count - 1, 2000))) }
+                for c in all(r[2], "<c\\b([^>]*?)(?:/>|>([\\s\\S]*?)</c>)") {
                     let attrs = c[1]
                     let body = c[2]
                     let idx = colIndex(attr(attrs, "r"))
@@ -320,8 +336,20 @@ enum Office {
     }
 
     // MARK: 写
-    private static func esc(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
+    // XML 1.0 不允许大部分控制字符（PDF 文字里常带换页符等），混进去 Word / Excel 会提示文件损坏
+    private static func clean(_ s: String) -> String {
+        if s.utf8.allSatisfy({ $0 >= 0x20 || $0 == 9 || $0 == 10 || $0 == 13 }) { return s }
+        var v = String.UnicodeScalarView()
+        for u in s.unicodeScalars {
+            let c = u.value
+            if c == 9 || c == 10 || c == 13 || (c >= 0x20 && c <= 0xD7FF) || (c >= 0xE000 && c <= 0xFFFD) || c >= 0x10000 { v.append(u) }
+        }
+        return String(v)
+    }
+
+    private static func esc(_ raw: String) -> String {
+        let s = clean(raw)
+        return s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;").replacingOccurrences(of: "\"", with: "&quot;")
     }
 
@@ -332,7 +360,8 @@ enum Office {
     // 简单排版：# / ## / ### 标题加粗放大，- 开头变成圆点
     static func docx(_ text: String) -> Data {
         var body = ""
-        for raw in text.components(separatedBy: "\n") {
+        let unified = text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+        for raw in unified.components(separatedBy: "\n") {
             var line = raw
             var size = 0
             var bold = false
@@ -344,7 +373,9 @@ enum Office {
             if bold || size > 0 {
                 rpr = "<w:rPr>" + (bold ? "<w:b/>" : "") + (size > 0 ? "<w:sz w:val=\"\(size)\"/>" : "") + "</w:rPr>"
             }
-            body += "<w:p><w:r>\(rpr)<w:t xml:space=\"preserve\">\(esc(line))</w:t></w:r></w:p>"
+            // 制表符要写成 <w:tab/>，表格转 Word 时列才会对齐
+            let runs = line.components(separatedBy: "\t").map { "<w:r>\(rpr)<w:t xml:space=\"preserve\">\(esc($0))</w:t></w:r>" }
+            body += "<w:p>" + runs.joined(separator: "<w:r><w:tab/></w:r>") + "</w:p>"
         }
         let sect = "<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1440\" w:right=\"1440\" w:bottom=\"1440\" w:left=\"1440\" w:header=\"708\" w:footer=\"708\" w:gutter=\"0\"/></w:sectPr>"
         let document = head + "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>" + body + sect + "</w:body></w:document>"
@@ -374,7 +405,9 @@ enum Office {
             data += "<row r=\"\(ri + 1)\">"
             for (ci, cell) in row.enumerated() {
                 let ref = colName(ci) + String(ri + 1)
-                let isNum = Double(cell) != nil && cell.count < 16 && !(cell.hasPrefix("0") && cell.count > 1 && !cell.hasPrefix("0."))
+                // 只把规规矩矩的十进制数写成数字：nan / inf / 0x1F / +86… 之类 Double() 也认，但写进 xlsx 会损坏文件或丢掉加号
+                let isNum = cell.count < 16 && cell.range(of: "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][-+]?[0-9]+)?$", options: .regularExpression) != nil
+                    && (Double(cell)?.isFinite ?? false)
                 if isNum {
                     data += "<c r=\"\(ref)\"><v>\(cell)</v></c>"
                 } else if !cell.isEmpty {
