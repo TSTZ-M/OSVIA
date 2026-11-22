@@ -113,6 +113,11 @@ struct ChatView: View {
                     }
                 }
                 .quickLookPreview($preview)
+                .onChange(of: state.incomingError) { _, e in
+                    guard !e.isEmpty else { return }
+                    warn(e)
+                    state.incomingError = ""
+                }
                 .alert(agent.confirm?.title ?? "", isPresented: Binding(
                     get: { agent.confirm != nil },
                     set: { if !$0 { agent.answerConfirm(false) } }

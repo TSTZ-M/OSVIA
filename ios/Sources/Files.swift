@@ -71,6 +71,12 @@ enum Files {
         let ok = src.startAccessingSecurityScopedResource()
         defer { if ok { src.stopAccessingSecurityScopedResource() } }
         let name = src.lastPathComponent
+        let docs = Store.docs.resolvingSymlinksInPath().path + "/"
+        if src.resolvingSymlinksInPath().path.hasPrefix(docs), FileManager.default.fileExists(atPath: src.path) {
+            if (size(src) ?? 0) == 0 { return (nil, "「\(name)」是空文件。") }
+            if isImage(src) && !readable(src) { return (nil, "「\(name)」不是有效的图片。") }
+            return (src, nil)
+        }
         let dst = Store.dir("Inbox").appendingPathComponent(name)
         try? FileManager.default.removeItem(at: dst)
         var copied = false

@@ -36,7 +36,11 @@ enum Web {
     // 流式下载并设上限：模型给的链接可能是几百 MB 的文件，整包读进内存会被系统杀掉
     // 网页只需要前面一部分（正文截断到 45 万字节），PDF 允许 40 MB
     static func fetchCapped(_ req: URLRequest, htmlCap: Int = 3_000_000, pdfCap: Int = 40_000_000) async -> (Data, URLResponse)? {
-        guard let (stream, resp) = try? await URLSession.shared.bytes(for: req) else { return nil }
+        try? await fetchCappedThrowing(req, htmlCap: htmlCap, pdfCap: pdfCap)
+    }
+
+    static func fetchCappedThrowing(_ req: URLRequest, htmlCap: Int = 3_000_000, pdfCap: Int = 40_000_000) async throws -> (Data, URLResponse) {
+        let (stream, resp) = try await URLSession.shared.bytes(for: req)
         let ctype = ((resp as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
         let cap = ctype.contains("pdf") ? pdfCap : htmlCap
         var out = Data()
@@ -47,7 +51,7 @@ enum Web {
                 if out.count >= cap { break }
             }
         } catch {
-            if out.isEmpty { return nil }
+            if out.isEmpty { throw error }
         }
         return (out, resp)
     }

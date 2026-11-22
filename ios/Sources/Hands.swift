@@ -21,6 +21,13 @@ private final class HandsOnce: @unchecked Sendable {
     }
 }
 
+private final class HTTPBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var data = Data()
+    func set(_ d: Data) { lock.lock(); data = d; lock.unlock() }
+    func get() -> Data { lock.lock(); defer { lock.unlock() }; return data }
+}
+
 private final class JSBox: @unchecked Sendable {
     var lines: [String] = []
     var err = ""
@@ -217,8 +224,18 @@ enum Hands {
             ctx.setObject(console, forKeyedSubscript: "console" as NSString)
         }
         let get: @convention(block) (String) -> String = { u in
-            guard let url = URL(string: u), url.scheme == "https", let d = try? Data(contentsOf: url) else { return "" }
-            return String(decoding: d.prefix(30000), as: UTF8.self)
+            guard let url = URL(string: u), url.scheme == "https", let host = url.host, !blockedHost(host) else { return "" }
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 10
+            let box = HTTPBox()
+            let sem = DispatchSemaphore(value: 0)
+            let task = URLSession.shared.dataTask(with: req) { d, _, _ in
+                box.set(d ?? Data())
+                sem.signal()
+            }
+            task.resume()
+            if sem.wait(timeout: .now() + 12) == .timedOut { task.cancel() }
+            return String(decoding: box.get().prefix(30000), as: UTF8.self)
         }
         ctx.setObject(get, forKeyedSubscript: "httpGet" as NSString)
         let v = ctx.evaluateScript(code)
@@ -251,8 +268,8 @@ enum Hands {
 
     private static func runJSTool(_ code: String, _ trace: Tracer) async -> ToolResult {
         guard !code.isEmpty else { return ToolResult(text: "没有代码。", ok: false) }
-        let compact = code.replacingOccurrences(of: " ", with: "")
-        if compact.contains("while(true)") || compact.contains("for(;;)") || compact.contains("while(1)") {
+        let compact = code.filter { !$0.isWhitespace }
+        if compact.contains("while(true)") || compact.contains("for(;;)") || compact.contains("while(1)") || compact.contains("while(!0)") {
             return ToolResult(text: "代码里有死循环，请改成有终止条件的写法。", ok: false)
         }
         let first = code.split(separator: "\n").first.map(String.init) ?? code
@@ -281,7 +298,7 @@ enum Hands {
     }
 
     // MARK: 任意 https 接口
-    private static func blockedHost(_ h: String) -> Bool {
+    nonisolated private static func blockedHost(_ h: String) -> Bool {
         let s = h.lowercased()
         if s == "localhost" || s.hasSuffix(".local") || s.hasSuffix(".internal") { return true }
         if s.hasPrefix("127.") || s.hasPrefix("10.") || s.hasPrefix("192.168.") || s.hasPrefix("169.254.") || s.hasPrefix("0.") { return true }
@@ -319,7 +336,8 @@ enum Hands {
             }
         }
         do {
-            let (d, resp) = try await URLSession.shared.data(for: r)
+            // 只用前几千字节：流式读取并设上限，接口返回大文件也不会撑爆内存
+            let (d, resp) = try await Web.fetchCappedThrowing(r, htmlCap: 200_000, pdfCap: 200_000)
             let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
             let text = String(decoding: d.prefix(cloud ? 8000 : 3000), as: UTF8.self)
             trace.end(sid, ok: (200..<300).contains(code), detail: "\(method) \(host) · HTTP \(code)")
@@ -419,12 +437,19 @@ enum Hands {
 
     private static func readFile(_ rawName: String, _ trace: Tracer, offset: Int = 0) -> ToolResult {
         let url = work.appendingPathComponent(safeName(rawName))
-        guard let d = try? Data(contentsOf: url) else { return ToolResult(text: "工作区里没有这个文件，可以先用 list_files 看看。", ok: false) }
+        guard let fh = try? FileHandle(forReadingFrom: url) else { return ToolResult(text: "工作区里没有这个文件，可以先用 list_files 看看。", ok: false) }
+        defer { try? fh.close() }
         trace.note(.file, "读取文件", url.lastPathComponent)
-        let start = min(max(0, offset), d.count)
-        let end = min(d.count, start + 12000)
-        let t = String(decoding: d[start..<end], as: UTF8.self)
-        return ToolResult(text: t + (end < d.count ? "\n…（还有内容，用 offset=\(end) 接着读；文件共 \(d.count) 字节）" : ""))
+        let total = Int((try? fh.seekToEnd()) ?? 0)
+        let start = min(max(0, offset), total)
+        try? fh.seek(toOffset: UInt64(start))
+        let chunk = (try? fh.read(upToCount: 12004)) ?? Data()
+        // 不把一个汉字从中间切开：超过 12000 字节时退到最近的字符边界
+        var n = min(chunk.count, 12000)
+        if n < chunk.count { while n > 0, chunk[chunk.startIndex + n] & 0xC0 == 0x80 { n -= 1 } }
+        let end = start + n
+        let t = String(decoding: chunk.prefix(n), as: UTF8.self)
+        return ToolResult(text: t + (end < total ? "\n…（还有内容，用 offset=\(end) 接着读；文件共 \(total) 字节）" : ""))
     }
 
     // 修改工作区里已有的文本文件：追加、前插、精确替换。改完把文件重新附到回复下方。

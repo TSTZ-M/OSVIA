@@ -12,6 +12,7 @@ final class AppState: ObservableObject {
     @Published var page: AppPage?
     @Published var tool: ToolRequest?   // 从「+」托盘或聊天快捷操作打开的工具（网页文字、识别文字、去水印……）
     @Published var voiceTick = 0   // 小组件「语音」：数值变化时对话页开始听写
+    @Published var incomingError = ""   // 从其他 App「用 OSVIA 打开」文件失败时的提示，由对话页显示
 }
 
 // 根界面：参照 Claude，没有底部标签栏。从左边缘右滑或点左上角菜单打开侧栏。
