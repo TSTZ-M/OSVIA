@@ -333,7 +333,7 @@ enum Barcode {
 
 // MARK: 图片处理：缩放、压缩到指定大小、旋转翻转、裁剪、清除隐私信息
 enum ImageOps {
-    static func readCG(_ u: URL, maxPixel: Int = 8192) throws -> CGImage {
+    static func readCG(_ u: URL, maxPixel: Int = 6144) throws -> CGImage {
         guard let cg = OCR.cg(u, maxPixel: maxPixel) else { throw Convert.err("图片读取失败") }
         return cg
     }

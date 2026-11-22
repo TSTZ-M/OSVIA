@@ -819,7 +819,7 @@ enum Toolkit {
             if isVid {
                 let last = Box()
                 out = try await Delogo.video(u, regions: rects, progress: { p in
-                    let pct = Int(p * 100)
+                    let pct = Int(max(0, min(1, p)) * 100)
                     guard pct >= last.v + 5 else { return }
                     last.v = pct
                     Task { @MainActor in trace.detail(sid, "\(pct)%") }

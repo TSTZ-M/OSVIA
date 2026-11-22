@@ -55,7 +55,7 @@ enum MediaOps {
     }
 
     static func clock(_ t: Double) -> String {
-        let s = max(0, t)
+        let s = t.isFinite ? max(0, min(t, 359_999)) : 0
         let m = Int(s) / 60
         let r = s - Double(m * 60)
         return String(format: "%d:%04.1f", m, r)

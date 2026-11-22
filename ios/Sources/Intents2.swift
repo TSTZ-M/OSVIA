@@ -64,7 +64,7 @@ struct CompressImageIntent: AppIntent {
         let u = try IntentIO.stage(image, ext: "jpg")
         defer { IntentIO.cleanup(u) }
         let cg = try ImageOps.readCG(u)
-        guard let d = ImageOps.jpegUnder(ImageOps.resize(cg, longSide: 4096), maxKB: max(20, maxKB)) else { throw Convert.err("压缩失败") }
+        guard let d = ImageOps.jpegUnder(ImageOps.resize(cg, longSide: 4096), maxKB: min(102400, max(20, maxKB))) else { throw Convert.err("压缩失败") }
         return .result(value: IntentFile(data: d, filename: ToolFS.base(u) + "-压缩.jpg", type: .jpeg))
     }
 }
