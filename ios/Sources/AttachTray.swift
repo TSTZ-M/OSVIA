@@ -13,6 +13,10 @@ struct AttachTray: View {
     var onClock: () -> Void
     var onConn: (String) -> Void
     var onConnManage: () -> Void
+    @Environment(\.dynamicTypeSize) private var dts
+
+    // 大字号下磁贴跟着变宽变高，标签不会被截断；默认字号保持 72
+    private var tileW: CGFloat { dts.isAccessibilitySize ? 96 : (dts >= .xxxLarge ? 84 : 72) }
 
     private struct Item: Identifiable {
         let id: String
@@ -48,12 +52,12 @@ struct AttachTray: View {
             }
             Text("动手工具").fontSz(12, weight: .semibold).foregroundStyle(Brand.sub)
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHGrid(rows: [GridItem(.fixed(72), spacing: 6), GridItem(.fixed(72), spacing: 6)], spacing: 8) {
+                LazyHGrid(rows: [GridItem(.fixed(tileW), spacing: 6), GridItem(.fixed(tileW), spacing: 6)], spacing: 8) {
                     ForEach(items) { it in tile(it) }
                 }
                 .padding(.trailing, 4)
             }
-            .frame(height: 150)
+            .frame(height: tileW * 2 + 6)
         }
         .padding(.horizontal, 16)
         .padding(.top, 6)
@@ -86,9 +90,9 @@ struct AttachTray: View {
                     .background(it.accent ? Brand.mint.opacity(0.14) : Brand.userBubble)
                     .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(selected ? Brand.mint : .clear, lineWidth: 1.5))
-                Text(LocalizedStringKey(it.title)).fontSz(11.5).foregroundStyle(Brand.sub).lineLimit(1)
+                Text(LocalizedStringKey(it.title)).fontSz(11.5).foregroundStyle(Brand.sub).lineLimit(1).minimumScaleFactor(0.75)
             }
-            .frame(width: 72)
+            .frame(width: tileW)
         }
         .buttonStyle(.plain)
     }
