@@ -45,6 +45,12 @@ enum Toolkit2 {
         return Double(str(a, k))
     }
 
+    // 模型给的数字可能是 NaN/无穷/超大值，直接 Int() 会崩溃，这里统一截断到安全范围
+    private static func int(_ a: [String: Any], _ k: String, _ def: Int, _ lo: Int, _ hi: Int) -> Int {
+        guard let d = num(a, k), d.isFinite else { return def }
+        return Int(min(Double(hi), max(Double(lo), d)))
+    }
+
     private static func attach(_ urls: [URL], _ trace: Tracer) {
         for u in urls { Agent.shared.mutate(trace.mid) { $0.files.append(u) } }
     }
@@ -81,7 +87,7 @@ enum Toolkit2 {
         let t = targets(a)
         guard !t.urls.isEmpty else { return noFile }
         let spec = str(a, "pages")
-        let angle = Int(num(a, "angle") ?? 90)
+        let angle = int(a, "angle", 90, -3600, 3600)
         let pw = str(a, "password")
         let mark = str(a, "text")
         let q: Int = { switch str(a, "quality").lowercased() { case "light", "high", "轻度": return 2; case "strong", "low", "强力": return 0; default: return 1 } }()
@@ -159,9 +165,9 @@ enum Toolkit2 {
     private static func imageEdit(_ a: [String: Any], _ trace: Tracer) async -> ToolResult {
         guard let u = targets(a).urls.first, Files.isImage(u) else { return ToolResult(text: "没有找到图片。请让用户先发送图片。", ok: false) }
         let op = str(a, "op").lowercased()
-        let long = Int(num(a, "long_side") ?? 1080)
-        let kb = Int(num(a, "max_kb") ?? 500)
-        let angle = Int(num(a, "angle") ?? 90)
+        let long = int(a, "long_side", 1080, 16, 16384)
+        let kb = int(a, "max_kb", 500, 20, 102400)
+        let angle = int(a, "angle", 90, -3600, 3600)
         let flip = str(a, "flip").lowercased()
         let ratioText = str(a, "ratio")
         let cx = num(a, "x"), cy = num(a, "y"), cw = num(a, "w"), ch = num(a, "h")
