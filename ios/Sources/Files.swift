@@ -61,6 +61,11 @@ enum Files {
         return nil
     }
 
+    // iCloud 文件要等下载、大视频要整份拷贝：放到后台做，界面不会卡住
+    static func importFileAsync(_ src: URL) async -> (url: URL?, error: String?) {
+        await Task.detached(priority: .userInitiated) { Files.importFile(src) }.value
+    }
+
     // 从「文件」App 导入：协调读取（会触发 iCloud 下载），并校验文件非空、图片可打开
     static func importFile(_ src: URL) -> (url: URL?, error: String?) {
         let ok = src.startAccessingSecurityScopedResource()

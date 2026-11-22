@@ -134,8 +134,10 @@ struct ConvertView: View {
         }
         .fileImporter(isPresented: $showPick, allowedContentTypes: [.item]) { r in
             guard let u = try? r.get() else { return }
-            let res = Files.importFile(u)
-            if let c = res.url { setFile(c) } else { err = res.error ?? "文件读取失败" }
+            Task { @MainActor in
+                let res = await Files.importFileAsync(u)
+                if let c = res.url { setFile(c) } else { err = res.error ?? "文件读取失败" }
+            }
         }
     }
 

@@ -30,6 +30,7 @@ targets:
     sources:
       - path: Sources
       - path: Shared
+      - path: Config/PrivacyInfo.xcprivacy
     dependencies:
       - target: OSVIALive
       - package: MLXSwiftLM
@@ -54,6 +55,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIApplicationSceneManifest:

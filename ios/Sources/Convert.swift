@@ -86,7 +86,7 @@ enum Convert {
             try d.write(to: dst)
         case "heic", "tiff", "gif", "bmp":
             let types: [String: UTType] = ["heic": .heic, "tiff": .tiff, "gif": .gif, "bmp": .bmp]
-            guard let ty = types[t], let cg = img.cgImage,
+            guard let ty = types[t], let cg = upright(img),
                   let dest = CGImageDestinationCreateWithURL(dst as CFURL, ty.identifier as CFString, 1, nil) else { throw err("不支持写入 \(t)") }
             CGImageDestinationAddImage(dest, cg, nil)
             guard CGImageDestinationFinalize(dest) else { throw err("编码失败") }
@@ -102,6 +102,15 @@ enum Convert {
             throw err("图片不能转成 \(t)")
         }
         return [dst]
+    }
+
+    // img.cgImage 不带方向信息：竖拍照片直接写出会躺倒，这里先按方向重绘一遍
+    private static func upright(_ img: UIImage) -> CGImage? {
+        guard img.imageOrientation != .up else { return img.cgImage }
+        let f = UIGraphicsImageRendererFormat.default()
+        f.scale = img.scale
+        f.opaque = false
+        return UIGraphicsImageRenderer(size: img.size, format: f).image { _ in img.draw(at: .zero) }.cgImage
     }
 
     // MARK: PDF（扫描件没有文字层时，逐页识别）
@@ -123,15 +132,20 @@ enum Convert {
         }
         guard t == "png" || t == "jpg" else { throw err("PDF 可转成 docx、txt、md、rtf、html、png、jpg") }
         var outs: [URL] = []
-        for i in 0..<min(doc.pageCount, 20) {
+        for i in 0..<min(doc.pageCount, 40) {
             guard let p = doc.page(at: i) else { continue }
             let sz = p.bounds(for: .mediaBox).size
-            let img = p.thumbnail(of: CGSize(width: sz.width * 2, height: sz.height * 2), for: .mediaBox)
+            // 常规页面放大 2 倍；海报级大页面把长边限制在 4000 像素以内，避免内存暴涨
+            let k = min(2, 4000 / max(sz.width, sz.height, 1))
             let d = out("\(base)-p\(i + 1)", t)
-            let data = t == "png" ? img.pngData() : img.jpegData(compressionQuality: 0.9)
-            try data?.write(to: d)
+            try autoreleasepool {
+                let img = p.thumbnail(of: CGSize(width: sz.width * k, height: sz.height * k), for: .mediaBox)
+                let data = t == "png" ? img.pngData() : img.jpegData(compressionQuality: 0.9)
+                try data?.write(to: d)
+            }
             outs.append(d)
         }
+        if outs.isEmpty { throw err("没有读到页面") }
         return outs
     }
 
@@ -143,8 +157,10 @@ enum Convert {
             guard let p = doc.page(at: i) else { continue }
             let sz = p.bounds(for: .mediaBox).size
             let k = 2000 / max(sz.width, sz.height, 1)
-            let img = p.thumbnail(of: CGSize(width: sz.width * k, height: sz.height * k), for: .mediaBox)
-            guard let cg = img.cgImage else { continue }
+            let cg: CGImage? = autoreleasepool {
+                p.thumbnail(of: CGSize(width: sz.width * k, height: sz.height * k), for: .mediaBox).cgImage
+            }
+            guard let cg else { continue }
             let s = await Task.detached(priority: .userInitiated) { OCR.text(cg) }.value
             if !s.isEmpty { parts.append(s) }
         }
@@ -355,23 +371,30 @@ enum Convert {
     static func csvParse(_ s: String, _ delim: Character) -> [[String]] {
         var rows: [[String]] = []
         var row: [String] = []
-        var cur = ""
+        var cur = String.UnicodeScalarView()
         var q = false
-        let cs = Array(s)
-        var i = 0
+        let dl = delim.unicodeScalars.first ?? ","
+        let quote: Unicode.Scalar = "\""
+        let cs = Array(s.unicodeScalars)
+        func isNL(_ c: Unicode.Scalar) -> Bool { c == "\n" || c == "\r" || c == "\u{2028}" || c == "\u{2029}" || c == "\u{85}" }
+        var i = cs.first == "\u{FEFF}" ? 1 : 0   // 跳过 BOM
         while i < cs.count {
             let c = cs[i]
             if q {
-                if c == "\"" {
-                    if i + 1 < cs.count && cs[i + 1] == "\"" { cur.append("\""); i += 1 } else { q = false }
+                if c == quote {
+                    if i + 1 < cs.count && cs[i + 1] == quote { cur.append(quote); i += 1 } else { q = false }
                 } else { cur.append(c) }
-            } else if c == "\"" { q = true }
-            else if c == delim { row.append(cur); cur = "" }
-            else if c.isNewline { row.append(cur); cur = ""; rows.append(row); row = [] }
+            } else if c == quote { q = true }
+            else if c == dl { row.append(String(cur)); cur = String.UnicodeScalarView() }
+            else if isNL(c) {
+                // \r\n 算一个换行
+                if c == "\r", i + 1 < cs.count, cs[i + 1] == "\n" { i += 1 }
+                row.append(String(cur)); cur = String.UnicodeScalarView(); rows.append(row); row = []
+            }
             else { cur.append(c) }
             i += 1
         }
-        if !cur.isEmpty || !row.isEmpty { row.append(cur); rows.append(row) }
+        if !cur.isEmpty || !row.isEmpty { row.append(String(cur)); rows.append(row) }
         return rows.filter { !($0.count == 1 && $0[0].isEmpty) }
     }
 
@@ -379,7 +402,7 @@ enum Convert {
         guard let d = s.data(using: .utf8),
               let a = try? JSONSerialization.jsonObject(with: d) as? [[String: Any]], !a.isEmpty else { return [] }
         let keys = Array(Set(a.flatMap { $0.keys })).sorted()
-        return [keys] + a.map { o in keys.map { k in o[k].map { "\($0)" } ?? "" } }
+        return [keys] + a.map { o in keys.map { k in (o[k] == nil || o[k] is NSNull) ? "" : "\(o[k]!)" } }
     }
 
     static func mdRows(_ s: String) -> [[String]] {

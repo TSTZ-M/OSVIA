@@ -483,12 +483,14 @@ struct OCRView: View {
         }
         .fileImporter(isPresented: $showFile, allowedContentTypes: [.image, .pdf], allowsMultipleSelection: true) { r in
             guard let picked = try? r.get() else { return }
-            var add: [URL] = []
-            for u in picked {
-                let res = Files.importFile(u)
-                if let c = res.url { add.append(c) } else if let e = res.error { err = e }
+            Task { @MainActor in
+                var add: [URL] = []
+                for u in picked {
+                    let res = await Files.importFileAsync(u)
+                    if let c = res.url { add.append(c) } else if let e = res.error { err = e }
+                }
+                setImages(add)
             }
-            setImages(add)
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker { u, e in
