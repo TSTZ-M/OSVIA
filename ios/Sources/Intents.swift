@@ -65,5 +65,12 @@ struct AgentShortcuts: AppShortcutsProvider {
         AppShortcut(intent: AskAgent(), phrases: ["Ask \(.applicationName)"], shortTitle: "询问助理", systemImageName: "sparkles")
         AppShortcut(intent: SearchKB(), phrases: ["Search \(.applicationName)"], shortTitle: "检索知识库", systemImageName: "magnifyingglass")
         AppShortcut(intent: TranslateScreenIntent(), phrases: ["Translate screen with \(.applicationName)"], shortTitle: "翻译屏幕", systemImageName: "character.bubble")
+        AppShortcut(intent: OCRImageIntent(), phrases: ["Read text from image with \(.applicationName)", "\(.applicationName) OCR"], shortTitle: "识别图片文字", systemImageName: "text.viewfinder")
+        AppShortcut(intent: WebTextIntent(), phrases: ["Extract web text with \(.applicationName)"], shortTitle: "提取网页文字", systemImageName: "doc.plaintext")
+        AppShortcut(intent: CompressImageIntent(), phrases: ["Compress image with \(.applicationName)"], shortTitle: "压缩图片", systemImageName: "arrow.down.right.and.arrow.up.left")
+        AppShortcut(intent: RemoveBackgroundIntent(), phrases: ["Remove background with \(.applicationName)"], shortTitle: "抠图换底色", systemImageName: "person.crop.rectangle")
+        AppShortcut(intent: RedactImageIntent(), phrases: ["Redact image with \(.applicationName)"], shortTitle: "图片自动打码", systemImageName: "eye.slash")
+        AppShortcut(intent: ConvertFileIntent(), phrases: ["Convert file with \(.applicationName)"], shortTitle: "转换文件格式", systemImageName: "arrow.triangle.2.circlepath")
+        AppShortcut(intent: TranscribeIntent(), phrases: ["Transcribe audio with \(.applicationName)"], shortTitle: "录音转文字", systemImageName: "waveform")
     }
 }
