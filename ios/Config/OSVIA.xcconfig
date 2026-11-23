@@ -5,3 +5,5 @@
 // 以后上架 App Store：在 Local.xcconfig 里写 OSVIA_ID_SUFFIX = 即可使用干净的包名。
 OSVIA_ID_SUFFIX = .$(DEVELOPMENT_TEAM)
 #include? "Local.xcconfig"
+// 代码文件夹上上级的 OSVIA-Local.xcconfig（tools/setup-signing.sh 生成）：下载新版本后团队 ID 仍然有效
+#include? "../../../OSVIA-Local.xcconfig"
