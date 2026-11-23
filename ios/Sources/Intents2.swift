@@ -42,6 +42,24 @@ struct OCRImageIntent: AppIntent {
     }
 }
 
+struct TableOCRIntent: AppIntent {
+    static let title: LocalizedStringResource = "识别表格并导出"
+    static let description = IntentDescription("识别图片或 PDF 里的表格，导出成 Excel 或 CSV，在本机完成，不上传")
+    @Parameter(title: "图片或 PDF", supportedContentTypes: [.image, .pdf]) var file: IntentFile
+    @Parameter(title: "格式", description: "xlsx 或 csv，默认 xlsx", default: "xlsx") var format: String
+
+    func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
+        let u = try IntentIO.stage(file, ext: "jpg")
+        defer { IntentIO.cleanup(u) }
+        let fmt = format.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "csv" ? "csv" : "xlsx"
+        let r = try await TableOCR.run([u], format: fmt)
+        guard let first = r.files.first else { throw Convert.err("没有识别到表格") }
+        let f = try IntentIO.result(first)
+        for extra in r.files.dropFirst() { try? FileManager.default.removeItem(at: extra) }
+        return .result(value: f)
+    }
+}
+
 struct WebTextIntent: AppIntent {
     static let title: LocalizedStringResource = "提取网页文字"
     static let description = IntentDescription("提取网页正文，去掉广告和导航")

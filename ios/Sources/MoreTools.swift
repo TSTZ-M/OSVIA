@@ -32,7 +32,7 @@ enum MoreTools {
         case "search_files": return searchFiles(str(a, "q"), trace)
         case "photos_find": return await photosFind(a, trace)
         case "extract_web", "convert", "remove_watermark", "translate_image": return await Toolkit.run(c, trace: trace)
-        case "pdf_tool", "redact", "cutout", "scan_code", "image_edit", "media_edit", "transcribe", "zip", "unzip": return await Toolkit2.run(c, trace: trace)
+        case "pdf_tool", "table_ocr", "redact", "cutout", "scan_code", "image_edit", "media_edit", "transcribe", "zip", "unzip": return await Toolkit2.run(c, trace: trace)
         default: return await Hands2.run(c, trace: trace, cloud: cloud)
         }
     }

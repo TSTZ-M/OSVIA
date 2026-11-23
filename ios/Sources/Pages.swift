@@ -133,6 +133,7 @@ struct ToolboxView: View {
                     section("提取与识别") {
                         kind(.web)
                         kind(.ocr)
+                        kind(.table)
                         kind(.scan)
                         kind(.translateImage)
                         kind(.qr)

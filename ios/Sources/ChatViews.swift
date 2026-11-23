@@ -406,7 +406,7 @@ struct ChatView: View {
             }
         }
         if urls.allSatisfy({ Files.isImage($0) }) {
-            return [("识别文字", "ocr"), ("翻译图片", "trans"), ("去水印", "wm"), ("抠图", "cutout"), ("打码", "redact"), ("读二维码", "qr"), ("图片处理", "imgedit"), conv("pdf"), conv("docx")]
+            return [("识别文字", "ocr"), ("表格识别", "table"), ("翻译图片", "trans"), ("去水印", "wm"), ("抠图", "cutout"), ("打码", "redact"), ("读二维码", "qr"), ("图片处理", "imgedit"), conv("pdf"), conv("docx")]
         }
         if Convert.vidExt.contains(e) {
             return [("转文字", "transcribe"), ("剪辑", "media"), conv("m4a"), conv("mute"), ("去水印", "wmv"), conv("compress"), conv("wav")]
@@ -418,7 +418,8 @@ struct ChatView: View {
         }
         if e == "pdf" {
             list.insert(("识别文字", "ocrpdf"), at: 0)
-            list.insert(("PDF 工具", "pdftool"), at: 1)
+            list.insert(("表格识别", "table"), at: 1)
+            list.insert(("PDF 工具", "pdftool"), at: 2)
         }
         list.append(("更多", "more"))
         return list
@@ -464,6 +465,7 @@ struct ChatView: View {
             guard let u = urls.first(where: { Files.isImage($0) }), let d = Files.normalizedJPEG(from: u, maxPixel: 3000) else { return }
             agent.attachments = []
             ScreenTranslator.shared.request(data: d)
+        case "table": state.tool = ToolRequest(kind: .table, files: urls)
         case "wm": state.tool = ToolRequest(kind: .wmImage, files: urls)
         case "wmv": state.tool = ToolRequest(kind: .wmVideo, files: urls)
         case "cutout": state.tool = ToolRequest(kind: .cutout, files: urls)

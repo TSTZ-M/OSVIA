@@ -815,3 +815,90 @@ struct ImageToolView: View {
         }
     }
 }
+
+// MARK: 表格识别：图片、PDF 里的表格 → Excel / CSV（iOS 26 文档识别，本机完成）
+struct TableView: View {
+    @State private var urls: [URL]
+    @State private var format = "xlsx"
+    @State private var result: TableOCR.Output?
+    @State private var busy = false
+    @State private var err = ""
+    @State private var ran = false
+
+    init(initial: [URL] = []) { _urls = State(initialValue: initial) }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                PickSources(types: [.image, .pdf], multiple: true) { picked in
+                    urls = picked
+                    go(picked)
+                } onError: { err = $0 }
+                Picker("格式", selection: $format) {
+                    Text("Excel").tag("xlsx")
+                    Text("CSV").tag("csv")
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: format) { _, _ in go(urls) }
+                if !urls.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(urls.prefix(6), id: \.self) { u in
+                            Label { Text(verbatim: u.lastPathComponent).lineLimit(1) } icon: { Image(systemName: u.pathExtension.lowercased() == "pdf" ? "doc" : "photo") }
+                                .font(.footnote).foregroundStyle(Brand.sub)
+                        }
+                        if urls.count > 6 { Text(verbatim: "… +\(urls.count - 6)").font(.footnote).foregroundStyle(Brand.sub) }
+                    }
+                }
+                if busy { HStack(spacing: 8) { ProgressView(); Text("正在识别表格…").font(.subheadline).foregroundStyle(Brand.sub) } }
+                ToolError(text: err)
+                if let r = result {
+                    Text(verbatim: L10n.f("识别到 {} 个表格", "\(r.found.count)")).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.ink)
+                    if r.merged { ToolNote(text: "列数相同的表格已合并成一张，重复的表头已去掉。") }
+                    if let first = r.found.first { previewGrid(first.rows) }
+                    OutputList(urls: r.files)
+                } else if urls.isEmpty {
+                    ToolNote(text: "选一张或几张含表格的图片，或一份 PDF（最多 30 页），本机识别出行列并导出成 Excel 或 CSV，不上传。表格线清晰、正对拍摄时效果最好。")
+                }
+            }
+            .padding(16)
+        }
+        .background(Brand.page)
+        .navigationTitle("表格识别")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { if !ran, !urls.isEmpty { ran = true; go(urls) } }
+    }
+
+    private func previewGrid(_ rows: [[String]]) -> some View {
+        let shown = Array(rows.prefix(10))
+        let cols = min(shown.first?.count ?? 0, 8)
+        return ScrollView(.horizontal, showsIndicators: true) {
+            Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 6) {
+                ForEach(0..<shown.count, id: \.self) { r in
+                    GridRow {
+                        ForEach(0..<cols, id: \.self) { c in
+                            Text(verbatim: c < shown[r].count ? shown[r][c] : "")
+                                .font(.footnote.weight(r == 0 ? .semibold : .regular))
+                                .foregroundStyle(Brand.ink)
+                                .lineLimit(2)
+                                .frame(maxWidth: 140, alignment: .leading)
+                        }
+                    }
+                }
+            }
+            .padding(12)
+        }
+        .modifier(ToolCardBackground())
+    }
+
+    private func go(_ files: [URL]) {
+        guard !busy, !files.isEmpty else { return }
+        busy = true
+        err = ""
+        result = nil
+        let f = format
+        Task {
+            do { result = try await TableOCR.run(files, format: f) } catch { err = error.localizedDescription }
+            busy = false
+        }
+    }
+}
