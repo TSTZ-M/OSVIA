@@ -1,0 +1,1 @@
+Sources/MCPOAuth.swift:32:20: warning: 'init(frame:)' was deprecated in iOS 26.0: Use init(windowScene:) instead.
