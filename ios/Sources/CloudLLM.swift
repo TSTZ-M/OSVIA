@@ -132,8 +132,36 @@ enum CloudLLM {
     }
 
     // 流式对话（OpenAI 兼容 /chat/completions）。返回完整回答；onText 每次给出到目前为止的全文。
+    // 还没收到任何文字时遇到网络抖动、服务繁忙（429 / 5xx），自动静默重试一次，避免一次抖动就掉到本机模型
     static func stream(_ messages: [[String: String]], maxTokens: Int = 1000, temperature: Double = 0.4,
                        onText: @escaping (String) -> Void) async throws -> String {
+        var attempt = 0
+        while true {
+            var got = false
+            do {
+                return try await streamOnce(messages, maxTokens: maxTokens, temperature: temperature) { t in
+                    got = true
+                    onText(t)
+                }
+            } catch {
+                attempt += 1
+                if attempt > 1 || got || Task.isCancelled || !transient(error) { throw error }
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                if Task.isCancelled { throw error }
+            }
+        }
+    }
+
+    private static func transient(_ error: Error) -> Bool {
+        if let u = error as? URLError {
+            return [.networkConnectionLost, .timedOut, .cannotConnectToHost, .notConnectedToInternet, .dnsLookupFailed].contains(u.code)
+        }
+        if case CloudError.http(let c, _) = error { return [429, 500, 502, 503, 504].contains(c) }
+        return false
+    }
+
+    private static func streamOnce(_ messages: [[String: String]], maxTokens: Int, temperature: Double,
+                                   onText: @escaping (String) -> Void) async throws -> String {
         let root = base.trimmingCharacters(in: CharacterSet(charactersIn: "/ \n"))
         guard let url = URL(string: root + "/chat/completions") else { throw CloudError.config("接口地址不正确") }
         var req = URLRequest(url: url)
