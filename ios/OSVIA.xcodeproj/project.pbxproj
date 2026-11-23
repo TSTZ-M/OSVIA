@@ -107,6 +107,7 @@
 		E87D661954C92F7D2CC16FA0 /* Diag.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC6137101BE75E7208EF94B0 /* Diag.swift */; };
 		EACCDBEEF25F354E01252C9F /* Connectors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B343B947A6B1EFDA0D538B9 /* Connectors.swift */; };
 		EFF379EB9DAFA6825C3FBEAB /* Markdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35B06AA3B230109AB8223DF7 /* Markdown.swift */; };
+		F22C2D3FABEF61363DE41E62 /* TableTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA3EF9D9C05A036C358A8E4D /* TableTools.swift */; };
 		F62F3D1A40BFFEC54557D63F /* KB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48743BBEBF59DC6285EE3B6B /* KB.swift */; };
 		FACFD288AB268A2258133EDF /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 515132FDE4590D9066A526BA /* Tokenizers */; };
 		FC68683145D4A4932802B7CE /* TasksPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25EA8D0EA418BC74F7A9CDF5 /* TasksPage.swift */; };
@@ -210,6 +211,7 @@
 		B9332C0FB383F2064968EBB4 /* L10nExtra2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nExtra2.swift; sourceTree = "<group>"; };
 		B95B6971DC59560F399B850C /* Mail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mail.swift; sourceTree = "<group>"; };
 		B9BC70B91880117EF16B3D4B /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
+		BA3EF9D9C05A036C358A8E4D /* TableTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableTools.swift; sourceTree = "<group>"; };
 		BA42E76FEA5F2985F91435EA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BC8AFB834A4A6D1C92CB04D9 /* Features.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features.swift; sourceTree = "<group>"; };
 		BED1AA84663C25D2EB051C07 /* BrandMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandMark.swift; sourceTree = "<group>"; };
@@ -370,6 +372,7 @@
 				4F2F9FCE5D72ADF412997D85 /* Steps.swift */,
 				4B09D14F0B5F469FF33D5670 /* Storage.swift */,
 				8E6FEA2C297024FA08F11B9E /* Sys.swift */,
+				BA3EF9D9C05A036C358A8E4D /* TableTools.swift */,
 				515BACBDFB953B32A7C4D09A /* TaskAgent.swift */,
 				94C08053FF95F408B5FEF4F3 /* Tasks.swift */,
 				25EA8D0EA418BC74F7A9CDF5 /* TasksPage.swift */,
@@ -592,6 +595,7 @@
 				2EE78677FA6B674DA81248E0 /* Steps.swift in Sources */,
 				FF39A030DFFF3CAC6DE5CF67 /* Storage.swift in Sources */,
 				E4B3848D4025F3A6C18EE46D /* Sys.swift in Sources */,
+				F22C2D3FABEF61363DE41E62 /* TableTools.swift in Sources */,
 				70FADF79CD2581E0EBDF540A /* TaskAgent.swift in Sources */,
 				7D0774EC06D382125B1DDA9B /* Tasks.swift in Sources */,
 				FC68683145D4A4932802B7CE /* TasksPage.swift in Sources */,
