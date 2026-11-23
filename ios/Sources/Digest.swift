@@ -239,7 +239,7 @@ struct DigestView: View {
     func save() {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
-        _ = KB.shared.upsert(L10n.tr("今日回顾") + " " + f.string(from: Date()), result)
+        KB.shared.upsert(L10n.tr("今日回顾") + " " + f.string(from: Date()), result)
         saved = true
     }
 }

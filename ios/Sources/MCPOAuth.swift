@@ -27,7 +27,9 @@ enum MCPOAuth {
     private final class Anchor: NSObject, ASWebAuthenticationPresentationContextProviding {
         func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
             let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-            return scenes.flatMap { $0.windows }.first(where: { $0.isKeyWindow }) ?? ASPresentationAnchor()
+            if let w = scenes.flatMap({ $0.windows }).first(where: { $0.isKeyWindow }) { return w }
+            if let s = scenes.first { return UIWindow(windowScene: s) }
+            return UIWindow(frame: .zero)
         }
     }
 

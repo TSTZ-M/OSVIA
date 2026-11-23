@@ -76,7 +76,7 @@ struct StoragePage: View {
     @State private var confirm: String?
     @State private var freed: Int64 = 0
 
-    private static func make() -> [Item] {
+    nonisolated private static func make() -> [Item] {
         [
             Item(id: "out", icon: "tray.full", color: Brand.mint, title: "生成的文件", note: "转换、扫描、剪辑、打码等工具生成的结果", bytes: StorageInfo.size(of: Store.dir("Outputs"))),
             Item(id: "in", icon: "square.and.arrow.down", color: .blue, title: "导入的文件", note: "从相册、「文件」App、相机带进来的副本", bytes: StorageInfo.size(of: Store.dir("Inbox"))),

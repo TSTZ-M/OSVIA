@@ -480,7 +480,7 @@ struct RedactView: View {
                                     if on { chosen.insert(k) } else { chosen.remove(k) }
                                 })) {
                                     Label {
-                                        Text(k.title) + Text(verbatim: "  ·  \(n)")
+                                        Text(verbatim: L10n.tr(k.title) + "  ·  \(n)")
                                     } icon: { Image(systemName: k.icon) }
                                 }
                                 .padding(.horizontal, 12)
