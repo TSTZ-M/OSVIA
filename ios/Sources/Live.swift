@@ -28,6 +28,31 @@ enum Live {
 
     private static let lock = NSLock()
     private static var last: Task<Void, Never>?
+    private static var beat: Task<Void, Never>?
+
+    // 心跳：任务跑得久（长转写、大文件处理）时，每 90 秒续一次过期时间，岛上不会在干活时误显示「已超时」
+    private static func startBeat() {
+        lock.lock()
+        defer { lock.unlock() }
+        guard beat == nil else { return }
+        beat = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 90_000_000_000)
+                if Task.isCancelled { break }
+                await enqueue {
+                    guard let a = await assistant(), a.content.state.phase != Phase.done.rawValue else { return }
+                    await a.update(ActivityContent(state: a.content.state, staleDate: Date().addingTimeInterval(180), relevanceScore: 80))
+                }.value
+            }
+        }
+    }
+
+    private static func stopBeat() {
+        lock.lock()
+        beat?.cancel()
+        beat = nil
+        lock.unlock()
+    }
 
     @discardableResult
     private static func enqueue(_ op: @escaping () async -> Void) -> Task<Void, Never> {
@@ -56,6 +81,7 @@ enum Live {
         guard enabled else { return }
         let sub = L10n.tr(subtitle ?? p.text)
         let detail: String? = query.isEmpty ? nil : query
+        startBeat()
         enqueue {
             let existing = await assistant()
             // 上一次已经显示「完成」的话，这是一次新请求，计时从头开始
@@ -77,6 +103,7 @@ enum Live {
             set(.listening)
         } else {
             guard enabled else { return }
+            stopBeat()
             enqueue {
                 if let a = await assistant(), a.content.state.phase == Phase.listening.rawValue {
                     await a.end(nil, dismissalPolicy: .immediate)
@@ -96,6 +123,7 @@ enum Live {
     }
 
     static func finish() {
+        stopBeat()
         guard enabled else { return }
         let sub = L10n.tr(Phase.done.text)
         let detail: String? = query.isEmpty ? nil : query

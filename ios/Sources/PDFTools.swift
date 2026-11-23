@@ -328,11 +328,11 @@ struct PDFToolView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Menu {
                     ForEach(PDFOps.Op.allCases) { o in
-                        Button { change(o) } label: { Label(LocalizedStringKey(o.title), systemImage: op == o ? "checkmark" : "doc.richtext") }
+                        Button { change(o) } label: { Label(o.title, systemImage: op == o ? "checkmark" : "doc.richtext") }
                     }
                 } label: {
                     HStack {
-                        Text(LocalizedStringKey(op.title)).fontSz(17, weight: .semibold)
+                        Text(op.title).fontSz(17, weight: .semibold)
                         Spacer()
                         Image(systemName: "chevron.up.chevron.down").fontSz(12).foregroundStyle(Brand.sub)
                     }
@@ -341,7 +341,7 @@ struct PDFToolView: View {
                     .background(Brand.card)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                Text(LocalizedStringKey(op.hint)).font(.footnote).foregroundStyle(Brand.sub)
+                Text(op.hint).font(.footnote).foregroundStyle(Brand.sub)
 
                 PickSources(types: types, camera: false, paste: false, multiple: multi) { urls in
                     err = ""
@@ -447,8 +447,8 @@ struct PDFToolView: View {
 
     private func field(_ title: String, _ ph: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(LocalizedStringKey(title)).font(.footnote.weight(.semibold)).foregroundStyle(Brand.sub)
-            TextField(LocalizedStringKey(ph), text: text)
+            Text(title).font(.footnote.weight(.semibold)).foregroundStyle(Brand.sub)
+            TextField(ph, text: text)
                 .textFieldStyle(.plain)
                 .padding(12)
                 .background(Brand.card)
@@ -458,7 +458,7 @@ struct PDFToolView: View {
 
     private func secure(_ title: String, _ text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(LocalizedStringKey(title)).font(.footnote.weight(.semibold)).foregroundStyle(Brand.sub)
+            Text(title).font(.footnote.weight(.semibold)).foregroundStyle(Brand.sub)
             SecureField("密码", text: text)
                 .padding(12)
                 .background(Brand.card)

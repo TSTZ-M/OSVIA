@@ -441,7 +441,7 @@ struct ChatView: View {
     }
 
     func chip(_ t: String, _ key: String) -> some View {
-        Button(LocalizedStringKey(t)) { runChip(key, t) }
+        Button(t) { runChip(key, t) }
             .font(.subheadline)
             .foregroundStyle(Brand.ink)
             .padding(.horizontal, 14)

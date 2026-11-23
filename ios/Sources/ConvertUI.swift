@@ -122,7 +122,7 @@ struct ConvertView: View {
                     .font(.subheadline).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(LocalizedStringKey(title))
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .quickLookPreview($preview)
         .task { if let u = initial, file == nil { setFile(u) } }

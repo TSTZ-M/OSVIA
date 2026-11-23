@@ -90,7 +90,7 @@ struct AttachTray: View {
                     .background(it.accent ? Brand.mint.opacity(0.14) : Brand.userBubble)
                     .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(selected ? Brand.mint : .clear, lineWidth: 1.5))
-                Text(LocalizedStringKey(it.title)).fontSz(11.5).foregroundStyle(Brand.sub).lineLimit(1).minimumScaleFactor(0.75)
+                Text(it.title).fontSz(11.5).foregroundStyle(Brand.sub).lineLimit(1).minimumScaleFactor(0.75)
             }
             .frame(width: tileW)
         }

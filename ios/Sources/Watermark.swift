@@ -583,7 +583,7 @@ struct WatermarkView: View {
                 .buttonStyle(.borderedProminent).controlSize(.large)
             Button { showFile = true } label: { Label("从「文件」App 选择", systemImage: "folder").frame(maxWidth: .infinity) }
                 .buttonStyle(.bordered).controlSize(.large)
-            if loading { ProgressView("正在读取…") }
+            if loading { ProgressView { Text("正在读取…") } }
         }
         .padding(16)
         .frame(maxWidth: .infinity)
@@ -629,7 +629,7 @@ struct WatermarkView: View {
             if busy {
                 VStack(alignment: .leading, spacing: 8) {
                     if isVideo { ProgressView(value: progress) { Text("处理中 \(Int(progress * 100))%").font(.subheadline) } }
-                    else { ProgressView("处理中…") }
+                    else { ProgressView { Text("处理中…") } }
                     if isVideo { Button("取消", role: .destructive) { cancel.on = true } }
                 }
             } else {
@@ -638,7 +638,7 @@ struct WatermarkView: View {
                     .disabled(regions.isEmpty)
             }
         } else {
-            ProgressView("正在读取…").frame(maxWidth: .infinity)
+            ProgressView { Text("正在读取…") }.frame(maxWidth: .infinity)
         }
     }
 

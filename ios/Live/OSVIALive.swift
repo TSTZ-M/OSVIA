@@ -2,10 +2,8 @@ import WidgetKit
 import SwiftUI
 import ActivityKit
 
-// 扩展里的中英文文案：跟随系统语言（应用内的状态文字由应用按应用语言翻译后传进来）
-func lt(_ zh: String, _ en: String) -> String {
-    Locale.current.language.languageCode?.identifier == "zh" ? zh : en
-}
+// 扩展里的固定文案放在 Shared/Localizable.xcstrings（源语言英文，跟随系统语言，缺语种回退英文）。
+// 应用内的状态文字由应用按应用语言翻译后传进来。
 
 // 状态图标（按 OSVIA 设计包）：聆听=声波，思考/执行=开口圆环，搜索=放大镜，完成=对勾圆圈
 struct PhaseIcon: View {
@@ -74,7 +72,9 @@ private struct Elapsed: View {
                 .monospacedDigit()
                 .foregroundStyle(BrandPalette.sub)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 46, alignment: .trailing)
+                .lineLimit(1)
+                .fixedSize()
+                .frame(minWidth: 46, alignment: .trailing)
         }
     }
 }
@@ -106,7 +106,7 @@ private struct Heading: View {
 
     var body: some View {
         let hasDetail = !(state.detail ?? "").isEmpty
-        let sub = stale ? lt("已超时，请回到应用查看", "Timed out - open the app") : state.subtitle
+        let sub = stale ? String(localized: "Timed out - open the app") : state.subtitle
         VStack(alignment: .leading, spacing: 2) {
             Text("OSVIA")
                 .font(.system(size: 11, weight: .semibold))
@@ -116,13 +116,16 @@ private struct Heading: View {
                 .font(.system(size: big, weight: .semibold))
                 .foregroundStyle(BrandPalette.ink)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
             if hasDetail && !stale {
                 Text(sub)
                     .font(.system(size: 12.5))
                     .foregroundStyle(BrandPalette.sub)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

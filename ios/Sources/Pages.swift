@@ -172,7 +172,7 @@ struct ToolboxView: View {
 
     func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(LocalizedStringKey(title)).fontSz(13, weight: .semibold).foregroundStyle(Brand.sub).padding(.leading, 4)
+            Text(title).fontSz(13, weight: .semibold).foregroundStyle(Brand.sub).padding(.leading, 4)
             // 超大字号时改成单列，卡片里的说明文字才放得下
             LazyVGrid(columns: dts.isAccessibilitySize ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) { content() }
         }
@@ -187,8 +187,8 @@ struct ToolboxView: View {
             Image(systemName: icon).font(.system(size: 19, weight: .medium)).foregroundStyle(Brand.mint)
                 .frame(width: 42, height: 42).background(Brand.mint.opacity(0.14))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            Text(LocalizedStringKey(t)).fontSz(15.5, weight: .semibold).foregroundStyle(Brand.ink)
-            Text(LocalizedStringKey(s)).fontSz(12.5).foregroundStyle(Brand.sub).multilineTextAlignment(.leading).lineLimit(dts.isAccessibilitySize ? 6 : 3)
+            Text(t).fontSz(15.5, weight: .semibold).foregroundStyle(Brand.ink)
+            Text(s).fontSz(12.5).foregroundStyle(Brand.sub).multilineTextAlignment(.leading).lineLimit(dts.isAccessibilitySize ? 6 : 3)
         }
         .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
         .padding(13)
