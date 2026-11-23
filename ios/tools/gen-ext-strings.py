@@ -35,5 +35,32 @@ for k, v in T.items():
     for code, t in zip(L, v):
         loc[code] = {"stringUnit": {"state": "translated", "value": t}}
     d["strings"][k] = {"extractionState": "manual", "localizations": loc}
+
+# 主应用里「快捷指令」动作的名称、参数、说明：源码里是中文键，补英文；其余语种先用英文（比显示中文强）
+ZH_EN = {
+"加入知识库":"Add to Knowledge Base","名称":"Name","内容":"Content","检索知识库":"Search Knowledge Base","查询":"Query","询问助理":"Ask Assistant","问题":"Question",
+"运行脚本技能":"Run Script Skill","技能名":"Skill name","输入":"Input","N 分钟后提醒":"Remind in N Minutes","分钟":"Minutes","翻译屏幕":"Translate Screen","截屏":"Screenshot",
+"识别图片文字":"Recognize Text in Image","识别图片里的文字（中文、英文、日文、韩文），在本机完成，不上传":"Recognizes text in an image (Chinese, English, Japanese, Korean) on device, nothing is uploaded",
+"识别表格并导出":"Recognize Table and Export","识别图片或 PDF 里的表格，导出成 Excel 或 CSV，在本机完成，不上传":"Recognizes tables in an image or PDF and exports Excel or CSV on device, nothing is uploaded",
+"图片或 PDF":"Image or PDF","格式":"Format","xlsx 或 csv，默认 xlsx":"xlsx or csv, default xlsx",
+"提取网页文字":"Extract Web Text","提取网页正文，去掉广告和导航":"Extracts the main text of a web page, without ads and navigation","网址":"URL",
+"压缩图片到指定大小":"Compress Image to Size","把图片压缩到不超过指定的 KB，输出 JPG":"Compresses an image to at most the given KB and outputs JPG","图片":"Image","最大体积（KB）":"Max size (KB)",
+"合并为 PDF":"Merge into PDF","把多个 PDF 或图片按顺序合成一个 PDF":"Combines PDFs or images, in order, into one PDF","文件":"Files",
+"背景":"Background","透明":"Transparent","白底":"White","蓝底":"Blue","红底":"Red",
+"抠图换底色":"Remove Background","识别图片里的主体并去掉背景，可换成证件照常用的底色":"Finds the subject of an image and removes the background; can fill with ID-photo colors",
+"图片自动打码":"Auto-Redact Image","自动给图里的手机号、身份证号、银行卡号、邮箱、车牌和人脸打马赛克，并清除拍摄位置":"Automatically pixelates phone numbers, ID numbers, bank cards, emails, plates and faces, and strips location data",
+"读取二维码":"Read QR Code","读出图片里的二维码和条形码内容":"Reads the QR codes and barcodes in an image",
+"转换文件格式":"Convert File Format","Word、Excel、PDF、图片、表格、音视频等互相转换，例如 pdf、docx、xlsx、jpg、png、txt、md、m4a":"Converts between Word, Excel, PDF, images, tables, audio and video, e.g. pdf, docx, xlsx, jpg, png, txt, md, m4a",
+"目标格式":"Target format","如 pdf、docx、xlsx、jpg、png、txt、md、html、csv、m4a、mp4":"e.g. pdf, docx, xlsx, jpg, png, txt, md, html, csv, m4a, mp4",
+"录音或视频转文字":"Transcribe Audio or Video","把录音、语音备忘录、视频里的说话转成文字（首次需要先在 App 里允许语音识别）":"Turns speech in recordings, voice memos and videos into text (allow speech recognition in the app first)",
+"音频或视频":"Audio or video","语言代码":"Language code","留空=系统语言；如 zh-CN、en-US、ja-JP":"Leave empty for the system language; e.g. zh-CN, en-US, ja-JP",
+"识别图片文字":"Recognize Text in Image",
+}
+for k, en in ZH_EN.items():
+    loc = {"en": {"stringUnit": {"state": "translated", "value": en}}}
+    for code in L:
+        if code not in ('zh-Hans', 'zh-Hant'):
+            loc[code] = {"stringUnit": {"state": "translated", "value": en}}
+    d["strings"][k] = {"extractionState": "manual", "localizations": loc}
 json.dump(d, open(OUT, 'w', encoding='utf8'), ensure_ascii=False, indent=2)
-print('keys', len(T))
+print('keys', len(T), len(ZH_EN))

@@ -47,9 +47,12 @@ enum Brain {
     // 轮数多了以后，把较早的工具结果截短，避免上下文越滚越大
     static func compact(_ msgs: inout [[String: String]]) {
         guard msgs.count > 6 else { return }
+        // 总量太大（多轮读网页）时再收紧一档，避免撑爆模型的上下文窗口
+        let total = msgs.reduce(0) { $0 + ($1["content"]?.count ?? 0) }
+        let limit = total > 90_000 ? 500 : 1800
         for i in 1..<(msgs.count - 2) {
-            guard msgs[i]["role"] == "user", let c = msgs[i]["content"], c.hasPrefix("以下是工具返回的外部数据"), c.count > 1800 else { continue }
-            msgs[i]["content"] = String(c.prefix(1000)) + "\n…（较早的工具结果已截短）"
+            guard msgs[i]["role"] == "user", let c = msgs[i]["content"], c.hasPrefix("以下是工具返回的外部数据"), c.count > limit else { continue }
+            msgs[i]["content"] = String(c.prefix(min(1000, limit))) + "\n…（较早的工具结果已截短）"
         }
     }
 
