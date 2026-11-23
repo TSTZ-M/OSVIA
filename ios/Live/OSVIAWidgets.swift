@@ -7,9 +7,9 @@ import AppIntents
 
 struct QuickConfig: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "OSVIA"
-    static var description = IntentDescription("选择点击后进入的位置")
+    static var description = IntentDescription("Choose where a tap leads")
 
-    @Parameter(title: "入口", default: .chat) var entry: OSVIAEntry
+    @Parameter(title: "Entry", default: .chat) var entry: OSVIAEntry
 
     init() {}
 }
@@ -33,28 +33,28 @@ struct QuickProvider: AppIntentTimelineProvider {
 private extension OSVIAEntry {
     var name: String {
         switch self {
-        case .chat: return lt("对话", "Chat")
-        case .voice: return lt("语音", "Voice")
-        case .mail: return lt("邮箱", "Mail")
-        case .tasks: return lt("任务", "Tasks")
+        case .chat: return String(localized: "Chat")
+        case .voice: return String(localized: "Voice")
+        case .mail: return String(localized: "Mail")
+        case .tasks: return String(localized: "Tasks")
         }
     }
 
     var hint: String {
         switch self {
-        case .chat: return lt("点一下开始对话", "Tap to start")
-        case .voice: return lt("点一下，说出你的需求", "Tap and speak")
-        case .mail: return lt("查看并处理邮件", "Review your mail")
-        case .tasks: return lt("查看今天的任务", "See today's tasks")
+        case .chat: return String(localized: "Tap to start")
+        case .voice: return String(localized: "Tap and speak")
+        case .mail: return String(localized: "Review your mail")
+        case .tasks: return String(localized: "See today's tasks")
         }
     }
 
     var title: String {
         switch self {
-        case .chat: return lt("问点什么？", "Ask anything")
-        case .voice: return lt("说出你的需求", "Say it")
-        case .mail: return lt("邮箱", "Mail")
-        case .tasks: return lt("任务", "Tasks")
+        case .chat: return String(localized: "Ask anything")
+        case .voice: return String(localized: "Say it")
+        case .mail: return String(localized: "Mail")
+        case .tasks: return String(localized: "Tasks")
         }
     }
 
@@ -77,6 +77,7 @@ private struct Tile: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(BrandPalette.ink)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
         }
@@ -110,8 +111,8 @@ struct QuickView: View {
                 Text(e.entry.hint)
                     .font(.system(size: 12))
                     .foregroundStyle(BrandPalette.sub)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .widgetURL(e.entry.url)
@@ -148,7 +149,7 @@ struct QuickView: View {
                 BrandGlyph(size: 28)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("OSVIA").font(.system(size: 13, weight: .semibold)).widgetAccentable()
-                    Text(e.entry.hint).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(e.entry.hint).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(2).minimumScaleFactor(0.85)
                 }
             }
             .widgetURL(e.entry.url)
@@ -167,7 +168,7 @@ struct OSVIAQuickWidget: Widget {
             QuickView(e: e)
         }
         .configurationDisplayName("OSVIA")
-        .description(lt("一点就开始对话、语音，或直达邮箱和任务。小尺寸和锁屏可选入口。", "Jump into chat, voice, mail or tasks. Pick the entry for small and Lock Screen widgets."))
+        .description(String(localized: "Jump into chat, voice, mail or tasks. Pick the entry for small and Lock Screen widgets."))
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }

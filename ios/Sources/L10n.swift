@@ -39,7 +39,15 @@ enum L10n {
     private static var _code = "zh-Hans"
     private static var memo: [String: String] = [:]
     private static var caches: [String: [String: String]] = [:]
-    private static var compiled: [String: [(NSRegularExpression, String)]] = [:]
+    private static var compiled: [String: [Template]] = [:]
+    private static var enMerged: [String: String]?
+
+    private struct Template {
+        let re: NSRegularExpression
+        let value: String
+        let lead: String     // 模板开头的固定文字，先用它快速排除
+        let trail: String
+    }
 
     // MARK: 当前语言
     // 首次安装：没有保存过设置就设为「跟随系统」
@@ -71,6 +79,7 @@ enum L10n {
         memo.removeAll()
         caches[c] = cache
         compiled[c] = nil
+        if c == "en" { enMerged = nil }
         lock.unlock()
     }
 
@@ -154,18 +163,26 @@ enum L10n {
         return [c, "en"]
     }
 
+    // 英文：手写表优先，没有手写的由系统翻译补译（缓存）
     private static func table(_ c: String) -> [String: String] {
-        c == "en" ? L10nTable.all : (caches[c] ?? [:])
+        guard c == "en" else { return caches[c] ?? [:] }
+        if let m = enMerged { return m }
+        let m = (caches["en"] ?? [:]).merging(L10nTable.all) { _, curated in curated }
+        enMerged = m
+        return m
     }
 
-    private static func templates(_ c: String) -> [(NSRegularExpression, String)] {
+    private static func templates(_ c: String) -> [Template] {
         if let t = compiled[c] { return t }
-        var out: [(NSRegularExpression, String)] = []
+        var out: [Template] = []
         for (k, v) in table(c) where k.contains("{}") {
-            let pat = "^" + k.components(separatedBy: "{}").map { NSRegularExpression.escapedPattern(for: $0) }.joined(separator: "(.+?)") + "$"
-            if let re = try? NSRegularExpression(pattern: pat, options: [.dotMatchesLineSeparators]) { out.append((re, v)) }
+            let parts = k.components(separatedBy: "{}")
+            let pat = "^" + parts.map { NSRegularExpression.escapedPattern(for: $0) }.joined(separator: "(.+?)") + "$"
+            if let re = try? NSRegularExpression(pattern: pat, options: [.dotMatchesLineSeparators]) {
+                out.append(Template(re: re, value: v, lead: parts.first ?? "", trail: parts.last ?? ""))
+            }
         }
-        out.sort { $0.0.pattern.count > $1.0.pattern.count }
+        out.sort { $0.re.pattern.count > $1.re.pattern.count }
         compiled[c] = out
         return out
     }
@@ -176,17 +193,36 @@ enum L10n {
             if let v = table(t)[s] { return v }
             if s.count <= 300 {
                 let ns = s as NSString
-                for (re, v) in templates(t) {
-                    guard let m = re.firstMatch(in: s, range: NSRange(location: 0, length: ns.length)) else { continue }
+                for tp in templates(t) {
+                    if !tp.lead.isEmpty && !s.hasPrefix(tp.lead) { continue }
+                    if !tp.trail.isEmpty && !s.hasSuffix(tp.trail) { continue }
+                    guard let m = tp.re.firstMatch(in: s, range: NSRange(location: 0, length: ns.length)) else { continue }
                     var caps: [String] = []
                     for i in 1..<m.numberOfRanges { caps.append(translate(ns.substring(with: m.range(at: i)), c, segments: false)) }
-                    return fill(v, caps)
+                    return fill(tp.value, caps)
                 }
             }
         }
         if segments, let v = bySentence(s, c) { return v }
+        if segments, let v = byColon(s, c) { return v }
         return s
     }
+
+    // 「提示语：具体内容」——提示语在表里，后面是运行时才知道的内容（文件名、系统报错等）
+    private static func byColon(_ s: String, _ c: String) -> String? {
+        guard s.count <= 400, let r = s.firstIndex(where: { $0 == "：" || $0 == ":" }) else { return nil }
+        let head = String(s[...r])
+        guard hasCJK(head), head.count <= 40 else { return nil }
+        let t = translate(head, c, segments: false)
+        guard t != head else { return nil }
+        let tail = String(s[s.index(after: r)...])
+        var out = t
+        if !isCJKStyle(c), let last = out.last, last == "：" { out.removeLast(); out += ":" }
+        if !tail.hasPrefix(" "), !isCJKStyle(c), let last = out.last, last == ":" { out += " " }
+        return out + tail
+    }
+
+    private static func isCJKStyle(_ c: String) -> Bool { c == "zh-Hans" || c == "zh-Hant" || c == "ja" }
 
     // 多句文字按「。」和换行拆开逐句翻译；开头的表情符号保留
     private static func bySentence(_ s: String, _ c: String) -> String? {
@@ -232,7 +268,7 @@ enum L10n {
     }
 
     private static func loadCache(_ c: String) -> [String: String] {
-        guard c != "en", c != "zh-Hans",
+        guard c != "zh-Hans",
               let d = try? Data(contentsOf: cacheURL(c)),
               let m = try? JSONDecoder().decode([String: String].self, from: d) else { return [:] }
         return m
@@ -243,6 +279,7 @@ enum L10n {
         lock.lock()
         caches[c] = m
         compiled[c] = nil
+        if c == "en" { enMerged = nil }
         memo.removeAll()
         lock.unlock()
     }
@@ -253,10 +290,12 @@ enum L10n {
         return caches[c] ?? [:]
     }
 
-    // 还没有译文的键（英文表里有的都翻译）
+    // 还没有译文的键：手写表 + 代码里收集到的全部界面文案（L10nCatalog）。英文已有手写译文的不再重复翻译
     static func missingKeys(_ c: String) -> [String] {
         let have = cacheCopy(c)
-        return L10nTable.all.keys.filter { have[$0] == nil }.sorted()
+        var keys = Set(L10nTable.all.keys)
+        keys.formUnion(L10nCatalog.keys)
+        return keys.filter { have[$0] == nil && !(c == "en" && L10nTable.all[$0] != nil) }.sorted()
     }
 
     // 模板里的 {} 换成 QZ1、QZ2…，避免翻译时被改坏；返回占位个数

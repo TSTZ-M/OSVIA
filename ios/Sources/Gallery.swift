@@ -111,7 +111,7 @@ struct GalleryPicker: View {
             case .denied, .restricted:
                 denied
             default:
-                ProgressView("正在请求相册权限…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView { Text("正在请求相册权限…") }.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }

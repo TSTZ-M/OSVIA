@@ -135,7 +135,7 @@ struct MailView: View {
         }
     }
 
-    private func point(_ icon: String, _ text: LocalizedStringKey) -> some View {
+    private func point(_ icon: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon).fontSz(14).foregroundStyle(Brand.mint).frame(width: 20)
             Text(text).fontSz(14.5).foregroundStyle(Brand.sub)
@@ -234,7 +234,7 @@ struct MailView: View {
         }
     }
 
-    private func chip(_ tag: Int, _ title: LocalizedStringKey, _ n: Int) -> some View {
+    private func chip(_ tag: Int, _ title: String, _ n: Int) -> some View {
         let on = filter == tag
         return Button {
             withAnimation(.easeInOut(duration: 0.18)) { filter = tag }

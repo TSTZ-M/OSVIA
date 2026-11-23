@@ -83,7 +83,7 @@ struct PickSources: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Image(systemName: icon).font(.system(size: 20)).foregroundStyle(Brand.mint)
-                Text(LocalizedStringKey(label)).fontSz(12.5).foregroundStyle(Brand.ink).lineLimit(1)
+                Text(label).fontSz(12.5).foregroundStyle(Brand.ink).lineLimit(1)
             }
             .frame(maxWidth: .infinity, minHeight: 62)
             .background(Brand.card)
@@ -126,7 +126,7 @@ struct OutputList: View {
 private struct ToolNote: View {
     let text: String
     var body: some View {
-        Text(LocalizedStringKey(text)).font(.footnote).foregroundStyle(Brand.sub)
+        Text(text).font(.footnote).foregroundStyle(Brand.sub)
     }
 }
 
@@ -391,9 +391,9 @@ struct QRView: View {
         if !scanned { ToolNote(text: "选一张含二维码或条形码的图片，本机读出内容，不上传。") }
         ForEach(found) { it in
             VStack(alignment: .leading, spacing: 10) {
-                Text(LocalizedStringKey(it.type)).font(.caption.weight(.semibold)).foregroundStyle(Brand.mint)
+                Text(it.type).font(.caption.weight(.semibold)).foregroundStyle(Brand.mint)
                 if let w = it.wifi {
-                    Text(verbatim: "Wi-Fi：\(w.ssid)").fontSz(16, weight: .semibold)
+                    Text(verbatim: "Wi-Fi" + L10n.colon + w.ssid).fontSz(16, weight: .semibold)
                     Text(verbatim: L10n.tr("密码") + "：" + (w.password.isEmpty ? "—" : w.password)).font(.subheadline).foregroundStyle(Brand.sub).textSelection(.enabled)
                 } else {
                     Text(verbatim: it.text).font(.body).foregroundStyle(Brand.ink).textSelection(.enabled)
@@ -403,7 +403,7 @@ struct QRView: View {
                         UIPasteboard.general.string = it.wifi?.password.isEmpty == false ? it.wifi?.password : it.text
                         copied = it.text
                     }
-                    if let u = it.url { Link("打开", destination: u) }
+                    if let u = it.url { Link(destination: u) { Text("打开") } }
                     ShareLink(item: it.text) { Text("分享") }
                 }
                 .buttonStyle(.borderless)
@@ -480,7 +480,7 @@ struct RedactView: View {
                                     if on { chosen.insert(k) } else { chosen.remove(k) }
                                 })) {
                                     Label {
-                                        Text(LocalizedStringKey(k.title)) + Text(verbatim: "  ·  \(n)")
+                                        Text(k.title) + Text(verbatim: "  ·  \(n)")
                                     } icon: { Image(systemName: k.icon) }
                                 }
                                 .padding(.horizontal, 12)
@@ -586,7 +586,7 @@ struct CutoutView: View {
                     ToolNote(text: "自动识别人物、宠物、物品等主体并去掉背景，可存成透明图，也可换成证件照常用的白、蓝、红底。")
                 }
                 Picker("背景", selection: $bg) {
-                    ForEach(Cutout.Background.allCases) { b in Text(LocalizedStringKey(b.title)).tag(b) }
+                    ForEach(Cutout.Background.allCases) { b in Text(b.title).tag(b) }
                 }
                 .pickerStyle(.segmented)
                 Toggle("裁到主体边缘", isOn: $crop)
@@ -663,11 +663,11 @@ struct ImageToolView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Menu {
                     ForEach(Mode.allCases, id: \.rawValue) { m in
-                        Button { mode = m; outs = []; note = "" } label: { Label(LocalizedStringKey(m.title), systemImage: mode == m ? "checkmark" : "photo") }
+                        Button { mode = m; outs = []; note = "" } label: { Label(m.title, systemImage: mode == m ? "checkmark" : "photo") }
                     }
                 } label: {
                     HStack {
-                        Text(LocalizedStringKey(mode.title)).fontSz(17, weight: .semibold)
+                        Text(mode.title).fontSz(17, weight: .semibold)
                         Spacer()
                         Image(systemName: "chevron.up.chevron.down").fontSz(12).foregroundStyle(Brand.sub)
                     }

@@ -115,8 +115,8 @@ struct StoragePage: View {
                                 .frame(width: 29, height: 29).background(r.color)
                                 .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(LocalizedStringKey(r.title)).foregroundStyle(Brand.ink)
-                                Text(LocalizedStringKey(r.note)).font(.caption).foregroundStyle(Brand.sub)
+                                Text(r.title).foregroundStyle(Brand.ink)
+                                Text(r.note).font(.caption).foregroundStyle(Brand.sub)
                             }
                             Spacer(minLength: 8)
                             Text(verbatim: StorageInfo.text(r.bytes)).foregroundStyle(Brand.sub)

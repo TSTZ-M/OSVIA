@@ -51,6 +51,12 @@ extension TextField where Label == Text {
     }
 }
 
+extension SecureField where Label == Text {
+    init(_ title: String, text: Binding<String>) {
+        self.init(text: text, label: { Text(verbatim: L10n.tr(title)) })
+    }
+}
+
 extension NavigationLink where Label == Text, Destination: View {
     init(_ title: String, @ViewBuilder destination: () -> Destination) {
         self.init(destination: destination, label: { Text(verbatim: L10n.tr(title)) })
@@ -58,6 +64,10 @@ extension NavigationLink where Label == Text, Destination: View {
 }
 
 extension View {
+    func accessibilityLabel(_ label: String) -> some View {
+        accessibilityLabel(Text(verbatim: L10n.tr(label)))
+    }
+
     func navigationTitle(_ title: String) -> some View {
         navigationTitle(Text(verbatim: L10n.tr(title)))
     }
@@ -111,7 +121,7 @@ final class L10nState: ObservableObject {
     // 简体中文和 English 内置；其他语言缺译文时让系统翻译在本机生成
     func ensureTranslation() {
         let c = L10n.code
-        guard c != "zh-Hans", c != "en" else {
+        guard c != "zh-Hans" else {
             status = ""
             busy = false
             return
@@ -124,7 +134,7 @@ final class L10nState: ObservableObject {
         target = c
         busy = true
         status = tr("正在准备语言包…")
-        let apple = L10n.langs.first { $0.code == c }?.apple ?? c
+        let apple = c == "en" ? "en-US" : (L10n.langs.first { $0.code == c }?.apple ?? c)
         let next = TranslationSession.Configuration(source: Locale.Language(identifier: "zh-Hans"), target: Locale.Language(identifier: apple))
         if config == next { config?.invalidate() } else { config = next }
     }
@@ -155,6 +165,7 @@ final class L10nState: ObservableObject {
                 done += chunk.count
                 i += 40
                 status = L10n.f("正在翻译界面：{}", "\(min(done, keys.count))/\(keys.count)")
+                if (i / 40) % 6 == 0 { L10n.saveCache(c, result) }   // 中途退出也不丢已翻译的部分
             }
             L10n.saveCache(c, result)
             version += 1

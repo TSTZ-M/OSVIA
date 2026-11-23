@@ -39,7 +39,7 @@ struct AppSettingsView: View {
     private func row(_ icon: String, _ color: Color, _ title: String, value: String = "") -> some View {
         HStack(spacing: 12) {
             badge(icon, color)
-            Text(LocalizedStringKey(title)).foregroundStyle(Brand.ink)
+            Text(title).foregroundStyle(Brand.ink)
             if !value.isEmpty {
                 Spacer(minLength: 8)
                 Text(verbatim: value).foregroundStyle(Brand.sub).lineLimit(1)
@@ -83,7 +83,7 @@ struct AppSettingsView: View {
                 // 模型：选用哪个、各自怎么配置，放在一起
                 Section {
                     Picker(selection: $modeRaw) {
-                        ForEach(ModelMode.allCases) { m in Text(LocalizedStringKey(m.title)).tag(m.rawValue) }
+                        ForEach(ModelMode.allCases) { m in Text(m.title).tag(m.rawValue) }
                     } label: { row("cpu", .indigo, "回答使用的模型") }
                     NavigationLink { CloudPage() } label: { row("cloud", .blue, "云端大脑", value: cloudSummary) }
                     NavigationLink { LocalModelPage() } label: { row("externaldrive", .teal, "本地大模型", value: localSummary) }
@@ -108,7 +108,7 @@ struct AppSettingsView: View {
                 Section {
                     Button { state.page = .tools } label: { row("wrench.and.screwdriver", Brand.mint, "工具箱：网页提取、识别、转换、去水印") }
                     Picker(selection: $transTarget) {
-                        ForEach(transLangs, id: \.0) { l in Text(LocalizedStringKey(l.1)).tag(l.0) }
+                        ForEach(transLangs, id: \.0) { l in Text(l.1).tag(l.0) }
                     } label: { row("character.bubble", .purple, "翻译目标语言") }
                     Button { showClock = true } label: { row("alarm", .orange, "系统时钟闹钟与自检") }
                     Toggle(isOn: $liveOn) { row("capsule.portrait", .black, "灵动岛与实时活动") }
@@ -121,7 +121,7 @@ struct AppSettingsView: View {
 
                 Section("外观与语言") {
                     Picker(selection: $appearance) {
-                        ForEach(themes, id: \.0) { t in Text(LocalizedStringKey(t.1)).tag(t.0) }
+                        ForEach(themes, id: \.0) { t in Text(t.1).tag(t.0) }
                     } label: { row("circle.lefthalf.filled", .gray, "外观") }
                     .onChange(of: appearance) { _, v in AppTheme.apply(v) }
                     NavigationLink { LanguagePage() } label: { row("globe", .blue, "应用语言", value: L10n.currentName) }

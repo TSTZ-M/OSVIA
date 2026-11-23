@@ -369,7 +369,7 @@ struct ScreenTranslateView: View {
             .padding(16)
         }
         .background(Brand.page)
-        .navigationTitle(LocalizedStringKey(title))
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .translationTask(t.config) { session in await t.run(session) }
         .onAppear { t.runPending() }

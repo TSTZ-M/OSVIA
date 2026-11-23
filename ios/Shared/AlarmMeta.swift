@@ -32,7 +32,7 @@ enum AlarmLive {
 
 // 灵动岛 / 锁屏上倒计时的按钮：暂停、继续、取消。在应用进程里执行。
 struct AlarmPauseIntent: LiveActivityIntent {
-    static var title: LocalizedStringResource = "暂停"
+    static var title: LocalizedStringResource = "Pause"
     @Parameter(title: "id") var alarmID: String
     init() { alarmID = "" }
     init(alarmID: String) { self.alarmID = alarmID }
@@ -43,7 +43,7 @@ struct AlarmPauseIntent: LiveActivityIntent {
 }
 
 struct AlarmResumeIntent: LiveActivityIntent {
-    static var title: LocalizedStringResource = "继续"
+    static var title: LocalizedStringResource = "Resume"
     @Parameter(title: "id") var alarmID: String
     init() { alarmID = "" }
     init(alarmID: String) { self.alarmID = alarmID }
@@ -54,7 +54,7 @@ struct AlarmResumeIntent: LiveActivityIntent {
 }
 
 struct AlarmStopIntent: LiveActivityIntent {
-    static var title: LocalizedStringResource = "停止"
+    static var title: LocalizedStringResource = "Stop"
     @Parameter(title: "id") var alarmID: String
     init() { alarmID = "" }
     init(alarmID: String) { self.alarmID = alarmID }

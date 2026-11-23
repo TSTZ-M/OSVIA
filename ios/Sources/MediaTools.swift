@@ -376,11 +376,11 @@ struct MediaToolView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Menu {
                     ForEach(MediaOps.Op.allCases) { o in
-                        Button { op = o; out = nil; err = "" } label: { Label(LocalizedStringKey(o.title), systemImage: op == o ? "checkmark" : "film") }
+                        Button { op = o; out = nil; err = "" } label: { Label(o.title, systemImage: op == o ? "checkmark" : "film") }
                     }
                 } label: {
                     HStack {
-                        Text(LocalizedStringKey(op.title)).fontSz(17, weight: .semibold)
+                        Text(op.title).fontSz(17, weight: .semibold)
                         Spacer()
                         Image(systemName: "chevron.up.chevron.down").fontSz(12).foregroundStyle(Brand.sub)
                     }
@@ -389,7 +389,7 @@ struct MediaToolView: View {
                     .background(Brand.card)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                Text(LocalizedStringKey(op.hint)).font(.footnote).foregroundStyle(Brand.sub)
+                Text(op.hint).font(.footnote).foregroundStyle(Brand.sub)
 
                 PickSources(types: [.movie, .audio], allowVideo: true, camera: false, paste: false, multiple: op == .merge) { urls in
                     out = nil
@@ -500,7 +500,7 @@ struct MediaToolView: View {
     private func slider(_ title: String, value: Binding<Double>, upper: Double, changed: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(LocalizedStringKey(title)).font(.footnote.weight(.semibold)).foregroundStyle(Brand.sub)
+                Text(title).font(.footnote.weight(.semibold)).foregroundStyle(Brand.sub)
                 Spacer()
                 Text(verbatim: MediaOps.clock(value.wrappedValue)).font(.footnote.monospacedDigit()).foregroundStyle(Brand.ink)
             }
@@ -566,7 +566,7 @@ struct TranscribeView: View {
                 }
 
                 Picker("语言", selection: $lang) {
-                    ForEach(Transcribe.languages) { l in Text(LocalizedStringKey(l.name)).tag(l.id) }
+                    ForEach(Transcribe.languages) { l in Text(l.name).tag(l.id) }
                 }
                 .pickerStyle(.menu)
 
