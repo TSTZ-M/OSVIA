@@ -133,14 +133,14 @@ private struct AlarmButtons: View {
                 if let b = attrs.presentation.countdown?.pauseButton {
                     Button(intent: AlarmPauseIntent(alarmID: id)) { pill(b.text, b.systemImageName, BrandPalette.mint) }.buttonStyle(.plain)
                 }
-                Button(intent: AlarmStopIntent(alarmID: id)) { pill(attrs.presentation.alert.stopButton.text, "xmark", BrandPalette.sub) }.buttonStyle(.plain)
+                Button(intent: AlarmStopIntent(alarmID: id)) { pill(AlarmStopIntent.title, "xmark", BrandPalette.sub) }.buttonStyle(.plain)
             case .paused:
                 if let b = attrs.presentation.paused?.resumeButton {
                     Button(intent: AlarmResumeIntent(alarmID: id)) { pill(b.text, b.systemImageName, BrandPalette.mint) }.buttonStyle(.plain)
                 }
-                Button(intent: AlarmStopIntent(alarmID: id)) { pill(attrs.presentation.alert.stopButton.text, "xmark", BrandPalette.sub) }.buttonStyle(.plain)
+                Button(intent: AlarmStopIntent(alarmID: id)) { pill(AlarmStopIntent.title, "xmark", BrandPalette.sub) }.buttonStyle(.plain)
             default:
-                Button(intent: AlarmStopIntent(alarmID: id)) { pill(attrs.presentation.alert.stopButton.text, attrs.presentation.alert.stopButton.systemImageName, BrandPalette.mint) }.buttonStyle(.plain)
+                Button(intent: AlarmStopIntent(alarmID: id)) { pill(AlarmStopIntent.title, "stop.fill", BrandPalette.mint) }.buttonStyle(.plain)
             }
         }
     }

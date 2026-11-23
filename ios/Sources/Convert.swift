@@ -243,14 +243,14 @@ enum Convert {
             AVSampleRateKey: 44100,
             AVNumberOfChannelsKey: 2
         ]
-        let output = AVAssetReaderTrackOutput(track: track, outputSettings: settings)
+        nonisolated(unsafe) let output = AVAssetReaderTrackOutput(track: track, outputSettings: settings)
         guard reader.canAdd(output) else { throw err("无法读取声音") }
         reader.add(output)
         let type: AVFileType = t == "caf" ? .caf : (t == "aiff" ? .aiff : .wav)
         let dst = out(base, t)
         try? FileManager.default.removeItem(at: dst)
         let writer = try AVAssetWriter(outputURL: dst, fileType: type)
-        let input = AVAssetWriterInput(mediaType: .audio, outputSettings: settings)
+        nonisolated(unsafe) let input = AVAssetWriterInput(mediaType: .audio, outputSettings: settings)
         input.expectsMediaDataInRealTime = false
         guard writer.canAdd(input) else { throw err("无法写入 \(t)") }
         writer.add(input)

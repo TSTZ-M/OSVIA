@@ -180,7 +180,7 @@ struct ConvertView: View {
     }
 
     // 按内容判断格式；不在支持列表里返回 nil（会改存为 JPEG）
-    static func imageExt(_ data: Data) -> String? {
+    nonisolated static func imageExt(_ data: Data) -> String? {
         guard let s = CGImageSourceCreateWithData(data as CFData, nil),
               let t = CGImageSourceGetType(s),
               let ut = UTType(t as String),

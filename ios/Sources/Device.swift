@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import CoreLocation
+import MapKit
 import Contacts
 
 // MARK: 设备能力：位置、通讯录、已安装的 App、剪贴板、导出到备忘录/文件/任意 App
@@ -52,12 +53,13 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         }
         guard let l = loc ?? mgr.location else { return (nil, "暂时定位不到，请确认定位服务已开启，并到室外或窗边再试。") }
         var fix = Fix(lat: l.coordinate.latitude, lon: l.coordinate.longitude, accuracy: l.horizontalAccuracy, place: "")
-        if let pm = try? await CLGeocoder().reverseGeocodeLocation(l, preferredLocale: Locale(identifier: "zh_CN")).first {
-            var parts: [String] = []
-            for v in [pm.country, pm.administrativeArea, pm.locality, pm.subLocality, pm.thoroughfare, pm.subThoroughfare] {
-                if let v, !v.isEmpty, !parts.contains(v) { parts.append(v) }
+        // iOS 26 起 CLGeocoder 已弃用，改用 MapKit 的反向地理编码
+        if let req = MKReverseGeocodingRequest(location: l) {
+            req.preferredLocale = Locale(identifier: "zh_CN")
+            if let item = try? await req.mapItems.first,
+               let full = item.address?.fullAddress, !full.isEmpty {
+                fix.place = full.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: " ")
             }
-            fix.place = parts.joined(separator: " ")
         }
         return (fix, "")
     }

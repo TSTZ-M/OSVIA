@@ -298,7 +298,7 @@ enum Delogo {
     }
 
     // MARK: 视频（固定位置的水印；逐帧处理，声音原样保留）
-    final class Cancel { var on = false }
+    final class Cancel: @unchecked Sendable { var on = false }
 
     static func video(_ src: URL, regions: [CGRect], progress: @escaping (Double) -> Void, cancel: Cancel) async throws -> URL {
         let asset = AVURLAsset(url: src)
@@ -328,7 +328,7 @@ enum Delogo {
         }
 
         let reader = try AVAssetReader(asset: asset)
-        let vout = AVAssetReaderTrackOutput(track: vt, outputSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA])
+        nonisolated(unsafe) let vout = AVAssetReaderTrackOutput(track: vt, outputSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA])
         guard reader.canAdd(vout) else { throw Convert.err("无法读取视频") }
         reader.add(vout)
 
@@ -337,7 +337,7 @@ enum Delogo {
         let dst = Convert.out(base, mov ? "mov" : "mp4")
         try? FileManager.default.removeItem(at: dst)
         let writer = try AVAssetWriter(outputURL: dst, fileType: mov ? .mov : .mp4)
-        let vin = AVAssetWriterInput(mediaType: .video, outputSettings: [
+        nonisolated(unsafe) let vin = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: W,
             AVVideoHeightKey: H,
@@ -400,7 +400,9 @@ enum Delogo {
                 }
             }
         }
-        if let ain, let aout {
+        if let ain0 = ain, let aout0 = aout {
+            nonisolated(unsafe) let ain = ain0
+            nonisolated(unsafe) let aout = aout0
             group.enter()
             ain.requestMediaDataWhenReady(on: DispatchQueue(label: "osvia.wm.audio")) {
                 while ain.isReadyForMoreMediaData {
