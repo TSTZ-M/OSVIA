@@ -71,7 +71,39 @@ enum Mail {
         MailProvider("zoho", "Zoho Mail", ["zoho.com", "zohomail.com"], "imap.zoho.com", "smtp.zoho.com",
                      secret: "应用专用密码", help: "Zoho 账号 → 安全 → 应用专用密码，并确认已开启 IMAP。", url: "https://accounts.zoho.com"),
         MailProvider("fastmail", "Fastmail", ["fastmail.com", "fastmail.fm"], "imap.fastmail.com", "smtp.fastmail.com",
-                     secret: "应用专用密码", help: "设置 → 密码与安全 → 应用密码，权限选「邮件（IMAP/SMTP）」。", url: "https://app.fastmail.com/settings/security/devicekeys")
+                     secret: "应用专用密码", help: "设置 → 密码与安全 → 应用密码，权限选「邮件（IMAP/SMTP）」。", url: "https://app.fastmail.com/settings/security/devicekeys"),
+        MailProvider("189", "中国电信 189 邮箱", ["189.cn"], "imap.189.cn", "smtp.189.cn",
+                     secret: "登录密码或授权码", help: "网页版 → 设置 → 客户端设置，开启 IMAP/SMTP。", url: "https://mail.189.cn"),
+        MailProvider("sohu", "搜狐邮箱", ["sohu.com"], "imap.sohu.com", "smtp.sohu.com",
+                     secret: "独立密码", help: "网页版 → 设置 → 账号 → 开启 POP3/IMAP/SMTP，并设置客户端独立密码。", url: "https://mail.sohu.com"),
+        MailProvider("263", "263 邮箱", ["263.net"], "imap.263.net", "smtp.263.net",
+                     secret: "登录密码或授权码", help: "确认邮箱已开启 IMAP；若提示登录失败，请改用授权码。", url: "https://www.263.net"),
+        MailProvider("aol", "AOL 邮箱", ["aol.com"], "imap.aol.com", "smtp.aol.com",
+                     secret: "应用密码", help: "AOL 账号安全页 → 生成应用密码，填到下面。", url: "https://login.aol.com/account/security"),
+        MailProvider("gmx", "GMX", ["gmx.com", "gmx.net", "gmx.de", "gmx.at", "gmx.ch"], "imap.gmx.net", "mail.gmx.net",
+                     secret: "登录密码", help: "GMX 网页版 → 设置 → POP3/IMAP 邮件收发 → 允许通过外部程序访问。", url: "https://www.gmx.com"),
+        MailProvider("mailcom", "mail.com", ["mail.com", "email.com", "usa.com", "post.com", "consultant.com"], "imap.mail.com", "smtp.mail.com",
+                     secret: "登录密码", help: "网页版 → 设置 → POP3/IMAP，开启外部程序访问。", url: "https://www.mail.com"),
+        MailProvider("webde", "WEB.DE", ["web.de"], "imap.web.de", "smtp.web.de", smtpPort: 587,
+                     secret: "登录密码", help: "网页版 → 设置 → POP3/IMAP，开启外部程序访问。", url: "https://web.de"),
+        MailProvider("tonline", "T-Online", ["t-online.de"], "secureimap.t-online.de", "securesmtp.t-online.de",
+                     secret: "邮箱专用密码", help: "T-Online 客户中心 → 邮件 → 设置邮箱专用密码。", url: "https://www.telekom.de/hilfe"),
+        MailProvider("orange", "Orange", ["orange.fr", "wanadoo.fr"], "imap.orange.fr", "smtp.orange.fr",
+                     secret: "登录密码", help: "使用 Orange 账号的登录密码；若失败请在账号安全页生成应用专用密码。", url: "https://mail.orange.fr"),
+        MailProvider("yandex", "Yandex 邮箱", ["yandex.com", "yandex.ru", "ya.ru"], "imap.yandex.com", "smtp.yandex.com",
+                     secret: "应用密码", help: "Yandex ID → 安全 → 应用密码；并在邮箱设置里开启「通过 IMAP 访问」。", url: "https://id.yandex.com/security/app-passwords"),
+        MailProvider("mailru", "Mail.ru", ["mail.ru", "inbox.ru", "list.ru", "bk.ru"], "imap.mail.ru", "smtp.mail.ru",
+                     secret: "外部应用密码", help: "Mail.ru 账号 → 安全 → 外部应用密码，生成一个填到下面。", url: "https://account.mail.ru/user/2-step-auth/passwords"),
+        MailProvider("naver", "Naver", ["naver.com"], "imap.naver.com", "smtp.naver.com",
+                     secret: "登录密码或应用密码", help: "Naver 邮箱网页版 → 环境设置 → POP3/IMAP 设置，开启 IMAP/SMTP。", url: "https://mail.naver.com"),
+        MailProvider("mailbox", "mailbox.org", ["mailbox.org"], "imap.mailbox.org", "smtp.mailbox.org",
+                     secret: "登录密码", help: "使用 mailbox.org 的登录密码；开启了两步验证时请在安全设置里生成应用密码。", url: "https://login.mailbox.org"),
+        MailProvider("posteo", "Posteo", ["posteo.de", "posteo.net"], "posteo.de", "posteo.de",
+                     secret: "登录密码", help: "使用 Posteo 的登录密码；开启了两步验证时请生成应用专用密码。", url: "https://posteo.de/en/account"),
+        MailProvider("zohoeu", "Zoho Mail（欧洲）", ["zoho.eu"], "imap.zoho.eu", "smtp.zoho.eu",
+                     secret: "应用专用密码", help: "Zoho 账号 → 安全 → 应用专用密码，并确认已开启 IMAP。", url: "https://accounts.zoho.eu"),
+        MailProvider("zohoin", "Zoho Mail（印度）", ["zoho.in"], "imap.zoho.in", "smtp.zoho.in",
+                     secret: "应用专用密码", help: "Zoho 账号 → 安全 → 应用专用密码，并确认已开启 IMAP。", url: "https://accounts.zoho.in")
     ]
 
     static func provider(for email: String) -> MailProvider? {
@@ -133,12 +165,15 @@ enum Mail {
         return (id, "")
     }
 
+    static func paused(_ id: Int) -> Bool { DB.shared.kv("mail.off.\(id)") == "1" }
+    static func setPaused(_ id: Int, _ on: Bool) { DB.shared.setKV("mail.off.\(id)", on ? "1" : "") }
     static func warn(_ id: Int) -> String { DB.shared.kv("mail.warn.\(id)") ?? "" }
 
     static func remove(_ id: Int) {
         DB.shared.run("DELETE FROM mail_triage WHERE acct=?", [id])
         DB.shared.run("DELETE FROM mail_log WHERE acct=?", [id])
         DB.shared.run("DELETE FROM mail_account WHERE id=?", [id])
+        DB.shared.run("DELETE FROM kv WHERE k IN (?,?)", ["mail.sig.\(id)", "mail.off.\(id)"])
         SecretStore.set("mail.pw.\(id)", "")
     }
 
@@ -284,7 +319,11 @@ enum Mail {
                 let parsed = await Task.detached(priority: .userInitiated) { fresh.map { ($0, MailMIME.parse($0.raw)) } }.value
                 items = parsed.map { Item(m: $0.0, p: $0.1) }
                 for i in items.indices {
-                    if let h = heuristic(items[i].p) {
+                    // 屏蔽名单里的发件人：照常入库（避免每次同步重复下载），但不分拣、不显示
+                    if isBlocked(MailMIME.address(items[i].p.h("from")).addr) {
+                        items[i].cat = "blocked"
+                        items[i].sum = oneLine(items[i].p.h("subject"), 60)
+                    } else if let h = heuristic(items[i].p) {
                         items[i].cat = h
                         items[i].sum = oneLine(items[i].p.h("subject"), 60)
                     }
@@ -295,11 +334,17 @@ enum Mail {
                     if items[i].sum.isEmpty { items[i].sum = oneLine(items[i].p.h("subject"), 60) }
                     let p = items[i].p
                     let f = MailMIME.address(p.h("from"))
-                    db.run("INSERT OR IGNORE INTO mail_triage(mkey,acct,uid,validity,from_name,from_addr,reply_to,subject,ts,cat,summary,act,snippet,msgid,refs,unread,flagged) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    // 重要联系人的来信一律算「待回复」
+                    if items[i].cat != "blocked", items[i].cat != "urgent", items[i].cat != "reply", isVIP(f.addr) {
+                        items[i].cat = "reply"
+                        if items[i].act.isEmpty { items[i].act = L10n.tr("重要联系人来信") }
+                    }
+                    db.run("INSERT OR IGNORE INTO mail_triage(mkey,acct,uid,validity,from_name,from_addr,reply_to,subject,ts,cat,summary,act,snippet,msgid,refs,unread,flagged,to_list,cc_list) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                            ["\(acct)|\(validity)|\(items[i].m.uid)", acct, items[i].m.uid, validity, f.name, f.addr,
                             MailMIME.address(p.h("reply-to")).addr, p.h("subject"), items[i].m.date.timeIntervalSince1970,
                             items[i].cat, items[i].sum, items[i].act, oneLine(p.text, 200),
-                            p.h("message-id"), p.h("references"), items[i].m.seen ? 0 : 1, items[i].m.flagged ? 1 : 0])
+                            p.h("message-id"), p.h("references"), items[i].m.seen ? 0 : 1, items[i].m.flagged ? 1 : 0,
+                            addresses(p.h("to")).joined(separator: ","), addresses(p.h("cc")).joined(separator: ",")])
                 }
             }
             db.run("DELETE FROM mail_triage WHERE acct=? AND id NOT IN (SELECT id FROM mail_triage WHERE acct=? ORDER BY ts DESC LIMIT 300)", [acct, acct])
@@ -398,7 +443,7 @@ enum Mail {
     @discardableResult
     static func refreshAll(maxAge: Double = 0, rules: Bool = false) async -> String {
         var err = ""
-        for a in accounts() {
+        for a in accounts() where !paused(a.i("id")) {
             if maxAge > 0, Date().timeIntervalSince1970 - a.d("last_run") < maxAge, status(a.i("id")).error.isEmpty { continue }
             let r = await refresh(a.i("id"), rules: rules)
             if !r.error.isEmpty && err.isEmpty { err = a.s("email") + "：" + r.error }
@@ -409,7 +454,7 @@ enum Mail {
     // MARK: 自动运行：回到前台时（每个账号间隔 10 分钟）和系统给的后台刷新机会
     static func autoRunIfDue() async {
         guard !Safety.safeMode else { return }
-        for a in accounts() where a.i("auto") == 1 {
+        for a in accounts() where a.i("auto") == 1 && !paused(a.i("id")) {
             let id = a.i("id")
             let now = Date().timeIntervalSince1970
             if now - a.d("last_run") < 600 { continue }
@@ -444,7 +489,7 @@ enum Mail {
     }
 
     // MARK: 读全文、整理、发送
-    static func inbox() -> [Row] { DB.shared.rows("SELECT * FROM mail_triage ORDER BY ts DESC LIMIT 200") }
+    static func inbox() -> [Row] { DB.shared.rows("SELECT * FROM mail_triage WHERE cat<>'blocked' ORDER BY ts DESC LIMIT 200") }
     static func logs() -> [Row] { DB.shared.rows("SELECT * FROM mail_log ORDER BY id DESC LIMIT 20") }
 
     static func row(_ id: Int) -> Row? { DB.shared.rows("SELECT * FROM mail_triage WHERE id=?", [id]).first }
@@ -503,35 +548,169 @@ enum Mail {
                 default: throw MailError("不支持的操作：\(action)")
                 }
             }
-            switch action {
-            case "read": DB.shared.run("UPDATE mail_triage SET unread=0 WHERE id=?", [id])
-            case "unread": DB.shared.run("UPDATE mail_triage SET unread=1 WHERE id=?", [id])
-            case "star": DB.shared.run("UPDATE mail_triage SET flagged=1 WHERE id=?", [id])
-            case "unstar": DB.shared.run("UPDATE mail_triage SET flagged=0 WHERE id=?", [id])
-            case "archive", "trash", "junk": DB.shared.run("DELETE FROM mail_triage WHERE id=?", [id])
-            default: break
-            }
+            applyLocal(id, action)
             return ""
         } catch {
             return message(error)
         }
+    }
+
+    private static func applyLocal(_ id: Int, _ action: String) {
+        switch action {
+        case "read": DB.shared.run("UPDATE mail_triage SET unread=0 WHERE id=?", [id])
+        case "unread": DB.shared.run("UPDATE mail_triage SET unread=1 WHERE id=?", [id])
+        case "star": DB.shared.run("UPDATE mail_triage SET flagged=1 WHERE id=?", [id])
+        case "unstar": DB.shared.run("UPDATE mail_triage SET flagged=0 WHERE id=?", [id])
+        case "archive", "trash", "junk": DB.shared.run("DELETE FROM mail_triage WHERE id=?", [id])
+        default: break
+        }
+    }
+
+    // 批量整理：每个邮箱只连一次服务器。返回第一个错误（空 = 全部成功）
+    static func actBatch(_ ids: [Int], _ action: String) async -> String {
+        guard ["read", "unread", "star", "unstar", "archive", "trash", "junk"].contains(action) else { return "不支持的操作：" + action }
+        let rows = ids.compactMap { row($0) }
+        guard !rows.isEmpty else { return "" }
+        var firstError = ""
+        for (acct, group) in Dictionary(grouping: rows, by: { $0.i("acct") }) {
+            guard let a = account(acct) else { continue }
+            do {
+                try await session(a) { c in
+                    let valid = group.filter { $0.i("validity") == c.validity }
+                    if valid.isEmpty { throw MailError("邮箱的索引变了，请先刷新再试。") }
+                    var dest = ""
+                    if ["archive", "trash", "junk"].contains(action) { dest = try await folder(action, c) }
+                    for r in valid {
+                        let uid = r.i("uid")
+                        switch action {
+                        case "read": try await c.addFlag(uid: uid, "\\Seen")
+                        case "unread": try await c.removeFlag(uid: uid, "\\Seen")
+                        case "star": try await c.addFlag(uid: uid, "\\Flagged")
+                        case "unstar": try await c.removeFlag(uid: uid, "\\Flagged")
+                        default: try await c.move(uid: uid, to: dest)
+                        }
+                    }
+                }
+                for r in group { applyLocal(r.i("id"), action) }
+            } catch {
+                if firstError.isEmpty { firstError = message(error) }
+            }
+        }
+        return firstError
+    }
+
+    // MARK: 重要联系人与屏蔽名单（地址小写、一行一个，存在偏好设置里，随备份一起走）
+    static func addressList(_ key: String) -> [String] {
+        (DB.shared.kv(key) ?? "").split(separator: "\n").map { String($0) }.filter { !$0.isEmpty }
+    }
+
+    private static func setAddressList(_ key: String, _ list: [String]) {
+        DB.shared.setKV(key, list.joined(separator: "\n"))
+    }
+
+    static var vips: [String] { addressList("mail.vip") }
+    static var blockedList: [String] { addressList("mail.block") }
+    static func isVIP(_ addr: String) -> Bool { vips.contains(addr.lowercased()) }
+    static func isBlocked(_ addr: String) -> Bool { blockedList.contains(addr.lowercased()) }
+
+    static func setVIP(_ addr: String, _ on: Bool) {
+        let a = addr.lowercased()
+        var l = vips.filter { $0 != a }
+        if on { l.append(a) }
+        setAddressList("mail.vip", l)
+        if on {
+            DB.shared.run("UPDATE mail_triage SET cat='reply', act=? WHERE lower(from_addr)=? AND cat IN ('info','notice','promo')", [L10n.tr("重要联系人来信"), a])
+        }
+    }
+
+    static func setBlocked(_ addr: String, _ on: Bool) {
+        let a = addr.lowercased()
+        var l = blockedList.filter { $0 != a }
+        if on { l.append(a) }
+        setAddressList("mail.block", l)
+        if on {
+            DB.shared.run("UPDATE mail_triage SET cat='blocked' WHERE lower(from_addr)=?", [a])
+            setVIP(a, false)
+        } else {
+            DB.shared.run("UPDATE mail_triage SET cat='info' WHERE lower(from_addr)=? AND cat='blocked'", [a])
+        }
+    }
+
+    // 从一行邮件头里取出所有邮箱地址（不依赖逗号分隔，名字里带逗号也不会出错）
+    static func addresses(_ header: String) -> [String] {
+        guard !header.isEmpty, let re = try? NSRegularExpression(pattern: "[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}") else { return [] }
+        let ns = header as NSString
+        var seen = Set<String>()
+        var out: [String] = []
+        for m in re.matches(in: header, range: NSRange(location: 0, length: ns.length)) {
+            let a = ns.substring(with: m.range)
+            if seen.insert(a.lowercased()).inserted { out.append(a) }
+        }
+        return out
+    }
+
+    // 回复全部：主收件人 = 回复地址，抄送 = 原来的收件人和抄送里除自己和主收件人以外的人
+    static func replyAllTargets(_ r: Row) -> (to: String, cc: [String]) {
+        let primary = r.s("reply_to").isEmpty ? r.s("from_addr") : r.s("reply_to")
+        let me = account(r.i("acct"))?.s("email").lowercased() ?? ""
+        var seen: Set<String> = [primary.lowercased(), me]
+        var cc: [String] = []
+        for a in addresses(r.s("to_list") + "," + r.s("cc_list")) where seen.insert(a.lowercased()).inserted { cc.append(a) }
+        return (primary, cc)
+    }
+
+    // MARK: 签名与显示名称
+    static func signature(_ acct: Int) -> String { DB.shared.kv("mail.sig.\(acct)") ?? "" }
+    static func setSignature(_ acct: Int, _ s: String) { DB.shared.setKV("mail.sig.\(acct)", s) }
+
+    // MARK: 稍后提醒：把邮件变成一条提醒（复用定时任务，到点系统通知）
+    static func snoozeOptions() -> [(title: String, date: Date)] {
+        let cal = Calendar.current
+        let now = Date()
+        func at(_ d: Date, _ h: Int) -> Date { cal.date(bySettingHour: h, minute: 0, second: 0, of: d) ?? d }
+        var out: [(title: String, date: Date)] = [(L10n.tr("1 小时后"), now.addingTimeInterval(3600))]
+        let tonight = at(now, 18)
+        if tonight.timeIntervalSince(now) > 3600 { out.append((L10n.tr("今晚 18:00"), tonight)) }
+        if let tm = cal.date(byAdding: .day, value: 1, to: now) { out.append((L10n.tr("明天 9:00"), at(tm, 9))) }
+        if let nm = cal.nextDate(after: now, matching: DateComponents(hour: 9, minute: 0, weekday: 2), matchingPolicy: .nextTime) { out.append((L10n.tr("下周一 9:00"), nm)) }
+        return out
+    }
+
+    @discardableResult
+    static func remind(_ r: Row, at: Date) -> Int64 {
+        let who = r.s("from_name").isEmpty ? r.s("from_addr") : r.s("from_name")
+        let subj = r.s("subject").isEmpty ? L10n.tr("（无主题）") : r.s("subject")
+        return Tasks.add(L10n.tr("邮件提醒"), who + "：" + String(subj.prefix(80)), at, useModel: false, rep: 0)
+    }
+
+    // 让 AI 按意图写一封新邮件（只出正文）
+    static func draftNew(intent: String, subject: String) async -> String? {
+        let ins = "你是用户的邮件助理，替用户起草邮件正文。语气得体、简洁；只写正文，不要主题、不要解释；不要编造时间、金额、承诺、链接；信息不足的地方写成【待补充】。用用户描述所用的语言。"
+        let p = (subject.isEmpty ? "" : "主题：\(subject)\n") + "用户想写的内容：" + intent
+        return await AI.oneShot(ins, p, maxTokens: 700)
     }
 
     static func cleanName(_ s: String) -> String {
         s.replacingOccurrences(of: "[\\r\\n\"<>]", with: "", options: .regularExpression)
     }
 
-    static func send(account a: Row, to: [String], subject: String, body: String, inReplyTo: String = "", refs: String = "") async -> String {
+    static func send(account a: Row, to: [String], cc: [String] = [], bcc: [String] = [], subject: String, body: String, inReplyTo: String = "", refs: String = "") async -> String {
         let from = a.s("email")
-        let msg = MailBuilder.build(from: from, fromName: cleanName(a.s("name")), to: to, subject: subject, body: body, inReplyTo: inReplyTo, references: refs)
+        let msg = MailBuilder.build(from: from, fromName: cleanName(a.s("name")), to: to, cc: cc, subject: subject, body: body, inReplyTo: inReplyTo, references: refs)
+        var envelope: [String] = []
+        for r in to + cc + bcc where !envelope.contains(where: { $0.lowercased() == r.lowercased() }) { envelope.append(r) }
         let c = SMTPClient(host: a.s("smtp_host"), port: a.i("smtp_port") == 0 ? 465 : a.i("smtp_port"), startTLS: a.i("smtp_starttls") == 1)
         do {
-            try await c.deliver(user: a.s("user"), pass: password(a.i("id")), from: from, to: to, message: msg)
+            try await c.deliver(user: a.s("user"), pass: password(a.i("id")), from: from, to: envelope, message: msg)
             DB.shared.setKV("mail.warn.\(a.i("id"))", "")
             return ""
         } catch {
             return message(error)
         }
+    }
+
+    static func forwardSubject(_ s: String) -> String {
+        s.range(of: "^(fwd?|转发)\\s*[:：]", options: [.regularExpression, .caseInsensitive]) != nil ? s : "Fwd: " + s
     }
 
     static func replySubject(_ s: String) -> String {

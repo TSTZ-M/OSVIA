@@ -56,7 +56,7 @@ enum Skills {
                    if (!url) return "请输入网址";
                    var text = readPage(url);
                    if (!text) return "读取失败";
-                   return ask("用三句话总结下面的网页内容：\n" + text.slice(0, 6000));
+                   return ask("用三句话总结下面的网页内容：\\n" + text.slice(0, 6000));
                  }
                  """),
         Template(id: "watch", icon: "eye", title: "网页变化监控", desc: "内容变了就通知（配合定时运行）", sample: "https://example.com",
@@ -81,7 +81,7 @@ enum Skills {
         Template(id: "rate", icon: "dollarsign.arrow.circlepath", title: "汇率换算", desc: "输入「100 USD to CNY」得到实时汇率", sample: "100 USD to CNY",
                  code: """
                  function(input) {
-                   var m = input.trim().toUpperCase().match(/([0-9.]+)\s*([A-Z]{3})\s*(?:TO|IN|->|=>)?\s*([A-Z]{3})/);
+                   var m = input.trim().toUpperCase().match(/([0-9.]+)\\s*([A-Z]{3})\\s*(?:TO|IN|->|=>)?\\s*([A-Z]{3})/);
                    if (!m) return "格式：100 USD to CNY";
                    var d = fetchJSON("https://open.er-api.com/v6/latest/" + m[2]);
                    if (!d || !d.rates || !d.rates[m[3]]) return "查不到这组货币的汇率";
@@ -101,7 +101,7 @@ enum Skills {
                  code: """
                  function(input) {
                    if (!input.trim()) return "请输入要改写的文字";
-                   return ask("把下面的文字改写得正式、简洁，保持原意，只输出结果：\n" + input);
+                   return ask("把下面的文字改写得正式、简洁，保持原意，只输出结果：\\n" + input);
                  }
                  """),
         Template(id: "csv", icon: "tablecells", title: "CSV 转 JSON", desc: "第一行当表头，转成对象数组", sample: "name,age\nTom,18\nAnn,20",
@@ -120,17 +120,17 @@ enum Skills {
         Template(id: "count", icon: "number", title: "文本统计", desc: "字数、行数、词数一次看清", sample: "Hello world\n你好，世界",
                  code: """
                  function(input) {
-                   var chars = input.replace(/\s/g, "").length;
-                   var lines = input.split("\n").length;
+                   var chars = input.replace(/\\s/g, "").length;
+                   var lines = input.split("\\n").length;
                    var words = (input.match(/[A-Za-z0-9_']+/g) || []).length;
-                   var han = (input.match(/[\u4e00-\u9fff]/g) || []).length;
+                   var han = (input.match(/[\\u4e00-\\u9fff]/g) || []).length;
                    return "字符 " + chars + "，行 " + lines + "，英文词 " + words + "，汉字 " + han;
                  }
                  """),
         Template(id: "hash", icon: "lock.rectangle", title: "哈希与编码", desc: "MD5、SHA-256、Base64 一起算", sample: "hello",
                  code: """
                  function(input) {
-                   return ["MD5     " + md5(input), "SHA-256 " + sha256(input), "Base64  " + base64(input)].join("\n");
+                   return ["MD5     " + md5(input), "SHA-256 " + sha256(input), "Base64  " + base64(input)].join("\\n");
                  }
                  """),
         Template(id: "counter", icon: "plus.circle", title: "运行计数器", desc: "演示脚本私有存储：每次运行加一", sample: "",
