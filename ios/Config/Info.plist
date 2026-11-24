@@ -5,6 +5,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.Hao-Yi-Miao.TSTZ-Agent.mail</string>
+		<string>com.Hao-Yi-Miao.TSTZ-Agent.bark</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
