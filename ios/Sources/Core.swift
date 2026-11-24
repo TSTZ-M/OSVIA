@@ -48,6 +48,7 @@ final class DB {
         CREATE TABLE IF NOT EXISTS mail_account(id INTEGER PRIMARY KEY, email TEXT, name TEXT DEFAULT '', user TEXT, imap_host TEXT, imap_port INTEGER DEFAULT 993, smtp_host TEXT, smtp_port INTEGER DEFAULT 465, smtp_starttls INTEGER DEFAULT 0, provider TEXT DEFAULT '', auto INTEGER DEFAULT 0, ts REAL, last_run REAL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS mail_triage(id INTEGER PRIMARY KEY, mkey TEXT UNIQUE, acct INTEGER, uid INTEGER, validity INTEGER, from_name TEXT, from_addr TEXT, reply_to TEXT, subject TEXT, ts REAL, cat TEXT, summary TEXT, act TEXT, snippet TEXT, msgid TEXT, refs TEXT, unread INTEGER DEFAULT 1);
         CREATE TABLE IF NOT EXISTS mail_log(id INTEGER PRIMARY KEY, ts REAL, acct INTEGER, text TEXT);
+        CREATE TABLE IF NOT EXISTS bark_queue(id TEXT PRIMARY KEY, due REAL, title TEXT, body TEXT, ev TEXT, rep INTEGER DEFAULT 0);
         """
         // 一条一条执行：某一条出错时不会连累后面的表没建出来
         for st in schema.components(separatedBy: ";\n") {
@@ -55,6 +56,8 @@ final class DB {
             if !t.isEmpty { exec(t) }
         }
         exec("ALTER TABLE mail_triage ADD COLUMN flagged INTEGER DEFAULT 0")
+        exec("ALTER TABLE mail_triage ADD COLUMN to_list TEXT DEFAULT ''")
+        exec("ALTER TABLE mail_triage ADD COLUMN cc_list TEXT DEFAULT ''")
         exec("ALTER TABLE msg ADD COLUMN conv INTEGER DEFAULT 0")
         exec("ALTER TABLE msg ADD COLUMN files TEXT DEFAULT ''")
         exec("ALTER TABLE msg ADD COLUMN meta TEXT DEFAULT ''")

@@ -456,12 +456,13 @@ enum MailBuilder {
         return f.string(from: Date())
     }
 
-    static func build(from: String, fromName: String, to: [String], subject: String, body: String, inReplyTo: String = "", references: String = "") -> Data {
+    static func build(from: String, fromName: String, to: [String], cc: [String] = [], subject: String, body: String, inReplyTo: String = "", references: String = "") -> Data {
         let domain = from.split(separator: "@").last.map(String.init) ?? "osvia.local"
         var h: [String] = []
         let name = fromName.isEmpty ? "" : (fromName.allSatisfy { $0.isASCII } ? "\"\(fromName.replacingOccurrences(of: "\"", with: ""))\" " : encWord(fromName) + " ")
         h.append("From: \(name)<\(from)>")
         h.append("To: " + to.joined(separator: ", "))
+        if !cc.isEmpty { h.append("Cc: " + cc.joined(separator: ", ")) }
         h.append("Subject: " + encWord(subject.replacingOccurrences(of: "\n", with: " ")))
         h.append("Date: " + rfc5322Date())
         h.append("Message-ID: <\(UUID().uuidString.lowercased())@\(domain)>")

@@ -71,6 +71,7 @@ enum Sys {
         }
         let trig = UNCalendarNotificationTrigger(dateMatching: comps, repeats: rep > 0)
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: c, trigger: trig))
+        Bark.schedule(id: id, title: c.title, body: c.body, at: d, rep: rep, ev: Bark.event(forID: id))
     }
 
     static func weekdays(_ rep: Int, _ d: Date) -> [Locale.Weekday] {
@@ -206,6 +207,7 @@ enum Sys {
             Task { await AlarmLive.end(u) }
         }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["alarm-\(id)"])
+        Bark.cancel("alarm-\(id)")
         DB.shared.run("DELETE FROM alarm WHERE id=?", [id])
     }
 
@@ -231,7 +233,7 @@ enum Sys {
             }
         } catch {}
         // 已写入系统提醒事项时由它负责提醒，不再重复发通知
-        if !inReminders { Sys.notify(id: "remind-\(UUID().uuidString)", title: "提醒", body: title, at: d, rep: rep) }
+        if !inReminders { Sys.notify(id: "remind-\(UUID().uuidString)", title: "提醒", body: title, at: d, rep: rep) } else { Bark.schedule(id: "remind-\(UUID().uuidString)", title: L10n.tr("提醒"), body: L10n.tr(title), at: d, rep: rep, ev: .remind) }
         let repShown = longRep ? (freq == "monthly" ? L10n.tr("每月") : L10n.tr("每年")) + " " : (rep > 0 ? repText(rep) + " " : "")
         return "提醒已设置：\(repShown)\(friendly(d))「\(title)」" + (inReminders ? "，已写入系统提醒事项。" : "，将以通知提醒你。")
     }

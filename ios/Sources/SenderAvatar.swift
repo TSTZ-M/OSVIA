@@ -113,14 +113,14 @@ final class SenderLogos {
         UserDefaults.standard.set(m, forKey: failKey)
     }
 
-    func image(for domain: String) async -> UIImage? {
+    func image(for domain: String, force: Bool = false) async -> UIImage? {
         if let i = cached(domain) { return i }
         let file = dir.appendingPathComponent(domain + ".png")
         if let d = try? Data(contentsOf: file), let i = UIImage(data: d) {
             mem.setObject(i, forKey: domain as NSString)
             return i
         }
-        guard enabled, !failed(domain) else { return nil }
+        guard enabled || force, !failed(domain) else { return nil }
         if let t = inflight[domain] { return await t.value }
         let t = Task { await self.fetch(domain) }
         inflight[domain] = t

@@ -118,6 +118,7 @@ enum AgentTools {
         }
         s += Hands.doc(local: local)
         if !local { s += Mail.doc() }
+        if !local { s += Bark.doc() }
         let skills = Skills.list().map { $0.s("name") }
         if !skills.isEmpty { s += "- run_skill {\"name\":\"技能名\",\"input\":\"输入\"}：运行用户的脚本技能，可用：" + skills.prefix(12).joined(separator: "、") + "\n" }
         let conns = Connectors.all().map { $0.s("name") }
@@ -298,6 +299,7 @@ enum AgentTools {
         default:
             if let r = await Hands.run(c, trace: trace, cloud: cloud) { return r }
             if let r = await Mail.run(c, trace: trace, cloud: cloud) { return r }
+            if let r = await Bark.run(c, trace: trace) { return r }
             return ToolResult(text: "没有「\(c.name)」这个工具，请只使用工具列表里的。", ok: false)
         }
     }

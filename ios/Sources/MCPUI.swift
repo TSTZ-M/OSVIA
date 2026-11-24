@@ -10,172 +10,310 @@ struct MCPHome: View {
 
 struct MCPView: View {
     @State private var rows: [Row] = []
-    @State private var adding = ""
+    @State private var cat = "hot"
+    @State private var query = ""
+    @State private var picked: MCPApp?
     @State private var info = ""
 
-    private var presets: [MCPPreset] {
-        let have = Set(rows.map { $0.s("url") })
-        return MCP.presets.filter { !have.contains($0.url) }
+    private let cols = [GridItem(.adaptive(minimum: 76), spacing: 10, alignment: .top)]
+
+    private func added(_ a: MCPApp) -> Bool { rows.contains { $0.s("url").hasPrefix(a.url) } }
+
+    private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    private var shown: [MCPApp] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        let base = q.isEmpty ? MCPCatalog.apps(in: cat) : MCPCatalog.all.filter { ($0.name + " " + $0.about + " " + $0.domain).lowercased().contains(q) }
+        return base.filter { !added($0) }
     }
 
-    private var oauthPresets: [MCPPreset] {
-        let have = Set(rows.map { $0.s("url") })
-        return MCP.oauthPresets.filter { !have.contains($0.url) }
+    private func section<C: View>(_ title: String, footer: String = "", @ViewBuilder _ content: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).fontSz(13, weight: .semibold).foregroundStyle(Brand.sub).textCase(.uppercase).padding(.horizontal, 4)
+            content()
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Brand.card)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            if !footer.isEmpty {
+                Text(footer).fontSz(12.5).foregroundStyle(Brand.sub).padding(.horizontal, 4)
+            }
+        }
     }
 
     var body: some View {
-        List {
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Image(systemName: "puzzlepiece.extension")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(Brand.mint)
-                        .frame(width: 48, height: 48)
-                        .background(Brand.mint.opacity(0.14))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    Text("MCP 让助理连接外部工具和数据：查官方文档、读代码仓库、调用你自己的服务。添加后，助理会在需要时自动使用；会改变外部状态的工具，每次都会先问你。")
-                        .font(.subheadline)
-                        .foregroundStyle(Brand.sub)
-                }
-                .padding(.vertical, 4)
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                Text("MCP 让助理连接外部工具和数据：查官方文档、读代码仓库、管理你的项目。添加后，助理会在需要时自动使用；会改变外部状态的工具，每次都会先问你。")
+                    .font(.subheadline)
+                    .foregroundStyle(Brand.sub)
+                    .padding(.horizontal, 4)
 
-            if !info.isEmpty {
-                Section {
+                if !info.isEmpty {
                     Label { Text(verbatim: info) } icon: { Image(systemName: "info.circle.fill").foregroundStyle(Brand.mint) }
                         .font(.subheadline)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Brand.mint.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-            }
 
-            Section("已添加") {
-                if rows.isEmpty { Text("还没有服务器。从下面挑一个，或添加自己的。").foregroundStyle(Brand.sub) }
-                ForEach(Array(rows.enumerated()), id: \.offset) { i, elem in
-                    let r = elem
-                    NavigationLink {
-                        MCPDetailView(id: r.i("id"))
-                    } label: {
-                        HStack(spacing: 12) {
-                            Circle().fill(dot(r)).frame(width: 9, height: 9)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(verbatim: r.s("name")).fontSz(16, weight: .medium).foregroundStyle(Brand.ink)
-                                Text(verbatim: sub(r)).fontSz(12.5).foregroundStyle(Brand.sub).lineLimit(1)
+                if !searching {
+                    section("已连接") {
+                        if rows.isEmpty {
+                            Text("还没有连接器。从下面挑一个，点一下就能添加。").font(.subheadline).foregroundStyle(Brand.sub)
+                        } else {
+                            LazyVGrid(columns: cols, spacing: 16) {
+                                ForEach(Array(rows.enumerated()), id: \.offset) { _, r in
+                                    NavigationLink { MCPDetailView(id: r.i("id")) } label: {
+                                        MCPTile(domain: MCPCatalog.domain(forURL: r.s("url")), name: r.s("name"), label: MCPCatalog.short(r.s("name")), status: dot(r))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            if !presets.isEmpty {
-                Section {
-                    ForEach(presets) { p in
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(verbatim: p.name).fontSz(16, weight: .medium).foregroundStyle(Brand.ink)
-                                Text(p.about).fontSz(12.5).foregroundStyle(Brand.sub)
+                VStack(alignment: .leading, spacing: 12) {
+                    if !searching {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(MCPCatalog.categories, id: \.id) { c in
+                                    Button { withAnimation(.snappy(duration: 0.2)) { cat = c.id } } label: {
+                                        HStack(spacing: 5) {
+                                            Image(systemName: c.icon).font(.caption)
+                                            Text(c.title).font(.subheadline.weight(.medium))
+                                        }
+                                        .padding(.horizontal, 12).padding(.vertical, 7)
+                                        .background(cat == c.id ? Brand.mint : Brand.card)
+                                        .foregroundStyle(cat == c.id ? Brand.onMint : Brand.ink)
+                                        .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
+                            .padding(.horizontal, 1)
+                        }
+                    }
+                    section(searching ? "搜索结果" : "热门推荐", footer: "点图标查看介绍并添加。需要登录的会打开系统登录页，授权一次即可，令牌只保存在这台手机的钥匙串里。") {
+                        if shown.isEmpty {
+                            Text(searching ? "没有找到。可以在下面添加自定义服务器。" : "这一类都已添加。").font(.subheadline).foregroundStyle(Brand.sub)
+                        } else {
+                            LazyVGrid(columns: cols, spacing: 16) {
+                                ForEach(shown) { a in
+                                    Button { picked = a } label: {
+                                        MCPTile(domain: a.domain, name: a.name, symbol: a.symbol, label: a.shortName, corner: a.auth == .none ? "plus" : "arrow.down.circle")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                section("自己的服务器", footer: "支持 Streamable HTTP（新旧版本协议自动适配）和 OAuth 网页登录；也可以手动填访问令牌。暂不支持旧式 SSE 地址。") {
+                    NavigationLink { AddMCPView(onAdded: reload) } label: {
+                        HStack(spacing: 14) {
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .strokeBorder(Brand.sub.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                                .frame(width: 44, height: 44)
+                                .overlay(Image(systemName: "plus").foregroundStyle(Brand.sub))
+                            Text("添加自定义服务器").foregroundStyle(Brand.ink)
                             Spacer(minLength: 8)
-                            if adding == p.name {
-                                ProgressView()
-                            } else {
-                                Button("添加") { addPreset(p) }
-                                    .buttonStyle(.bordered)
-                                    .tint(Brand.mint)
-                                    .disabled(!adding.isEmpty)
-                            }
+                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
                         }
-                        .padding(.vertical, 2)
                     }
-                } header: {
-                    Text("推荐（无需登录）")
-                } footer: {
-                    Text("都是只读的文档与检索服务，添加后即可使用。")
+                    .buttonStyle(.plain)
                 }
             }
-
-            if !oauthPresets.isEmpty {
-                Section {
-                    ForEach(oauthPresets) { p in
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(verbatim: p.name).fontSz(16, weight: .medium).foregroundStyle(Brand.ink)
-                                Text(p.about).fontSz(12.5).foregroundStyle(Brand.sub)
-                            }
-                            Spacer(minLength: 8)
-                            if adding == p.name {
-                                ProgressView()
-                            } else {
-                                Button("登录") { addPreset(p) }
-                                    .buttonStyle(.bordered)
-                                    .tint(Brand.mint)
-                                    .disabled(!adding.isEmpty)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                } header: {
-                    Text("官方服务（网页登录）")
-                } footer: {
-                    Text("点「登录」会打开系统登录页，授权一次后自动连接，令牌只保存在这台手机的钥匙串里。")
-                }
-            }
-
-            Section {
-                NavigationLink {
-                    AddMCPView(onAdded: reload)
-                } label: {
-                    Label("添加自定义服务器", systemImage: "plus.circle")
-                }
-            } footer: {
-                Text("支持 Streamable HTTP（新旧版本协议自动适配）和 OAuth 网页登录；也可以手动填访问令牌。暂不支持旧式 SSE 地址。")
-            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
+        .background(Brand.page)
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("MCP 服务")
         .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $query, prompt: Text("搜索连接器"))
         .onAppear(perform: reload)
+        .sheet(item: $picked) { app in
+            MCPAppSheet(app: app) { msg in
+                info = msg
+                reload()
+            }
+        }
     }
 
     func dot(_ r: Row) -> Color {
-        if r.i("enabled") != 1 { return Brand.sub.opacity(0.4) }
+        if r.i("enabled") != 1 { return Brand.sub.opacity(0.5) }
         return r.s("tools").isEmpty ? Color.orange : Brand.mint
     }
 
-    func sub(_ r: Row) -> String {
-        let host = URL(string: r.s("url"))?.host ?? r.s("url")
-        if r.i("enabled") != 1 { return host + " · " + L10n.tr("已停用") }
-        let n = MCP.cachedTools(r).count
-        return host + " · " + (n > 0 ? L10n.f("{} 个工具", "\(n)") : L10n.tr("未连接"))
+    func reload() { rows = MCP.servers() }
+}
+
+// MARK: 图标方块：图标 + 名称 + 状态点 / 角标
+struct MCPTile: View {
+    let domain: String
+    let name: String
+    var symbol = ""
+    let label: String
+    var status: Color?
+    var corner = ""
+
+    var body: some View {
+        VStack(spacing: 7) {
+            ZStack(alignment: .topTrailing) {
+                BrandIcon(domain: domain, name: name, symbol: symbol, size: 56)
+                if let status {
+                    Circle().fill(status).frame(width: 13, height: 13)
+                        .overlay(Circle().stroke(Brand.card, lineWidth: 2))
+                        .offset(x: 4, y: -4)
+                } else if !corner.isEmpty {
+                    Image(systemName: corner).font(.system(size: 9, weight: .bold)).foregroundStyle(Brand.onMint)
+                        .frame(width: 18, height: 18).background(Brand.mint).clipShape(Circle())
+                        .overlay(Circle().stroke(Brand.card, lineWidth: 2))
+                        .offset(x: 5, y: -5)
+                }
+            }
+            Text(verbatim: label).fontSz(12).foregroundStyle(Brand.ink).lineLimit(2).multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: 单个连接器的介绍与添加
+struct MCPAppSheet: View {
+    let app: MCPApp
+    var done: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var key = ""
+    @State private var busy = false
+    @State private var error = ""
+
+    private var buttonTitle: String {
+        if busy { return app.auth == .oauth ? "等待登录…" : "正在连接…" }
+        switch app.auth {
+        case .none: return "添加"
+        case .oauth: return "登录并添加"
+        case .key: return "连接"
+        }
     }
 
-    func addPreset(_ p: MCPPreset) {
-        adding = p.name
-        info = ""
-        let r = MCP.add(name: p.name, url: p.url, token: "", headers: "", auto: !p.oauth)
+    private var authLine: String {
+        switch app.auth {
+        case .none: return "无需登录，添加后即可使用。"
+        case .oauth: return "需要登录：会打开系统登录页，授权一次即可。令牌只保存在这台手机的钥匙串里。"
+        case .key: return "需要你的密钥，只保存在这台手机上。"
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 14) {
+                    BrandIcon(domain: app.domain, name: app.name, symbol: app.symbol, size: 84).padding(.top, 8)
+                    Text(verbatim: app.name).font(.title2.weight(.semibold))
+                    Text(app.about).multilineTextAlignment(.center).foregroundStyle(Brand.sub)
+                    Label { Text(authLine) } icon: { Image(systemName: app.auth == .none ? "checkmark.shield" : "lock.shield").foregroundStyle(Brand.mint) }
+                        .font(.footnote)
+                        .foregroundStyle(Brand.sub)
+                        .multilineTextAlignment(.leading)
+
+                    if app.auth == .key {
+                        VStack(alignment: .leading, spacing: 8) {
+                            SecureField("粘贴密钥", text: $key)
+                                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                .padding(12)
+                                .background(Brand.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            if !app.keyHint.isEmpty { Text(app.keyHint).font(.footnote).foregroundStyle(Brand.sub) }
+                            if let u = URL(string: app.keyPage) {
+                                Link(destination: u) { Label("去获取密钥", systemImage: "arrow.up.right.square").font(.footnote) }
+                            }
+                        }
+                    }
+
+                    if !error.isEmpty {
+                        Label { Text(verbatim: error) } icon: { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
+                            .font(.footnote)
+                            .multilineTextAlignment(.leading)
+                    }
+
+                    Button { connect() } label: {
+                        HStack(spacing: 8) {
+                            if busy { ProgressView().tint(Brand.onMint) }
+                            Text(buttonTitle)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Brand.mint)
+                    .disabled(busy || (app.auth == .key && key.trimmingCharacters(in: .whitespaces).isEmpty))
+
+                    Text(verbatim: URL(string: app.url)?.host ?? app.url).font(.caption).foregroundStyle(Brand.sub)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
+            .background(Brand.page)
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } } }
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(busy)
+    }
+
+    func connect() {
+        error = ""
+        busy = true
+        var url = app.url
+        var token = ""
+        let k = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if app.auth == .key {
+            if app.keyQuery.isEmpty {
+                token = k
+            } else {
+                url += (url.contains("?") ? "&" : "?") + app.keyQuery + "=" + (k.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? k)
+            }
+        }
+        let r = MCP.add(name: app.name, url: url, token: token, headers: "", auto: app.auth == .none)
         if r.id == 0 {
-            info = L10n.tr(r.error)
-            adding = ""
+            error = L10n.tr(r.error)
+            busy = false
             return
         }
-        reload()
         Task {
-            if p.oauth, let u = URL(string: p.url) {
+            if app.auth == .oauth, let u = URL(string: app.url) {
                 let e = await MCPOAuth.login(r.id, url: u)
                 if !e.isEmpty {
-                    adding = ""
-                    reload()
-                    info = L10n.f("{} 已添加，但登录未完成：{}", p.name, L10n.tr(e))
+                    busy = false
+                    dismiss()
+                    done(L10n.f("{} 已添加，但登录未完成：{}", app.name, L10n.tr(e)))
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
                     return
                 }
             }
             let err = await MCP.refresh(r.id)
-            adding = ""
-            reload()
-            info = err.isEmpty ? L10n.f("已连接 {}", p.name) : L10n.f("{} 已添加，但连接失败：{}", p.name, L10n.tr(err))
+            if !err.isEmpty && app.auth == .key {
+                // 密钥填错就不保留，改好再试
+                MCP.remove(r.id)
+                error = L10n.tr(err)
+                busy = false
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+                return
+            }
+            busy = false
+            dismiss()
+            done(err.isEmpty ? L10n.f("已连接 {}", app.name) : L10n.f("{} 已添加，但连接失败：{}", app.name, L10n.tr(err)))
             UINotificationFeedbackGenerator().notificationOccurred(err.isEmpty ? .success : .warning)
         }
     }
-
-    func reload() { rows = MCP.servers() }
 }
 
 // MARK: 添加自定义服务器
@@ -287,6 +425,16 @@ struct MCPDetailView: View {
 
     var body: some View {
         List {
+            Section {
+                HStack(spacing: 14) {
+                    BrandIcon(domain: MCPCatalog.domain(forURL: row?.s("url") ?? ""), name: row?.s("name") ?? "", size: 52)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(verbatim: row?.s("name") ?? "").fontSz(18, weight: .semibold)
+                        Text(verbatim: URL(string: row?.s("url") ?? "")?.host ?? "").font(.footnote).foregroundStyle(Brand.sub)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
             Section {
                 Toggle("启用", isOn: Binding(get: { enabled }, set: { enabled = $0; MCP.setEnabled(id, $0) })).tint(Brand.mint)
                 Toggle("自动允许所有工具", isOn: Binding(get: { auto }, set: { auto = $0; MCP.setAuto(id, $0) })).tint(Brand.mint)
