@@ -45,7 +45,7 @@ enum Hands {
         s += "- create_file {\"name\":\"文件名.扩展名\",\"content\":\"内容\"}：生成文件（md txt csv json html pdf ics 等）放进工作区，并附在回复下方供预览分享。文章、表格、简历、代码、日历文件用它交付\n"
         s += "- read_file {\"name\":\"文件名\",\"offset\":0}：读工作区文件，一次最多 12000 字节，较长的用 offset 接着往后读；list_files {}；delete_file {\"name\":\"文件名\"}（删除会先问用户）\n"
         s += "- edit_file {\"name\":\"文件名\",\"mode\":\"append|prepend|replace\",\"content\":\"新内容\",\"find\":\"replace 时要被替换的原文\"}：修改工作区里已有的文件：在末尾追加、在开头插入、或把 find 精确替换成 content。改完会重新附在回复下方\n"
-        s += "- save_skill {\"name\":\"技能名\",\"desc\":\"用途\",\"sample\":\"测试输入\",\"code\":\"function(input){…return 字符串;}\"}：没有现成工具时，自己写一个可复用的脚本技能（ES5，可用 fetchText(url) 和 kbSearch(词)），测试通过才保存，之后用 run_skill 调用\n"
+        s += "- save_skill {\"name\":\"技能名\",\"desc\":\"用途\",\"sample\":\"测试输入\",\"code\":\"function(input){…return 字符串;}\"}：没有现成工具时，自己写一个可复用的脚本技能（可用 fetchJSON(url)、readPage(url)、httpGet/httpPost、store、notify、bark、ask、kbSearch、sha256 等同步函数），测试通过才保存，之后用 run_skill 调用\n"
         s += "- agenda {\"days\":3}：读取用户未来几天的日历日程和提醒事项（安排时间、问「我明天有什么事」时先用它）\n"
         s += "- timer {\"minutes\":10,\"title\":\"泡面\"}：倒计时，到点响铃（相对时间一律用它，不要自己算绝对时间）\n"
         s += "- maps {\"to\":\"目的地\",\"mode\":\"drive|walk|transit\"} 或 {\"q\":\"咖啡店\"}：打开地图导航或搜索周边\n"

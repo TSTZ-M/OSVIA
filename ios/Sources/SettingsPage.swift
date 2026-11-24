@@ -8,6 +8,7 @@ struct AppSettingsView: View {
     @AppStorage("style") private var style = 0
     @AppStorage("autoSend") private var autoSend = false
     @AppStorage("liveOn") private var liveOn = true
+    @AppStorage("bark.on") private var barkOn = false
     @AppStorage("cloudOn") private var cloudOn = true
     @AppStorage("modelMode") private var modeRaw = "auto"
     @AppStorage("transTarget") private var transTarget = "auto"
@@ -113,6 +114,12 @@ struct AppSettingsView: View {
                     Button { showClock = true } label: { row("alarm", .orange, "系统时钟闹钟与自检") }
                     Toggle(isOn: $liveOn) { row("capsule.portrait", .black, "灵动岛与实时活动") }
                         .toggleStyle(SwitchToggleStyle(tint: .green))
+                    Toggle(isOn: $barkOn) { row("bell.badge.fill", .orange, "Bark 提醒") }
+                        .toggleStyle(SwitchToggleStyle(tint: .green))
+                        .onChange(of: barkOn) { _, v in if v { Task { await Sys.ensureNotif(); Bark.scheduleBG() } } }
+                    NavigationLink { BarkPage() } label: {
+                        row("slider.horizontal.3", .gray, "Bark 设置", value: Bark.keys.isEmpty ? L10n.tr("未填写密钥") : L10n.tr(barkOn ? "已开启" : "已配置"))
+                    }
                 } header: {
                     Text("工具与提醒")
                 } footer: {
@@ -129,6 +136,9 @@ struct AppSettingsView: View {
 
                 Section("隐私与数据") {
                     Button { openSettings() } label: { row("hand.raised", .blue, "通知、照片、相机、麦克风等权限") }
+                    NavigationLink { BackupPage() } label: {
+                        row("externaldrive.badge.timemachine", .teal, "数据备份与恢复", value: Backup.lastTime.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "")
+                    }
                     NavigationLink { StoragePage() } label: { row("internaldrive", .gray, "存储空间与清理") }
                     if let u = exportURL {
                         ShareLink(item: u) { row("square.and.arrow.up", .green, "导出全部对话") }

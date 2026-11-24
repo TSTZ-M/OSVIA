@@ -42,6 +42,7 @@ struct OSVIAApp: App {
         Diag.launch()
         L10n.bootstrap()
         Mail.registerBG()
+        Bark.registerBG()
         UNUserNotificationCenter.current().delegate = NotifDelegate.shared
         // 主题只保留「跟随系统 / 浅色 / 深色」，升级后默认恢复为跟随系统
         let ud = UserDefaults.standard
@@ -63,9 +64,11 @@ struct OSVIAApp: App {
         }
         .onChange(of: phase) { _, p in
             if p == .active { Diag.phase(active: true) } else if p == .background { Diag.phase(active: false) }
+            if p == .background { Bark.stopLoop(); if Bark.enabled { Bark.scheduleBG() } }
             if p == .active {
                 AppTheme.apply(appearance)
                 Live.sweep()
+                Bark.startLoop()
                 // 等界面稳定下来再做自动任务；安全模式下不跑邮件同步和进化
                 Task { @MainActor in
                     try? await Task.sleep(nanoseconds: 2_500_000_000)
@@ -74,6 +77,7 @@ struct OSVIAApp: App {
                     guard !Safety.safeMode else { return }
                     await Evolve.run()
                     await Mail.autoRunIfDue()
+                    await Backup.autoIfDue()
                 }
             }
         }
