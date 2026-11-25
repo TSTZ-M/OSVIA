@@ -1,0 +1,60 @@
+// 接口冒烟测试：node test/smoke.mjs <站点地址>。会创建并最后删除一个临时账号。
+import { pbkdf2Sync } from "node:crypto";
+const B = (process.argv[2] || "http://localhost:8787").replace(/\/+$/, "");
+const key = (pw, em) => pbkdf2Sync(pw.normalize("NFKC"), "osvia-auth-v1:" + em.toLowerCase(), 210000, 32, "sha256").toString("base64url");
+let tok = "", fails = 0;
+async function call(m, p, body, raw) {
+  const h = {}; if (tok) h.authorization = "Bearer " + tok;
+  let b = body; if (body && !(body instanceof Uint8Array)) { b = JSON.stringify(body); h["content-type"] = "application/json"; }
+  const r = await fetch(B + p, { method: m, headers: h, body: b });
+  if (raw) return r;
+  let j = {}; try { j = await r.json(); } catch {}
+  return { s: r.status, ...j };
+}
+const ok = (n, c, x) => { console.log((c ? "PASS " : "FAIL ") + n + (c ? "" : " " + JSON.stringify(x))); if (!c) fails++; };
+const em = `t${Date.now()}@Example.com`, pw = "correct horse 密码";
+let r = await call("POST", "/api/auth/register", { email: em, authKey: key(pw, em) });
+ok("register", r.s === 200 && r.token, r); tok = r.token;
+r = await call("POST", "/api/auth/register", { email: em, authKey: key(pw, em) }); ok("dup register", r.s >= 400, r);
+tok = "";
+r = await call("POST", "/api/auth/login", { email: em, authKey: key("bad", em) }); ok("bad login", r.s === 401 || r.s === 400, r);
+r = await call("POST", "/api/auth/login", { email: em.toUpperCase(), authKey: key(pw, em) }); ok("login case-insens", r.s === 200 && r.token, r); tok = r.token;
+r = await call("GET", "/api/me"); ok("me", r.s === 200 && r.user?.email === em.toLowerCase(), r);
+r = await call("PATCH", "/api/me", { name: "Tester" }); ok("patch me", r.s === 200, r);
+const due = Math.floor(Date.now() / 1000) + 3600;
+r = await call("POST", "/api/reminders", { title: "喝水", due, rep: 1 }); ok("add reminder", r.s === 200, r); const rid = r.id;
+r = await call("GET", "/api/reminders"); ok("list reminders", r.items?.length === 1 && r.items[0].title === "喝水", r);
+r = await call("POST", "/api/relay", { items: [{ ref: "a1", title: "iOS 提醒", body: "x", due: Math.floor(Date.now()/1000) - 5 }, { ref: "a2", title: "未来", body: "", due: due + 100 }] }); ok("relay", r.s === 200 && r.accepted >= 1, r);
+r = await call("POST", "/api/relay", { items: [{ ref: "a1", title: "iOS 提醒", body: "x", due: Math.floor(Date.now()/1000) - 5 }] }); ok("relay idempotent", r.s === 200, r);
+r = await call("GET", "/api/reminders"); ok("reminders after relay = 2", r.items?.length === 2, r.items?.length);
+r = await call("DELETE", "/api/reminders/" + rid); ok("del reminder", r.s === 200, r);
+r = await call("PUT", "/api/bark", { server: "https://api.day.app", key: "abcDEF123", enc: "" }); ok("bark put", r.s === 200, r);
+r = await call("GET", "/api/bark"); ok("bark get", r.keySet === true && r.server === "https://api.day.app" && !JSON.stringify(r).includes("abcDEF123"), r);
+r = await call("PUT", "/api/bark", { server: "http://127.0.0.1" }); ok("bark ssrf reject", r.s >= 400, r);
+r = await call("POST", "/api/notes", { title: "T", body: "B" }); ok("note add", r.s === 200 && r.id, r); const nid = r.id;
+r = await call("PUT", "/api/notes/" + nid, { title: "T2", body: "B2" }); ok("note put", r.s === 200, r);
+r = await call("GET", "/api/notes"); ok("note list", r.items?.[0]?.title === "T2", r);
+r = await call("DELETE", "/api/notes/" + nid); ok("note del", r.s === 200, r);
+const enc = new Uint8Array(1000); enc.set([0x4f, 0x53, 0x56, 0x42, 1, 1]); enc.fill(7, 6);
+const plain = new Uint8Array(1000); plain.set([0x4f, 0x53, 0x56, 0x42, 1, 0]);
+r = await call("PUT", "/api/backups?name=a.osvbackup&device=iPhone", plain); ok("reject plaintext", r.s >= 400 && r.error === "must_encrypt", r);
+r = await call("PUT", "/api/backups?name=a.osvbackup&device=iPhone", new Uint8Array([1,2,3])); ok("reject junk", r.s >= 400, r);
+r = await call("PUT", "/api/backups?name=a.osvbackup&device=iPhone", enc); ok("upload enc", r.s === 200 && r.id, r); const bid = r.id;
+r = await call("GET", "/api/backups"); ok("list backups", r.items?.length === 1 && r.items[0].size === 1000, r);
+const dl = await call("GET", "/api/backups/" + bid, null, true); const buf = new Uint8Array(await dl.arrayBuffer()); ok("download same bytes", dl.status === 200 && buf.length === 1000 && buf[5] === 1, dl.status);
+r = await call("POST", "/api/llm", { url: "http://127.0.0.1/v1/chat/completions", headers: {}, payload: {} }); ok("llm ssrf reject", r.s >= 400, r);
+r = await call("POST", "/api/llm", { url: "https://169.254.169.254/x", headers: {}, payload: {} }); ok("llm metadata reject", r.s >= 400, r);
+r = await call("POST", "/api/auth/password", { authKey: key("bad", em), newAuthKey: key("newpass123", em) }); ok("pw change wrong", r.s >= 400, r);
+r = await call("POST", "/api/auth/password", { authKey: key(pw, em), newAuthKey: key("newpass123", em) }); ok("pw change", r.s === 200, r);
+r = await call("GET", "/api/me"); ok("old session still ok or revoked", r.s === 200 || r.s === 401, r.s);
+tok = "";
+r = await call("POST", "/api/auth/login", { email: em, authKey: key(pw, em) }); ok("old pw rejected", r.s >= 400, r);
+r = await call("POST", "/api/auth/login", { email: em, authKey: key("newpass123", em) }); ok("new pw login", r.s === 200, r); tok = r.token;
+r = await call("GET", "/api/me"); ok("me counts", r.counts?.reminders >= 1 && r.counts?.backupBytes === 1000, r);
+r = await call("DELETE", "/api/backups/" + bid); ok("del backup", r.s === 200, r);
+r = await call("DELETE", "/api/me", { authKey: key("nope", em) }); ok("delete acct wrong pw", r.s >= 400, r);
+r = await call("DELETE", "/api/me", { authKey: key("newpass123", em) }); ok("delete acct", r.s === 200, r);
+r = await call("GET", "/api/me"); ok("after delete 401", r.s === 401, r);
+r = await call("GET", "/api/reminders"); ok("unauth reminders 401", (tok="", (await call("GET","/api/reminders")).s) === 401, r);
+const idx = await fetch(B + "/"); ok("index served", idx.status === 200 && (await idx.text()).includes("app.js"));
+console.log(fails ? `FAILS ${fails}` : "ALL PASS"); process.exit(fails ? 1 : 0);

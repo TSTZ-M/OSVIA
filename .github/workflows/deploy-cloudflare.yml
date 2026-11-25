@@ -37,3 +37,10 @@ jobs:
           if [ -n "$WORKING_DIR" ] && [ -d "$WORKING_DIR" ]; then cd "$WORKING_DIR"; fi
           if [ -f package.json ]; then npm install --no-audit --no-fund; fi
           wrangler ${WRANGLER_CMD:-deploy}
+      - name: Smoke test
+        if: ${{ (inputs.wrangler_command || 'deploy') == 'deploy' }}
+        run: |
+          if [ -f cloudflare/osvia-web/test/smoke.mjs ]; then
+            sleep 8
+            node cloudflare/osvia-web/test/smoke.mjs https://osvia.tstzrm.workers.dev
+          fi
