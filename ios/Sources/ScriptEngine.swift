@@ -49,6 +49,7 @@ enum ScriptEngine {
     private static let prelude = """
     var console={log:__log,info:__log,warn:__log,error:__log,debug:__log};
     var window={};
+    var __n=0;function __tick(){if((++__n&1023)===0)__chk(__n)}
     var setTimeout=function(f){try{f()}catch(e){};return 0};
     var setInterval=function(){return 0};
     var clearTimeout=function(){};
@@ -288,6 +289,12 @@ enum ScriptEngine {
             Thread.sleep(forTimeInterval: Double(n) / 1000)
         }
 
+        // 循环计数：次数或时间超限就在脚本里抛错，让死循环自己停下
+        let chkB: @convention(block) (Int) -> Void = { n in
+            guard n > LoopGuard.maxTicks || Date().timeIntervalSince(t0) > LoopGuard.maxSeconds, let c = JSContext.current() else { return }
+            c.exception = JSValue(newErrorFromMessage: "脚本运行时间过长，已中止（可能有死循环）", in: c)
+        }
+
         func set(_ n: String, _ v: Any) { ctx.setObject(v, forKeyedSubscript: n as NSString) }
         set("__log", logB); set("__http", httpB); set("fetchText", fetchB); set("readPage", pageB); set("kbSearch", kbB)
         set("__storeGet", sGet); set("__storeSet", sSet); set("__storeDel", sDel); set("__storeKeys", sKeys)
@@ -295,18 +302,26 @@ enum ScriptEngine {
         set("md5", md5B); set("sha1", sha1B); set("sha256", sha256B); set("hmac", hmacB)
         set("base64", b64B); set("unbase64", unb64B); set("uuid", uuidB); set("secureRandom", randB)
         set("formatDate", dateB); set("csvParse", csvInB); set("csvStringify", csvOutB); set("sleep", sleepB)
-        set("__input", input)
+        set("__input", input); set("__chk", chkB)
         ctx.evaluateScript(prelude)
         err = ""
 
         // 代码可以是函数表达式，也可以是直接写函数体（用 input 和 return）
-        ctx.evaluateScript("var skill = (\(code));")
-        if !err.isEmpty {
+        // 先用带循环保护的版本编译，失败再退回原代码
+        func compile(_ c: String) -> String? {
+            err = ""
+            ctx.evaluateScript("var skill = (\(c));")
+            if err.isEmpty { return nil }
             let first = err
             err = ""
-            ctx.evaluateScript("var skill = (function(input){\n\(code)\n});")
-            if !err.isEmpty { return done(false, friendly(looksLikeFunction(code) ? first : err)) }
+            ctx.evaluateScript("var skill = (function(input){\n\(c)\n});")
+            return err.isEmpty ? nil : (looksLikeFunction(c) ? first : err)
         }
+        let guarded = LoopGuard.instrument(code)
+        var failure = compile(guarded)
+        if failure != nil, guarded != code { failure = compile(code) }
+        if let failure { return done(false, friendly(failure)) }
+        err = ""
         guard let fn = ctx.objectForKeyedSubscript("skill"), !fn.isUndefined, !fn.isNull else { return done(false, "脚本里没有找到函数") }
         var r = fn.call(withArguments: [input])
         if !err.isEmpty { return done(false, friendly(err)) }

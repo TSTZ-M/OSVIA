@@ -641,9 +641,10 @@ struct MailDetailView: View {
                     Button { compose = .forward } label: { Label("转发", systemImage: "arrowshape.turn.right") }
                 } label: {
                     Image(systemName: "arrowshape.turn.up.left")
-                }.accessibilityLabel("回复") primaryAction: {
+                } primaryAction: {
                     compose = .reply
                 }
+                .accessibilityLabel("回复")
                 .disabled(row == nil)
                 Spacer()
                 Button { act("archive", leave: true) } label: { Image(systemName: "archivebox") }.accessibilityLabel("归档")
