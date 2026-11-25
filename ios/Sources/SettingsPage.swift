@@ -136,6 +136,9 @@ struct AppSettingsView: View {
 
                 Section("隐私与数据") {
                     Button { openSettings() } label: { row("hand.raised", .blue, "通知、照片、相机、麦克风等权限") }
+                    NavigationLink { AccountPage() } label: {
+                        row("person.crop.circle", .indigo, "OSVIA 账号", value: Account.signedIn ? Account.email : L10n.tr("未登录"))
+                    }
                     NavigationLink { BackupPage() } label: {
                         row("externaldrive.badge.timemachine", .teal, "数据备份与恢复", value: Backup.lastTime.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "")
                     }

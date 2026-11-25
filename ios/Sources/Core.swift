@@ -61,6 +61,7 @@ final class DB {
         exec("ALTER TABLE msg ADD COLUMN conv INTEGER DEFAULT 0")
         exec("ALTER TABLE msg ADD COLUMN files TEXT DEFAULT ''")
         exec("ALTER TABLE msg ADD COLUMN meta TEXT DEFAULT ''")
+        exec("ALTER TABLE bark_queue ADD COLUMN cloud INTEGER DEFAULT 0")
     }
 
     func exec(_ sql: String) {

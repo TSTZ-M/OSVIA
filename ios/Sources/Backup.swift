@@ -94,7 +94,7 @@ enum Backup {
         guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let arr = out as? [[String: Any]] else { return [:] }
         var m: [String: String] = [:]
         for a in arr {
-            guard let k = a[kSecAttrAccount as String] as? String, k != "backup.pass", let d = a[kSecValueData as String] as? Data else { continue }
+            guard let k = a[kSecAttrAccount as String] as? String, k != "backup.pass", k != "acct.token", let d = a[kSecValueData as String] as? Data else { continue }
             m[k] = String(decoding: d, as: UTF8.self)
         }
         return m
