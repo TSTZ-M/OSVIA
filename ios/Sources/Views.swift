@@ -69,6 +69,7 @@ struct OSVIAApp: App {
                 AppTheme.apply(appearance)
                 Live.sweep()
                 Bark.startLoop()
+                Account.scheduleSync(after: 6)
                 // 等界面稳定下来再做自动任务；安全模式下不跑邮件同步和进化
                 Task { @MainActor in
                     try? await Task.sleep(nanoseconds: 2_500_000_000)

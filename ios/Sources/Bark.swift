@@ -164,6 +164,7 @@ enum Bark {
         guard enabled, on(ev) else { return }
         DB.shared.run("INSERT OR REPLACE INTO bark_queue(id,due,title,body,ev,rep) VALUES(?,?,?,?,?,?)",
                       [id, d.timeIntervalSince1970, title, body, ev.rawValue, rep])
+        Account.scheduleSync()
         let wait = d.timeIntervalSinceNow
         if wait <= 20 {
             Task {
@@ -175,7 +176,10 @@ enum Bark {
         }
     }
 
-    static func cancel(_ id: String) { DB.shared.run("DELETE FROM bark_queue WHERE id=?", [id]) }
+    static func cancel(_ id: String) {
+        DB.shared.run("DELETE FROM bark_queue WHERE id=?", [id])
+        Account.scheduleSync()
+    }
 
     static func pending() -> [Row] { DB.shared.rows("SELECT * FROM bark_queue ORDER BY due LIMIT 30") }
 
@@ -196,14 +200,16 @@ enum Bark {
             let id = r.s("id")
             let rep = r.i("rep")
             let dueAt = r.d("due")
+            let viaCloud = r.i("cloud") == 1   // 已交给云端，由服务器推送，这里不重复发
             if rep > 0 {
                 var next = dueAt
                 while next <= now { next += Double(rep) * 86400 }
-                DB.shared.run("UPDATE bark_queue SET due=? WHERE id=?", [next, id])
+                DB.shared.run("UPDATE bark_queue SET due=?, cloud=0 WHERE id=?", [next, id])
+                Account.scheduleSync()
             } else {
                 DB.shared.run("DELETE FROM bark_queue WHERE id=?", [id])
             }
-            if now - dueAt > 12 * 3600 { continue }
+            if now - dueAt > 12 * 3600 || viaCloud { continue }
             let ev = Event(rawValue: r.s("ev")) ?? .remind
             guard on(ev) else { continue }
             await send(ev, title: r.s("title"), body: r.s("body"))
