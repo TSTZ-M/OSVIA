@@ -523,6 +523,32 @@ async function handle(req, env) {
     await env.DB.prepare("DELETE FROM reminders WHERE id=? AND uid=?").bind(m[1], uid).run();
     return json({ ok: true });
   }
+  if (m && method === "PUT") {
+    const row = await env.DB.prepare("SELECT src FROM reminders WHERE id=? AND uid=?").bind(m[1], uid).first();
+    if (!row) return fail(404, "not_found", "提醒不存在");
+    if (row.src !== "web") return fail(400, "readonly", "来自 iPhone 的提醒请在 App 里修改");
+    const b = await body(req);
+    const sets = ["updated=?"];
+    const args = [now()];
+    if (typeof b.title === "string") {
+      const title = clip(b.title, 120).trim();
+      if (!title) return fail(400, "bad_request", "请填写内容");
+      sets.push("title=?");
+      args.push(title);
+    }
+    if (b.due != null) {
+      const due = Math.floor(Number(b.due));
+      if (!Number.isFinite(due) || due < 1e9) return fail(400, "bad_request", "时间不正确");
+      sets.push("due=?", "sent=0"); // 改了时间（含「稍后提醒」）就重新进入待提醒
+      args.push(due);
+    }
+    if (b.rep != null) {
+      sets.push("rep=?");
+      args.push([0, 1, 7].includes(Number(b.rep)) ? Number(b.rep) : 0);
+    }
+    await env.DB.prepare(`UPDATE reminders SET ${sets.join(",")} WHERE id=? AND uid=?`).bind(...args, m[1], uid).run();
+    return json({ ok: true });
+  }
   // iOS App 把待推送的提醒同步上来，由服务器到点推 Bark（App 关闭时也能准时）
   if (path === "/api/relay" && method === "POST") {
     const b = await body(req);

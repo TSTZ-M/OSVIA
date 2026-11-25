@@ -233,7 +233,7 @@ struct ResultTextPanel: View {
                             Button { export(translated, "txt", suffix: "译文") } label: { Text("文本 .txt") }
                             Button { export(translated, "docx", suffix: "译文") } label: { Text("Word .docx") }
                             Button { export(translated, "pdf", suffix: "译文") } label: { Text("PDF") }
-                        } label: { Image(systemName: "square.and.arrow.up") }
+                        } label: { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("分享")
                     }
                     ScrollView {
                         Text(verbatim: translated).fontSz(15).foregroundStyle(Brand.ink)

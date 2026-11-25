@@ -239,7 +239,7 @@ struct ConnectorsView: View {
         }
         .navigationTitle("连接器")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showAdd = true } label: { Image(systemName: "plus") } } }
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showAdd = true } label: { Image(systemName: "plus") }.accessibilityLabel("添加") } }
         .sheet(isPresented: $showAdd, onDismiss: reload) { AddConnectorView() }
         .onAppear(perform: reload)
     }

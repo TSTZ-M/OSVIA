@@ -363,7 +363,7 @@ struct JumpSheet: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                         if !query.isEmpty {
-                            Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Brand.sub) }
+                            Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Brand.sub) }.accessibilityLabel("清除")
                         }
                     }
                     .padding(.horizontal, 12)
@@ -598,7 +598,7 @@ struct ImportSheet: View {
                             Image(systemName: picked.contains(it.id) ? "checkmark.circle.fill" : "circle")
                                 .fontSz(21)
                                 .foregroundStyle(picked.contains(it.id) ? Brand.mint : Brand.sub.opacity(0.5))
-                        }
+                        }.accessibilityLabel(picked.contains(it.id) ? "取消选择" : "选择")
                         .buttonStyle(.plain)
                         VStack(alignment: .leading, spacing: 4) {
                             TextField("", text: $it.text, axis: .vertical).fontSz(15.5)
@@ -726,7 +726,7 @@ struct MemoryListView: View {
         .searchable(text: $q, prompt: Text("搜索记忆"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { edit = MemEdit(rowId: 0, text: "", cat: cat == "全部" ? "其他" : cat, pin: false) } label: { Image(systemName: "plus") }
+                Button { edit = MemEdit(rowId: 0, text: "", cat: cat == "全部" ? "其他" : cat, pin: false) } label: { Image(systemName: "plus") }.accessibilityLabel("添加")
             }
         }
         .onAppear(perform: reload)

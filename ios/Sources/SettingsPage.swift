@@ -35,6 +35,7 @@ struct AppSettingsView: View {
         Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             .frame(width: 29, height: 29).background(color)
             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .accessibilityHidden(true)
     }
 
     private func row(_ icon: String, _ color: Color, _ title: String, value: String = "") -> some View {
@@ -166,8 +167,24 @@ struct AppSettingsView: View {
                         Button {
                             UIPasteboard.general.string = "TSTZ-M"
                             copied = true
-                        } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }
+                        } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }.accessibilityLabel(copied ? "已复制" : "复制")
                         .buttonStyle(.borderless)
+                    }
+                    if let u = Account.legalURL("privacy") {
+                        Link(destination: u) {
+                            HStack(spacing: 12) {
+                                badge("hand.raised.fill", .blue)
+                                Text("隐私政策").foregroundStyle(Brand.ink)
+                            }
+                        }
+                    }
+                    if let u = Account.legalURL("terms") {
+                        Link(destination: u) {
+                            HStack(spacing: 12) {
+                                badge("doc.text.fill", .gray)
+                                Text("服务条款").foregroundStyle(Brand.ink)
+                            }
+                        }
                     }
                 }
             }

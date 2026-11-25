@@ -49,6 +49,7 @@ enum Account {
     static var email: String { ud.string(forKey: "acct.email") ?? "" }
     static var signedIn: Bool { !token.isEmpty }
     static var relayOn: Bool { ud.bool(forKey: "acct.relay") }
+    static func legalURL(_ page: String) -> URL? { URL(string: defaultBase + "/" + page) }
 
     // MARK: 密钥派生（与网页版一致：PBKDF2-SHA256 · 210000 次 · 盐 "osvia-auth-v1:"+小写邮箱 · NFKC 密码）
     static func normEmail(_ s: String) -> String { s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }

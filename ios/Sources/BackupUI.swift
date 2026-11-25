@@ -20,6 +20,7 @@ struct BackupPage: View {
         Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             .frame(width: 29, height: 29).background(color)
             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .accessibilityHidden(true)
     }
 
     private func sizeText(_ n: Int64) -> String { ByteCountFormatter.string(fromByteCount: n, countStyle: .file) }
@@ -45,7 +46,7 @@ struct BackupPage: View {
                             Text("已保存在本机，可分享或存到「文件」").font(.caption).foregroundStyle(Brand.sub)
                         }
                         Spacer(minLength: 8)
-                        ShareLink(item: made) { Image(systemName: "square.and.arrow.up") }
+                        ShareLink(item: made) { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("分享")
                     }
                 }
                 if !error.isEmpty { Text(verbatim: error).font(.footnote).foregroundStyle(.orange) }
@@ -61,7 +62,7 @@ struct BackupPage: View {
                         if showPass { TextField("备份口令（可选）", text: $pass) } else { SecureField("备份口令（可选）", text: $pass) }
                     }
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    Button { showPass.toggle() } label: { Image(systemName: showPass ? "eye.slash" : "eye").foregroundStyle(Brand.sub) }
+                    Button { showPass.toggle() } label: { Image(systemName: showPass ? "eye.slash" : "eye").foregroundStyle(Brand.sub) }.accessibilityLabel(showPass ? "隐藏口令" : "显示口令")
                         .buttonStyle(.plain)
                 }
                 Toggle("包含密钥与密码", isOn: $withSecrets)

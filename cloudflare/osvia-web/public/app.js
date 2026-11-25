@@ -29,6 +29,8 @@ const EN = {
   "修改密码": "Change password", "当前密码": "Current password", "退出登录": "Sign out", "导出我的数据": "Export my data",
   "删除账号": "Delete account", "删除账号会清除云端的提醒、笔记和云备份，且无法恢复。输入密码确认：": "Deleting your account erases reminders, notes and cloud backups and cannot be undone. Enter your password to confirm:",
   "确定删除": "Delete permanently", "已删除": "Deleted", "密码已更新": "Password updated",
+  "隐私政策": "Privacy Policy", "服务条款": "Terms of Service",
+  "稍后提醒": "Snooze", "10 分钟后": "In 10 minutes", "1 小时后": "In 1 hour", "明天 9:00": "Tomorrow 9:00", "编辑": "Edit", "取消": "Cancel",
   "云端提醒": "Reminders", "云端笔记": "Notes", "云备份占用": "Backups",
 };
 let LANG = localStorage.getItem("osvia.lang") || ((navigator.language || "zh").toLowerCase().startsWith("zh") ? "zh" : "en");
@@ -153,7 +155,13 @@ function renderAuth(mode = "login", pre = {}) {
     form,
     h("p", { class: "sub small center" }, t("支持 Gmail、Outlook、iCloud、QQ、网易等任意邮箱。")),
     h("p", { class: "sub small center" }, t("密码不会上传：它只在本机参与计算，服务器只保存校验值。")),
+    legalLinks(),
     langSwitch()));
+}
+
+function legalLinks() {
+  const a = (href, text) => h("a", { href, target: "_blank", rel: "noopener" }, t(text));
+  return h("p", { class: "center small sub" }, a("/privacy", "隐私政策"), " · ", a("/terms", "服务条款"));
 }
 
 function langSwitch() {
@@ -239,11 +247,16 @@ async function start() {
 }
 
 // ---------- 提醒 ----------
+const localInput = (sec) => new Date(sec * 1000 - new Date(sec * 1000).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+function snoozeDue(v) {
+  if (v === "tom") { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return Math.floor(d / 1000); }
+  return Math.floor(Date.now() / 1000) + Number(v);
+}
 async function viewReminders() {
   const title = h("input", { placeholder: t("内容"), maxlength: "120" });
   const when = h("input", { type: "datetime-local" });
   const d = new Date(Date.now() + 3600e3); d.setMinutes(0, 0, 0);
-  when.value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  when.value = localInput(Math.floor(d / 1000));
   const rep = h("select", {}, h("option", { value: "0" }, t("仅一次")), h("option", { value: "1" }, t("每天")), h("option", { value: "7" }, t("每周")));
   const list = h("div", {});
   const banner = h("div", {});
@@ -261,10 +274,31 @@ async function viewReminders() {
       const [{ items }, b] = await Promise.all([api("/api/reminders"), api("/api/bark")]);
       banner.replaceChildren(b.keySet ? "" : h("div", { class: "banner" }, t("还没有设置 Bark：到点时不会有推送。去「账号」里填写 Bark 设备密钥。")));
       const upcoming = items.filter((r) => !r.sent), done = items.filter((r) => r.sent);
-      const row = (r) => h("div", { class: "item" + (r.sent ? " done" : "") },
-        h("div", { class: "t" }, h("b", {}, r.title), h("span", { class: "sub small" }, fmtTime(r.due) + (r.rep ? " · " + t(r.rep === 1 ? "每天" : "每周") : ""))),
-        r.src === "ios" ? h("span", { class: "tag" }, t("来自 iPhone")) : null,
-        h("button", { class: "btn ghost sm", onclick: async () => { await api("/api/reminders/" + r.id, { method: "DELETE" }); load(); } }, t("删除")));
+      const row = (r) => {
+        const box = h("div", { class: "item col" + (r.sent ? " done" : "") });
+        const web = r.src !== "ios";
+        const put = async (body) => { try { await api("/api/reminders/" + r.id, { method: "PUT", body }); load(); } catch (e) { toast(e.message || t("出错了")); } };
+        const view = () => box.replaceChildren(
+          h("div", { class: "line" },
+            h("div", { class: "t" }, h("b", {}, r.title), h("span", { class: "sub small" }, fmtTime(r.due) + (r.rep ? " · " + t(r.rep === 1 ? "每天" : "每周") : ""))),
+            r.src === "ios" ? h("span", { class: "tag" }, t("来自 iPhone")) : null),
+          h("div", { class: "acts" },
+            web ? h("select", { class: "sm-sel", "aria-label": t("稍后提醒"), onchange: (e) => { const v = e.target.value; if (v) put({ due: snoozeDue(v) }); } },
+              h("option", { value: "" }, t("稍后提醒")), h("option", { value: "600" }, t("10 分钟后")), h("option", { value: "3600" }, t("1 小时后")), h("option", { value: "tom" }, t("明天 9:00"))) : null,
+            web ? h("button", { class: "btn ghost sm", onclick: edit }, t("编辑")) : null,
+            h("button", { class: "btn ghost sm", onclick: async () => { await api("/api/reminders/" + r.id, { method: "DELETE" }); load(); } }, t("删除"))));
+        function edit() {
+          const ti = h("input", { value: r.title, maxlength: "120" });
+          const wh = h("input", { type: "datetime-local", value: localInput(r.due) });
+          const rp = h("select", {}, h("option", { value: "0" }, t("仅一次")), h("option", { value: "1" }, t("每天")), h("option", { value: "7" }, t("每周")));
+          rp.value = String(r.rep || 0);
+          box.replaceChildren(field("内容", ti), h("div", { class: "row" }, field("时间", wh), field("重复", rp)),
+            h("div", { class: "acts" }, h("button", { class: "btn ghost sm", onclick: view }, t("取消")),
+              h("button", { class: "btn sm", onclick: () => { const due = Math.floor(new Date(wh.value).getTime() / 1000); if (ti.value.trim() && due) put({ title: ti.value, due, rep: Number(rp.value) }); } }, t("保存"))));
+        }
+        view();
+        return box;
+      };
       list.replaceChildren(...[
         upcoming.length ? [h("h3", {}, t("待提醒")), upcoming.map(row)] : h("div", { class: "empty" }, t("还没有提醒")),
         done.length ? [h("h3", {}, t("已提醒")), done.map(row)] : null].flat(Infinity).filter(Boolean));
@@ -521,6 +555,7 @@ async function viewAccount() {
       document.body.append(a); a.click(); a.remove();
     } }, t("导出我的数据"))),
     h("div", { class: "card" }, h("button", { class: "btn ghost block", onclick: () => signOut(false) }, t("退出登录"))),
+    legalLinks(),
     h("h3", {}, t("删除账号")),
     h("div", { class: "card" }, h("p", { class: "small" }, t("删除账号会清除云端的提醒、笔记和云备份，且无法恢复。输入密码确认：")), delPw, delMsg,
       h("button", { class: "btn danger sm", onclick: async () => {
@@ -531,4 +566,5 @@ async function viewAccount() {
       } }, t("确定删除"))));
 }
 
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 start();

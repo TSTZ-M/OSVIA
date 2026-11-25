@@ -27,6 +27,11 @@ r = await call("GET", "/api/reminders"); ok("list reminders", r.items?.length ==
 r = await call("POST", "/api/relay", { items: [{ ref: "a1", title: "iOS 提醒", body: "x", due: Math.floor(Date.now()/1000) - 5 }, { ref: "a2", title: "未来", body: "", due: due + 100 }] }); ok("relay", r.s === 200 && r.accepted >= 1, r);
 r = await call("POST", "/api/relay", { items: [{ ref: "a1", title: "iOS 提醒", body: "x", due: Math.floor(Date.now()/1000) - 5 }] }); ok("relay idempotent", r.s === 200, r);
 r = await call("GET", "/api/reminders"); ok("reminders after relay = 2", r.items?.length === 2, r.items?.length);
+r = await call("PUT", "/api/reminders/" + rid, { title: "喝温水", due: due + 600, rep: 7 }); ok("edit reminder", r.s === 200, r);
+r = await call("GET", "/api/reminders"); const er = r.items?.find((x) => x.id === rid); ok("edit applied", er?.title === "喝温水" && er.due === due + 600 && er.rep === 7 && er.sent === 0, er);
+r = await call("PUT", "/api/reminders/" + rid, { title: "   " }); ok("edit empty title rejected", r.s === 400, r);
+const iosItem = (await call("GET", "/api/reminders")).items?.find((x) => x.src === "ios");
+r = await call("PUT", "/api/reminders/" + (iosItem?.id || "x"), { title: "改" }); ok("ios reminder readonly", r.s === 400 || r.s === 404, r);
 r = await call("DELETE", "/api/reminders/" + rid); ok("del reminder", r.s === 200, r);
 r = await call("PUT", "/api/bark", { server: "https://api.day.app", key: "abcDEF123", enc: "" }); ok("bark put", r.s === 200, r);
 r = await call("GET", "/api/bark"); ok("bark get", r.keySet === true && r.server === "https://api.day.app" && !JSON.stringify(r).includes("abcDEF123"), r);
