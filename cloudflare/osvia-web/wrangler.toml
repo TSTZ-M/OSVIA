@@ -1,0 +1,28 @@
+# OSVIA Web：账号、提醒云端中转（Bark）、笔记、加密云备份、网页助手代理，以及网页版本身
+name = "osvia"
+main = "src/index.js"
+compatibility_date = "2026-11-13"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "OSVIA"
+database_id = "6d10dc7f-b780-4be7-98f2-223241ac896a"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "osvia"
+
+# 每分钟检查一次到期的提醒并推送 Bark
+[triggers]
+crons = ["* * * * *"]
+
+# 可选：开启邮箱验证码（注册验证、找回密码）。任选其一：
+#   1) Cloudflare Email Service：加 [[send_email]] name = "EMAIL"，并设置 MAIL_FROM
+#   2) Resend：wrangler secret put RESEND_API_KEY，并设置 MAIL_FROM
+# [vars]
+# MAIL_FROM = "OSVIA <no-reply@your-domain.com>"
