@@ -105,6 +105,7 @@
 		CF616E5D7F553F9E2B5AE12B /* ChatViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB40CE77AE6B917BE5E81F2 /* ChatViews.swift */; };
 		D41B519365D2770669F90EFA /* Brain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625D2B5B24305907887C9D18 /* Brain.swift */; };
 		D7678408016A7AE036083B53 /* ModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C4F452CA02A2BA4CC346E8C /* ModelPicker.swift */; };
+		D873E6F699F7F763D67B945B /* LoopGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62AC4656B5EE0943BC133236 /* LoopGuard.swift */; };
 		DA6918DD96BD2CA269B90C1E /* Files.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B4ED48F9A6156C397F91725 /* Files.swift */; };
 		DD72531847E48BE819C813BE /* LocalModelPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD18C62F08E3E1C15D055C0 /* LocalModelPage.swift */; };
 		DDE6257AB418C23473F93E73 /* Shell.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A6AC39B41A60DA4EF6B9A1 /* Shell.swift */; };
@@ -194,6 +195,7 @@
 		5FD8B0A149E53EFBCB810961 /* ScriptEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptEngine.swift; sourceTree = "<group>"; };
 		6190D38476BDB375229A4A15 /* AIIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIIcon.swift; sourceTree = "<group>"; };
 		625D2B5B24305907887C9D18 /* Brain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Brain.swift; sourceTree = "<group>"; };
+		62AC4656B5EE0943BC133236 /* LoopGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopGuard.swift; sourceTree = "<group>"; };
 		648F5A959FF9F80A6668BC4E /* CloudLLM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudLLM.swift; sourceTree = "<group>"; };
 		6BDD378CF7A1C193B601004E /* Pages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pages.swift; sourceTree = "<group>"; };
 		6EBD9FFFF8DF55F40A158981 /* PDFTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFTools.swift; sourceTree = "<group>"; };
@@ -371,6 +373,7 @@
 				DA6607C2F5CB82A13BB190D0 /* LocalBrain.swift */,
 				9A3B657C874D94CD116D9910 /* LocalLLM.swift */,
 				CDD18C62F08E3E1C15D055C0 /* LocalModelPage.swift */,
+				62AC4656B5EE0943BC133236 /* LoopGuard.swift */,
 				B95B6971DC59560F399B850C /* Mail.swift */,
 				55818AB25CD659A5F3F4AF0A /* MailAutoconfig.swift */,
 				7AC56BD002D9CE316C9D8E0B /* MailIMAP.swift */,
@@ -629,6 +632,7 @@
 				6396737F36C839430D459DDA /* LocalBrain.swift in Sources */,
 				C66029B3857282814CCC4984 /* LocalLLM.swift in Sources */,
 				DD72531847E48BE819C813BE /* LocalModelPage.swift in Sources */,
+				D873E6F699F7F763D67B945B /* LoopGuard.swift in Sources */,
 				8F9E71961615D2C503EB9FAE /* MCP.swift in Sources */,
 				9D1F8C6D41736F2C90EB6BFF /* MCPCatalog.swift in Sources */,
 				5EB8439FA6F5B7DFB2DD327B /* MCPOAuth.swift in Sources */,
