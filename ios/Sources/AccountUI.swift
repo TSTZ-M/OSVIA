@@ -21,6 +21,7 @@ private func accountBadge(_ icon: String, _ color: Color) -> some View {
     Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
         .frame(width: 29, height: 29).background(color)
         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .accessibilityHidden(true)
 }
 
 // MARK: 登录 / 注册
@@ -95,6 +96,10 @@ private struct AccountSignIn: View {
                     if !error.isEmpty { Text(verbatim: error).font(.footnote).foregroundStyle(.orange) }
                 } footer: {
                     Text("支持 Gmail、Outlook、iCloud、QQ、网易等任意邮箱。密码只在本机参与计算，服务器只保存校验值。登录后，提醒、笔记和云备份在网页版同样可用。")
+                }
+                Section {
+                    if let u = Account.legalURL("privacy") { Link("隐私政策", destination: u) }
+                    if let u = Account.legalURL("terms") { Link("服务条款", destination: u) }
                 }
                 Section {
                     DisclosureGroup("服务器") {

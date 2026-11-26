@@ -196,8 +196,8 @@ struct ShareView: View {
                             Button {
                                 UIPasteboard.general.string = link.absoluteString
                                 linkCopied = true
-                            } label: { Image(systemName: linkCopied ? "checkmark" : "doc.on.doc") }
-                            ShareLink(item: link) { Image(systemName: "square.and.arrow.up") }
+                            } label: { Image(systemName: linkCopied ? "checkmark" : "doc.on.doc") }.accessibilityLabel(linkCopied ? "已复制" : "复制链接")
+                            ShareLink(item: link) { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("分享")
                         }
                         .padding(12)
                         .background(Brand.card)

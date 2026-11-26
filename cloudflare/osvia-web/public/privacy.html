@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>隐私政策 / Privacy Policy · OSVIA</title>
+  <meta name="theme-color" content="#008c66">
+  <link rel="icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="docpage">
+<main class="doc">
+  <p><a href="/">← OSVIA</a></p>
+
+  <h1>隐私政策</h1>
+  <p class="sub">最后更新：2026 年 11 月 25 日</p>
+  <p>OSVIA（以下简称「我们」）是一款在手机本机运行的 AI 助手，并提供可选的网页版与账号。我们把隐私放在第一位：不做广告、不做行为追踪、不出售你的数据。</p>
+
+  <h2>1. 保存在你手机上的数据</h2>
+  <p>对话、记忆、知识库、脚本、定时任务、邮箱账号与密码、各类密钥都只保存在你的设备上（密钥与密码放在系统钥匙串）。本机大模型完全在设备上推理，内容不会离开手机。</p>
+
+  <h2>2. 你主动选择的第三方服务</h2>
+  <ul>
+    <li><b>云端模型</b>：当你填写了自己的模型接口与密钥，对话内容会发送给你选择的服务商，适用该服务商的隐私政策。</li>
+    <li><b>邮箱</b>：App 通过 IMAP/SMTP 直接连接你的邮件服务商，邮件内容不经过我们的服务器。</li>
+    <li><b>MCP 连接器、联网搜索与网页读取</b>：仅在你启用并触发时，向你指定的服务发出请求。</li>
+    <li><b>Bark 推送</b>：开启后，提醒的标题与正文会发送到 Bark 服务器（默认 api.day.app，或你自己的服务器）。设置了加密密钥时内容会先加密。</li>
+  </ul>
+
+  <h2>3. OSVIA 账号（可选）</h2>
+  <p>只有注册账号才会使用我们的服务器（托管在 Cloudflare）。我们保存：</p>
+  <ul>
+    <li>邮箱地址，以及密码的校验值。密码先在你的设备上经 PBKDF2 计算后才发送，服务器只保存加盐哈希，我们看不到你的密码；</li>
+    <li>登录会话（只存令牌的哈希，默认 30 天过期）；</li>
+    <li>你创建的提醒与笔记；开启「云端提醒中转」后，App 同步来的待推送提醒；</li>
+    <li>云备份：必须在你的设备上用你设置的口令加密后才能上传，我们无法读取内容，口令丢失后无法恢复；</li>
+    <li>Bark 设备密钥与加密密钥（加密后保存，仅用于替你发送推送）；</li>
+    <li>用于防滥用的请求频率计数（与 IP 地址关联，数分钟到一小时后自动清除）。</li>
+  </ul>
+  <p>网页版「助手」转发的请求只在转发时经过服务器，不保存对话内容和 API 密钥；API 密钥只保存在你浏览器的本地存储里。</p>
+
+  <h2>4. 保留与删除</h2>
+  <p>你可以随时在 App（设置 → 隐私与数据 → OSVIA 账号 → 删除账号）或网页版（账号 → 删除账号）中删除账号，提醒、笔记、云备份、Bark 密钥和会话会立即永久清除。已发送的提醒与已删除的笔记最多保留 30 天后自动清理。</p>
+
+  <h2>5. 儿童</h2>
+  <p>OSVIA 不面向 13 岁以下儿童，我们不会有意收集儿童的个人信息。</p>
+
+  <h2>6. 政策变更与联系</h2>
+  <p>政策有重大变化时，我们会在 App 或本页面说明。问题与请求请到 <a href="https://github.com/TSTZ-M/OSVIA/issues" rel="noopener">GitHub Issues</a> 提交。</p>
+
+  <hr>
+  <h1>Privacy Policy</h1>
+  <p class="sub">Last updated: November 25, 2026</p>
+  <p>OSVIA ("we") is an AI assistant that runs on your phone, with an optional web app and account. We do not run ads, do not track behavior, and do not sell your data.</p>
+
+  <h2>1. Data that stays on your device</h2>
+  <p>Chats, memory, knowledge base, scripts, scheduled tasks, mail accounts and passwords, and API keys are stored only on your device (secrets live in the system Keychain). On-device models run entirely on the phone.</p>
+
+  <h2>2. Third-party services you choose</h2>
+  <ul>
+    <li><b>Cloud models:</b> if you enter your own model endpoint and key, your messages are sent to that provider under its privacy policy.</li>
+    <li><b>Mail:</b> the app talks to your mail provider directly over IMAP/SMTP; mail never passes through our servers.</li>
+    <li><b>MCP connectors, web search and page reading:</b> requests are made only when you enable and trigger them, to the services you specify.</li>
+    <li><b>Bark push:</b> when enabled, reminder titles and bodies are sent to a Bark server (api.day.app by default, or your own). They are encrypted first if you set an encryption key.</li>
+  </ul>
+
+  <h2>3. OSVIA account (optional)</h2>
+  <p>Our servers (hosted on Cloudflare) are used only if you create an account. We store:</p>
+  <ul>
+    <li>Your email address and a verifier of your password. The password is first processed on your device with PBKDF2; the server stores only a salted hash and never sees the password;</li>
+    <li>Login sessions (only a hash of the token, expiring after 30 days by default);</li>
+    <li>Reminders and notes you create, plus pending reminders synced by the app when "cloud reminder relay" is on;</li>
+    <li>Cloud backups, which must be encrypted on your device with your passphrase before upload. We cannot read them, and a lost passphrase cannot be recovered;</li>
+    <li>Bark device and encryption keys (stored encrypted, used only to send pushes for you);</li>
+    <li>Short-lived request counters tied to IP address for abuse prevention (cleared within minutes to an hour).</li>
+  </ul>
+  <p>Requests forwarded by the web "Assistant" pass through the server only in transit; conversations and API keys are not stored. The API key stays in your browser's local storage.</p>
+
+  <h2>4. Retention and deletion</h2>
+  <p>You can delete your account at any time in the app (Settings → Privacy &amp; Data → OSVIA Account → Delete account) or on the web (Account → Delete account). Reminders, notes, cloud backups, Bark keys and sessions are permanently erased immediately. Sent reminders and deleted notes are purged automatically within 30 days.</p>
+
+  <h2>5. Children</h2>
+  <p>OSVIA is not directed to children under 13 and we do not knowingly collect their personal information.</p>
+
+  <h2>6. Changes and contact</h2>
+  <p>We will describe material changes in the app or on this page. Questions and requests: <a href="https://github.com/TSTZ-M/OSVIA/issues" rel="noopener">GitHub Issues</a>.</p>
+</main>
+</body>
+</html>

@@ -38,7 +38,7 @@ textarea { resize: vertical; min-height: 120px; }
 .btn.danger { background: var(--danger); color: #fff; }
 .btn.sm { padding: 6px 12px; font-size: 14px; border-radius: 8px; }
 .btn[disabled] { opacity: .5; cursor: default; }
-.row { display: flex; gap: 10px; align-items: center; } .row > * { flex: 1; } .row > .fit { flex: none; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .row > * { flex: 1 1 130px; min-width: 0; } .row > label.f:has(input[type=datetime-local]) { flex: 2 1 210px; } .row > .fit { flex: none; }
 .link { background: none; border: 0; color: var(--mint); cursor: pointer; padding: 4px 0; }
 
 /* 主界面 */
@@ -90,4 +90,15 @@ details.card[open] summary { margin-bottom: 10px; }
 .toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 99px; font-size: 14px; z-index: 50; max-width: 90%; }
 .pad { padding: 24px; }
 .auth form .btn { margin-top: 4px; margin-bottom: 14px; }
-.row select { min-width: 104px; }
+.docpage { background: var(--bg); }
+.doc { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; line-height: 1.65; }
+.doc h1 { font-size: 26px; margin: 28px 0 4px; }
+.doc h2 { font-size: 17px; margin: 24px 0 6px; }
+.doc ul { padding-left: 20px; }
+.doc li { margin: 6px 0; }
+.doc hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0 8px; }
+.doc a { color: var(--mint); }
+.item.col { flex-direction: column; align-items: stretch; gap: 8px; }
+.item .line { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.acts { display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.sm-sel { width: auto; padding: 6px 8px; font-size: 13px; }

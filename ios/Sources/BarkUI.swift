@@ -20,6 +20,7 @@ struct BarkPage: View {
         Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             .frame(width: 29, height: 29).background(color)
             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .accessibilityHidden(true)
     }
 
     var body: some View {

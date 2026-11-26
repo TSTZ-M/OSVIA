@@ -110,7 +110,7 @@ struct MailView: View {
                     } else if busy {
                         ProgressView()
                     } else {
-                        Button { Task { await sync() } } label: { Image(systemName: "arrow.clockwise") }
+                        Button { Task { await sync() } } label: { Image(systemName: "arrow.clockwise") }.accessibilityLabel("刷新")
                     }
                 }
                 if !selecting {
@@ -123,7 +123,7 @@ struct MailView: View {
                             Button { showSenders = true } label: { Label("重要联系人与屏蔽", systemImage: "person.crop.circle.badge.checkmark") }
                         } label: {
                             Image(systemName: "ellipsis.circle")
-                        }
+                        }.accessibilityLabel("更多")
                     }
                 }
                 if selecting {
@@ -133,15 +133,15 @@ struct MailView: View {
                         }
                     }
                     ToolbarItemGroup(placement: .bottomBar) {
-                        Button { batch("read") } label: { Image(systemName: "envelope.open") }.disabled(sel.isEmpty)
+                        Button { batch("read") } label: { Image(systemName: "envelope.open") }.accessibilityLabel("标为已读").disabled(sel.isEmpty)
                         Spacer()
-                        Button { batch("archive") } label: { Image(systemName: "archivebox") }.disabled(sel.isEmpty)
+                        Button { batch("archive") } label: { Image(systemName: "archivebox") }.accessibilityLabel("归档").disabled(sel.isEmpty)
                         Spacer()
                         Text(verbatim: L10n.f("已选 {} 封", "\(sel.count)")).font(.footnote).foregroundStyle(Brand.sub)
                         Spacer()
-                        Button { batch("star") } label: { Image(systemName: "star") }.disabled(sel.isEmpty)
+                        Button { batch("star") } label: { Image(systemName: "star") }.accessibilityLabel("加星标").disabled(sel.isEmpty)
                         Spacer()
-                        Button { batchTrash = true } label: { Image(systemName: "trash") }.disabled(sel.isEmpty)
+                        Button { batchTrash = true } label: { Image(systemName: "trash") }.accessibilityLabel("删除").disabled(sel.isEmpty)
                     }
                 }
             }
@@ -631,7 +631,7 @@ struct MailDetailView: View {
                     Button(role: .destructive) { showJunk = true } label: { Label("标为垃圾邮件", systemImage: "xmark.bin") }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                }
+                }.accessibilityLabel("更多")
                 .disabled(row == nil)
             }
             ToolbarItemGroup(placement: .bottomBar) {
@@ -644,15 +644,16 @@ struct MailDetailView: View {
                 } primaryAction: {
                     compose = .reply
                 }
+                .accessibilityLabel("回复")
                 .disabled(row == nil)
                 Spacer()
-                Button { act("archive", leave: true) } label: { Image(systemName: "archivebox") }
+                Button { act("archive", leave: true) } label: { Image(systemName: "archivebox") }.accessibilityLabel("归档")
                 Spacer()
                 Button { act(row?.i("unread") == 1 ? "read" : "unread", leave: false) } label: {
                     Image(systemName: row?.i("unread") == 1 ? "envelope.open" : "envelope.badge")
-                }
+                }.accessibilityLabel(row?.i("unread") == 1 ? "标为已读" : "标为未读")
                 Spacer()
-                Button { showTrash = true } label: { Image(systemName: "trash") }
+                Button { showTrash = true } label: { Image(systemName: "trash") }.accessibilityLabel("删除")
             }
         }
         .disabled(busy)
