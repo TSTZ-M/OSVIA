@@ -57,6 +57,65 @@ r = await call("POST", "/api/auth/login", { email: em, authKey: key(pw, em) }); 
 r = await call("POST", "/api/auth/login", { email: em, authKey: key("newpass123", em) }); ok("new pw login", r.s === 200, r); tok = r.token;
 r = await call("GET", "/api/me"); ok("me counts", r.counts?.reminders >= 1 && r.counts?.backupBytes === 1000, r);
 r = await call("DELETE", "/api/backups/" + bid); ok("del backup", r.s === 200, r);
+// ---------- 内置 AI、对话记录 ----------
+const local = /localhost|127\.0\.0\.1/.test(B);
+async function sse(path, body) {
+  const res = await call("POST", path, body, true);
+  const text = await res.text();
+  const o = { status: res.status, t: "", r: 0, e: null, done: false, raw: text.slice(0, 200) };
+  for (const ln of text.split("\n")) {
+    if (!ln.startsWith("data:")) continue;
+    const d = ln.slice(5).trim();
+    if (d === "[DONE]") { o.done = true; continue; }
+    try { const j = JSON.parse(d); if (j.t) o.t += j.t; if (j.r) o.r++; if (j.e) o.e = j.e; } catch {}
+  }
+  return o;
+}
+const cfg = await (await fetch(B + "/api/config")).json();
+ok("config has ai flag", typeof cfg.ai === "boolean", cfg);
+if (cfg.ai) {
+  r = await call("GET", "/api/ai/quota"); ok("ai quota", r.s === 200 && r.on === true && r.max > 0, r);
+  let c = await sse("/api/ai/chat", { messages: [{ role: "user", content: "请只回答一个字：好" }] });
+  ok("ai chat stream", c.status === 200 && c.t.length > 0 && c.done && !c.e && !c.t.includes("<think>"), c);
+  r = await call("POST", "/api/ai/chat", { messages: [{ role: "assistant", content: "hi" }] }); ok("ai chat needs user msg", r.s === 400, r);
+  r = await call("POST", "/api/ai/tool", { tool: "translate", text: "你好，世界", lang: "en" }); ok("ai tool translate", r.s === 200 && r.text?.length > 0 && !r.text.includes("<think>"), r);
+  r = await call("POST", "/api/ai/tool", { tool: "nope", text: "x" }); ok("ai tool unknown rejected", r.s === 400, r);
+  r = await call("POST", "/api/ai/reminder", { text: "明天下午3点提醒我开会", tz: -480 });
+  ok("ai reminder parse", (r.s === 200 && r.reminder?.title && r.reminder.due > Date.now() / 1000) || r.s === 422, r);
+  r = await call("POST", "/api/ai/web", { url: "http://127.0.0.1/x" }); ok("ai web ssrf rejected", r.s === 400, r);
+  r = await call("POST", "/api/ai/web", { url: "https://localhost/x" }); ok("ai web localhost rejected", r.s === 400, r);
+  if (!local) {
+    r = await call("POST", "/api/ai/web", { url: "https://example.com" });
+    ok("ai web summary", r.s === 200 && r.summary?.length > 0, r);
+  }
+  r = await call("GET", "/api/ai/quota"); ok("ai quota counted", r.used >= 3, r);
+  if (local) {
+    c = await sse("/api/ai/chat", { messages: [{ role: "user", content: "hi" }] }); ok("mock: think stripped", c.t === "你好，世界" && c.r >= 1, c);
+    c = await sse("/api/ai/chat", { messages: [{ role: "user", content: "旧格式" }] }); ok("mock: legacy stream", c.t === "旧格式", c);
+    c = await sse("/api/ai/chat", { messages: [{ role: "user", content: "空回复" }] }); ok("mock: empty stream reports", c.e === "empty", c);
+    r = await call("POST", "/api/ai/reminder", { text: "乱码", tz: -480 }); ok("mock: unparsable reminder 422", r.s === 422, r);
+    r = await call("POST", "/api/ai/reminder", { text: "明天下午3点提醒我开会", tz: -480 });
+    const tomorrow = new Date(Date.now() + 8 * 3600e3 + 86400e3); // 东八区的明天
+    const want = Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 15, 0) / 1000 - 8 * 3600;
+    ok("mock: reminder timezone math", r.s === 200 && r.reminder.due === want && r.reminder.title === "开会", { r, want });
+    let blocked = null;
+    for (let i = 0; i < 45 && !blocked; i++) { const x = await call("POST", "/api/ai/tool", { tool: "polish", text: "测试" }); if (x.s === 429) blocked = x; }
+    ok("ai daily quota enforced", blocked?.error === "ai_user_quota", blocked);
+  }
+} else {
+  r = await call("POST", "/api/ai/chat", { messages: [{ role: "user", content: "hi" }] }); ok("ai off -> 501", r.s === 501, r);
+}
+r = await call("POST", "/api/chats", { title: "测试对话", msgs: [{ role: "user", content: "你好" }, { role: "assistant", content: "你好！" }, { role: "system", content: "x" }] });
+ok("chat create", r.s === 200 && r.id, r); const cid = r.id;
+r = await call("GET", "/api/chats"); ok("chat list", r.items?.some((x) => x.id === cid && x.title === "测试对话"), r);
+r = await call("GET", "/api/chats/" + cid); ok("chat get (system filtered)", r.msgs?.length === 2 && r.msgs[1].content === "你好！", r);
+r = await call("PUT", "/api/chats/" + cid, { title: "改名", msgs: [{ role: "user", content: "再见" }] }); ok("chat put", r.s === 200, r);
+r = await call("GET", "/api/chats/" + cid); ok("chat put applied", r.title === "改名" && r.msgs?.length === 1, r);
+r = await call("GET", "/api/me"); ok("me counts chats", r.counts?.chats === 1, r.counts);
+r = await call("DELETE", "/api/chats/" + cid); ok("chat delete", r.s === 200, r);
+r = await call("GET", "/api/chats/" + cid); ok("chat gone", r.s === 404, r);
+r = await call("POST", "/api/chats", { title: "删号前", msgs: [] }); ok("chat for deletion test", r.s === 200, r);
+
 r = await call("DELETE", "/api/me", { authKey: key("nope", em) }); ok("delete acct wrong pw", r.s >= 400, r);
 r = await call("DELETE", "/api/me", { authKey: key("newpass123", em) }); ok("delete acct", r.s === 200, r);
 r = await call("GET", "/api/me"); ok("after delete 401", r.s === 401, r);

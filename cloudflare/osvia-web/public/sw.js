@@ -1,5 +1,5 @@
 // 离线外壳：优先走网络（保证总是最新），断网时用缓存打开界面。接口请求一律不缓存。
-const V = "osvia-v1";
+const V = "osvia-v2";
 const SHELL = ["/", "/style.css", "/app.js", "/icon-192.png", "/icon-512.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

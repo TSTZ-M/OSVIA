@@ -11,6 +11,11 @@ on:
         description: 'Wrangler command (e.g. deploy, d1 create OSVIA, kv namespace create OSVIA)'
         required: false
         default: 'deploy'
+      browser_check:
+        description: 'Run real-browser check against the live site'
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -44,3 +49,11 @@ jobs:
             sleep 8
             node cloudflare/osvia-web/test/smoke.mjs https://osvia.tstzrm.workers.dev
           fi
+      - name: Browser check
+        if: ${{ inputs.browser_check == true }}
+        run: |
+          cd cloudflare/osvia-web
+          npm init -y >/dev/null 2>&1 || true
+          npm install --no-save --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+          node test/browser.mjs https://osvia.tstzrm.workers.dev
