@@ -82,7 +82,8 @@ export async function chatStream(env, messages, maxTokens = 1500) {
   let inThink = false;
   let sentAny = false;
   let rawHead = "";
-  const emit = (c, o) => c.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`));
+  let emitted = 0;
+  const emit = (c, o) => { emitted++; c.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`)); };
   const text = (c, s) => {
     // 简单的 <think> 过滤，跨块时按状态处理
     let rest = s;
@@ -101,31 +102,37 @@ export async function chatStream(env, messages, maxTokens = 1500) {
       }
     }
   };
+  const line = (c, ln) => {
+    if (!ln.startsWith("data:")) return;
+    const d = ln.slice(5).trim();
+    if (!d || d === "[DONE]") return;
+    let j;
+    try { j = JSON.parse(d); } catch { return; }
+    if (typeof j.response === "string") { text(c, j.response); return; }
+    const delta = j.choices && j.choices[0] && j.choices[0].delta;
+    if (!delta) return;
+    if (typeof delta.content === "string" && delta.content) text(c, delta.content);
+    else if (delta.reasoning_content || delta.reasoning) emit(c, { r: 1 });
+  };
   return new ReadableStream({
+    // 一次 pull 必须至少写出一块数据（或结束），否则流会卡住：所以一直读到有输出为止
     async pull(c) {
       try {
-        const { done, value } = await reader.read();
-        if (done) {
-          if (!sentAny) emit(c, { e: "empty", raw: rawHead.slice(0, 300) });
-          c.enqueue(enc.encode("data: [DONE]\n\n"));
-          c.close();
-          return;
-        }
-        buf += dec.decode(value, { stream: true });
-        if (rawHead.length < 300) rawHead += buf.slice(0, 300);
-        const lines = buf.split("\n");
-        buf = lines.pop();
-        for (const ln of lines) {
-          if (!ln.startsWith("data:")) continue;
-          const d = ln.slice(5).trim();
-          if (!d || d === "[DONE]") continue;
-          let j;
-          try { j = JSON.parse(d); } catch { continue; }
-          if (typeof j.response === "string") { text(c, j.response); continue; }
-          const delta = j.choices && j.choices[0] && j.choices[0].delta;
-          if (!delta) continue;
-          if (typeof delta.content === "string" && delta.content) text(c, delta.content);
-          else if (delta.reasoning_content || delta.reasoning) emit(c, { r: 1 });
+        const before = emitted;
+        while (emitted === before) {
+          const { done, value } = await reader.read();
+          if (done) {
+            line(c, buf);
+            if (!sentAny) emit(c, { e: "empty", raw: rawHead.slice(0, 300) });
+            c.enqueue(enc.encode("data: [DONE]\n\n"));
+            c.close();
+            return;
+          }
+          buf += dec.decode(value, { stream: true });
+          if (rawHead.length < 300) rawHead += buf.slice(0, 300);
+          const lines = buf.split("\n");
+          buf = lines.pop();
+          for (const ln of lines) line(c, ln);
         }
       } catch (e) {
         emit(c, { e: friendlyError(e).message });

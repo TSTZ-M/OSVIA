@@ -16,10 +16,12 @@ export default {
       if (/旧格式/.test(last)) return sse([{ response: "旧" }, { response: "格式" }, "[DONE]"]);
       if (/空回复/.test(last)) return sse(["[DONE]"]);
       return sse([
+        { choices: [{ delta: { role: "assistant" } }] }, // 没有内容的块：曾导致流卡住
         { choices: [{ delta: { reasoning_content: "想一想" } }] },
         { choices: [{ delta: { content: "<think>内部" } }] },
         { choices: [{ delta: { content: "思考</think>你好" } }] },
         { choices: [{ delta: { content: "，世界" } }] },
+        { usage: { total_tokens: 9 } }, // 末尾的用量块，没有 choices
         "[DONE]",
       ]);
     }
