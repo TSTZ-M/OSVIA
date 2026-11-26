@@ -102,3 +102,76 @@ details.card[open] summary { margin-bottom: 10px; }
 .item .line { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 .acts { display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
 .sm-sel { width: auto; padding: 6px 8px; font-size: 13px; }
+
+/* ---- v1.1：首页 / AI 工具 / 助手 / 登录页介绍 ---- */
+.item.go { cursor: pointer; }
+.item.go:active { opacity: .7; }
+.item > svg { flex: none; width: 22px; height: 22px; color: var(--mint); }
+.back { margin-bottom: 10px; }
+.askbar { display: flex; gap: 8px; }
+.askbar input { flex: 1; min-width: 0; }
+.askbar .btn { flex: none; }
+.hello { margin: 4px 0 14px; }
+.hello h2 { font-size: 26px; }
+.hello p { margin: 2px 0 0; }
+.hero { background: color-mix(in srgb, var(--mint) 9%, var(--card)); }
+.hero p { margin: 8px 0 0; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 4px 12px; border: 0; border-radius: 14px; background: var(--card); cursor: pointer; font-size: 13px; color: var(--ink); }
+.tile svg { width: 26px; height: 26px; color: var(--mint); }
+.tile:active { transform: scale(.97); }
+@media (min-width: 640px) { .tiles { grid-template-columns: repeat(6, 1fr); } }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.chip { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 99px; padding: 6px 14px; font-size: 14px; cursor: pointer; }
+.chip.on { background: var(--mint); color: var(--on-mint); border-color: var(--mint); font-weight: 600; }
+.chips .sm-sel { border-radius: 99px; }
+.tool-act { margin-top: 10px; justify-content: flex-end; }
+.tool-act > .btn { flex: none; }
+.tool-act > label.f { margin: 0; flex: 1 1 auto; }
+.card.err { color: var(--danger); }
+.card.thinking { color: var(--sub); }
+.result .src { margin-bottom: 10px; overflow-wrap: anywhere; font-size: 14px; }
+.result .src b { display: block; }
+.result .acts { margin-top: 12px; }
+.md pre { background: var(--bg); border-radius: 8px; padding: 10px; overflow-x: auto; font-size: 13px; margin: 8px 0; }
+.md code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .92em; background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+.md pre code { background: none; padding: 0; }
+.md ul, .md ol { margin: 6px 0; padding-left: 22px; }
+.md { overflow-wrap: anywhere; }
+.dots { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: middle; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--sub); animation: blink 1.2s infinite both; }
+.dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .6; } .tile:active { transform: none; } }
+.welcome { text-align: center; padding: 28px 0 8px; }
+.welcome h3 { font-size: 20px; color: var(--ink); margin: 0 0 14px; }
+.welcome .chips { justify-content: center; }
+.mact { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.mact button { border: 0; background: none; color: var(--sub); font-size: 12px; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.mact button:hover { background: var(--bg); }
+.msg .errline { color: var(--danger); font-size: 14px; margin-top: 6px; }
+.msg.ai { min-width: 0; }
+.qline { min-height: 0; margin: -6px 0 8px; }
+.qline:empty { display: none; }
+.top h2 { flex: 1; }
+.top .sub { flex: none; }
+
+/* 登录页：左介绍右表单，手机上表单在标题之后、功能卡片之前 */
+.land { max-width: 1000px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 40px) 20px 48px; display: grid; gap: 22px; grid-template-areas: "head" "auth" "feats"; }
+.land .intro { grid-area: head; }
+.land .auth { grid-area: auth; padding: 0; margin: 0; max-width: none; }
+.land .feats { grid-area: feats; }
+.intro .brand { margin-bottom: 18px; }
+.intro h1 { font-size: 28px; line-height: 1.25; margin: 0 0 8px; text-wrap: balance; }
+.intro .lead { color: var(--sub); margin: 0; }
+.feats { display: grid; gap: 10px; grid-template-columns: 1fr; align-content: start; }
+.feat { display: flex; gap: 12px; background: var(--card); border-radius: 14px; padding: 12px 14px; }
+.feat > svg { flex: none; width: 24px; height: 24px; color: var(--mint); margin-top: 2px; }
+.feat b { display: block; font-size: 15px; }
+.feat span { color: var(--sub); font-size: 13.5px; }
+@media (min-width: 640px) { .feats { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 900px) {
+  .land { grid-template-columns: 1fr 400px; grid-template-rows: auto 1fr; grid-template-areas: "head auth" "feats auth"; column-gap: 56px; padding-top: 72px; }
+  .land .auth { position: sticky; top: 48px; align-self: start; }
+  .intro h1 { font-size: 34px; }
+}

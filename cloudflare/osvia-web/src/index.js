@@ -5,8 +5,10 @@
 //  - 云备份只接受已加密的 .osvbackup（校验文件头），服务器看不到内容
 //  - 邮箱验证码为可选能力：配置了发信渠道（见 wrangler.toml）才启用
 
+import * as AI from "./ai.js";
+
 const enc = new TextEncoder();
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS users(
@@ -34,6 +36,9 @@ const SCHEMA = [
     created INTEGER NOT NULL, device TEXT DEFAULT '')`,
   `CREATE INDEX IF NOT EXISTS idx_backups_uid ON backups(uid, created)`,
   `CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS chats(
+    id TEXT PRIMARY KEY, uid TEXT NOT NULL, title TEXT DEFAULT '', msgs TEXT DEFAULT '[]', updated INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS idx_chats_uid ON chats(uid, updated)`,
 ];
 
 let ready = null;
@@ -247,6 +252,37 @@ function publicHttps(u) {
   return url;
 }
 
+
+// ---------- 内置 AI 的配额与消息清洗 ----------
+async function aiGate(env, uid) {
+  if (!env.AI) return fail(501, "ai_off", "内置 AI 还没有开启");
+  if (!(await limit(env, `ai:${uid}`, AI.USER_DAILY, 86400)))
+    return fail(429, "ai_user_quota", `今天的内置 AI 次数用完了（每天 ${AI.USER_DAILY} 次），明天自动恢复。也可以在助手设置里填自己的密钥继续用。`);
+  if (!(await limit(env, "ai:site", AI.SITE_DAILY, 86400)))
+    return fail(503, "ai_site_quota", "内置 AI 今天太忙了，明天再来，或者在助手设置里填自己的密钥。");
+  return null;
+}
+async function aiUsed(env, uid) {
+  const r = await env.DB.prepare("SELECT n FROM rl WHERE k=?").bind(`ai:${uid}:${Math.floor(now() / 86400)}`).first();
+  return r?.n ?? 0;
+}
+// 只保留 user / assistant，限制条数与总长度（从最新往回取）
+function cleanMsgs(list, maxCount, maxChars) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  let total = 0;
+  for (let i = list.length - 1; i >= 0 && out.length < maxCount; i--) {
+    const m = list[i];
+    if (!m || (m.role !== "user" && m.role !== "assistant") || typeof m.content !== "string") continue;
+    const content = clip(m.content, 12000);
+    if (!content.trim()) continue;
+    total += content.length;
+    if (total > maxChars) break;
+    out.unshift({ role: m.role, content });
+  }
+  return out;
+}
+
 // ---------- Bark ----------
 async function barkSend(env, u, title, text, level = "timeSensitive") {
   const keys = (await open(env, u.bark_key)).split(/[\s,]+/).filter(Boolean);
@@ -327,7 +363,7 @@ async function handle(req, env) {
   const path = url.pathname.replace(/\/+$/, "");
   const method = req.method;
 
-  if (path === "/api/config" && method === "GET") return json({ mail: mailOn(env), version: VERSION });
+  if (path === "/api/config" && method === "GET") return json({ mail: mailOn(env), ai: !!env.AI, aiDaily: AI.USER_DAILY, version: VERSION });
 
   // ----- 注册、登录、验证码 -----
   if (path === "/api/auth/register" && method === "POST") {
@@ -419,12 +455,13 @@ async function handle(req, env) {
   }
 
   if (path === "/api/me" && method === "GET") {
-    const [r, n, b] = await Promise.all([
+    const [r, n, b, ch] = await Promise.all([
       env.DB.prepare("SELECT COUNT(*) c FROM reminders WHERE uid=? AND sent=0").bind(uid).first(),
       env.DB.prepare("SELECT COUNT(*) c FROM notes WHERE uid=? AND deleted=0").bind(uid).first(),
       env.DB.prepare("SELECT COUNT(*) c, COALESCE(SUM(size),0) s FROM backups WHERE uid=?").bind(uid).first(),
+      env.DB.prepare("SELECT COUNT(*) c FROM chats WHERE uid=?").bind(uid).first(),
     ]);
-    return json({ user: publicUser(me), counts: { reminders: r.c, notes: n.c, backups: b.c, backupBytes: b.s } });
+    return json({ user: publicUser(me), counts: { reminders: r.c, notes: n.c, backups: b.c, backupBytes: b.s, chats: ch.c } });
   }
 
   if (path === "/api/me" && method === "PATCH") {
@@ -459,6 +496,7 @@ async function handle(req, env) {
     await env.DB.batch([
       env.DB.prepare("DELETE FROM reminders WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM notes WHERE uid=?").bind(uid),
+      env.DB.prepare("DELETE FROM chats WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM backups WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM sessions WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM otps WHERE email=?").bind(me.email),
@@ -659,6 +697,134 @@ async function handle(req, env) {
   if (m && method === "DELETE") {
     await env.R2.delete(`u/${uid}/${m[1]}`);
     await env.DB.prepare("DELETE FROM backups WHERE id=? AND uid=?").bind(m[1], uid).run();
+    return json({ ok: true });
+  }
+
+
+  // ----- 内置 AI（Cloudflare Workers AI）：每人每天有次数配额 -----
+  if (path === "/api/ai/quota" && method === "GET") {
+    return json({ on: !!env.AI, used: await aiUsed(env, uid), max: AI.USER_DAILY });
+  }
+
+  if (path === "/api/ai/chat" && method === "POST") {
+    const b = await body(req);
+    const msgs = cleanMsgs(b.messages, 20, 24000);
+    if (!msgs.length || msgs[msgs.length - 1].role !== "user") return fail(400, "bad_request", "没有要回答的内容");
+    const gate = await aiGate(env, uid);
+    if (gate) return gate;
+    const today = new Date().toISOString().slice(0, 10);
+    const system =
+      clip(b.system, 2000).trim() ||
+      `你是 OSVIA 助手，运行在 OSVIA 网页版里。用用户使用的语言回答，简洁清楚，不啰嗦；需要时用 Markdown 的列表或代码块。不知道就直说，不要编造。今天是 ${today}。`;
+    try {
+      const stream = await AI.chatStream(env, [{ role: "system", content: system }, ...msgs]);
+      return new Response(stream, {
+        headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" },
+      });
+    } catch (e) {
+      const f = e.friendly || AI.friendlyError(e);
+      console.error("ai chat", e && e.message);
+      return fail(f.status, f.error, f.message);
+    }
+  }
+
+  if (path === "/api/ai/tool" && method === "POST") {
+    const b = await body(req);
+    const tool = String(b.tool || "");
+    const text = clip(b.text, 12000).trim();
+    if (!AI.toolNames().includes(tool) || !text) return fail(400, "bad_request", "请求不完整");
+    const gate = await aiGate(env, uid);
+    if (gate) return gate;
+    try {
+      const out = await AI.complete(env, AI.toolMessages(tool, text, String(b.lang || "")), 1400);
+      if (!out) return fail(502, "ai_error", "没有生成内容，请再试一次");
+      return json({ text: out });
+    } catch (e) {
+      const f = e.friendly || AI.friendlyError(e);
+      console.error("ai tool", e && e.message);
+      return fail(f.status, f.error, f.message);
+    }
+  }
+
+  if (path === "/api/ai/reminder" && method === "POST") {
+    const b = await body(req);
+    const text = clip(b.text, 300).trim();
+    if (!text) return fail(400, "bad_request", "请说一句话，例如「明天下午 3 点提醒我开会」");
+    const gate = await aiGate(env, uid);
+    if (gate) return gate;
+    try {
+      const r = await AI.parseReminder(env, text, Date.now(), Number.isFinite(+b.tz) ? Math.max(-840, Math.min(840, +b.tz)) : 0);
+      if (!r) return fail(422, "unparsed", "没看懂这句话，换个说法试试，例如「明天下午 3 点提醒我开会」");
+      return json({ reminder: r });
+    } catch (e) {
+      const f = e.friendly || AI.friendlyError(e);
+      console.error("ai reminder", e && e.message);
+      return fail(f.status, f.error, f.message);
+    }
+  }
+
+  if (path === "/api/ai/web" && method === "POST") {
+    const b = await body(req);
+    const target = publicHttps(/^https?:\/\//i.test(String(b.url || "")) ? String(b.url).replace(/^http:/i, "https:") : "https://" + String(b.url || ""));
+    if (!target) return fail(400, "bad_url", "请输入公开的网页地址，例如 https://example.com/article");
+    const gate = await aiGate(env, uid);
+    if (gate) return gate;
+    let page;
+    try {
+      page = await AI.fetchPageText(target, publicHttps, new URL(req.url).hostname);
+    } catch (e) {
+      return fail(502, "fetch_failed", e && e.bad ? e.bad : "打不开这个网页，换一个试试");
+    }
+    if (page.text.length < 60) return fail(422, "empty_page", "没有读到有用的文字（可能需要登录，或页面靠脚本生成内容）");
+    try {
+      const out = await AI.complete(
+        env,
+        AI.toolMessages("summarize", `网页标题：${page.title || "（无）"}\n\n正文：\n${page.text}`, ""),
+        1400
+      );
+      return json({ title: page.title, url: page.url, chars: page.text.length, summary: out });
+    } catch (e) {
+      const f = e.friendly || AI.friendlyError(e);
+      console.error("ai web", e && e.message);
+      return fail(f.status, f.error, f.message);
+    }
+  }
+
+  // ----- 对话记录（云端保存，网页与以后的 App 通用） -----
+  if (path === "/api/chats" && method === "GET") {
+    const { results } = await env.DB.prepare("SELECT id,title,updated FROM chats WHERE uid=? ORDER BY updated DESC LIMIT 100").bind(uid).all();
+    return json({ items: results });
+  }
+  if (path === "/api/chats" && method === "POST") {
+    const b = await body(req);
+    const c = await env.DB.prepare("SELECT COUNT(*) c FROM chats WHERE uid=?").bind(uid).first();
+    if (c.c >= 200) return fail(400, "too_many", "对话太多了，先删掉一些旧的");
+    const id = uuid();
+    const msgs = cleanMsgs(b.msgs, 100, 300000);
+    await env.DB.prepare("INSERT INTO chats(id,uid,title,msgs,updated) VALUES(?,?,?,?,?)")
+      .bind(id, uid, clip(b.title, 60), JSON.stringify(msgs), now()).run();
+    return json({ id });
+  }
+  const mc = path.match(/^\/api\/chats\/([\w-]{8,64})$/);
+  if (mc && method === "GET") {
+    const r = await env.DB.prepare("SELECT id,title,msgs,updated FROM chats WHERE id=? AND uid=?").bind(mc[1], uid).first();
+    if (!r) return fail(404, "not_found", "对话不存在");
+    let msgs = [];
+    try { msgs = JSON.parse(r.msgs); } catch { /* 空 */ }
+    return json({ id: r.id, title: r.title, msgs, updated: r.updated });
+  }
+  if (mc && method === "PUT") {
+    const b = await body(req);
+    const sets = ["updated=?"];
+    const args = [now()];
+    if (typeof b.title === "string") { sets.push("title=?"); args.push(clip(b.title, 60)); }
+    if (Array.isArray(b.msgs)) { sets.push("msgs=?"); args.push(JSON.stringify(cleanMsgs(b.msgs, 100, 300000))); }
+    const r = await env.DB.prepare(`UPDATE chats SET ${sets.join(",")} WHERE id=? AND uid=?`).bind(...args, mc[1], uid).run();
+    if (!r.meta.changes) return fail(404, "not_found", "对话不存在");
+    return json({ ok: true });
+  }
+  if (mc && method === "DELETE") {
+    await env.DB.prepare("DELETE FROM chats WHERE id=? AND uid=?").bind(mc[1], uid).run();
     return json({ ok: true });
   }
 
