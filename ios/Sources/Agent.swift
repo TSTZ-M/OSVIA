@@ -148,7 +148,7 @@ final class Agent: ObservableObject {
         let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
         DB.shared.run("UPDATE conv SET title=? WHERE id=?", [t, id])
-        if id == convId { title = t }
+        if id == convId { self.title = t }
     }
 
     func clearAll() {
