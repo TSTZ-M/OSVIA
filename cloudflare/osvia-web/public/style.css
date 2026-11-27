@@ -175,3 +175,65 @@ details.card[open] summary { margin-bottom: 10px; }
   .land .auth { position: sticky; top: 48px; align-self: start; }
   .intro h1 { font-size: 34px; }
 }
+
+/* ---- v1.2：网页独有（自动化 / 分享 / 命令面板 / 双栏笔记 / 拖放） ---- */
+.nav button { position: relative; }
+.badge { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--danger); color: #fff; font-size: 10px; font-style: normal; font-weight: 700; line-height: 16px; text-align: center; }
+@media (min-width: 900px) { .badge { top: 50%; left: auto; right: 12px; transform: translateY(-50%); } }
+
+.item.fresh { box-shadow: inset 3px 0 0 var(--mint); }
+.item .md { overflow-wrap: anywhere; font-size: 15px; }
+.item .md p, .item .md ul, .item .md ol { margin: 4px 0; }
+.item .md h3, .item .md h4 { margin: 8px 0 2px; color: var(--ink); font-size: 15px; }
+.acts.stack { flex-direction: column; align-items: stretch; }
+kbd { font: 12px ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; background: var(--bg); }
+.btn.bm { cursor: grab; }
+
+.card.auto.off { opacity: .6; }
+.card.auto .line { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.card.auto .t { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.card.auto .t b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.auto details { margin: 8px 0; }
+.card.auto summary { cursor: pointer; }
+.card.auto .acts { margin-top: 8px; justify-content: flex-start; }
+.switch { position: relative; flex: none; width: 44px; height: 26px; display: inline-block; }
+.switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
+.switch i { position: absolute; inset: 0; border-radius: 99px; background: var(--line); transition: background .15s; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .15s; }
+.switch input:checked + i { background: var(--mint); }
+.switch input:checked + i::after { transform: translateX(18px); }
+.switch input:focus-visible + i { outline: 2px solid var(--mint); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .switch i, .switch i::after { transition: none; } }
+
+/* 弹窗 / 命令面板 */
+.modal { position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.45); }
+.modal .sheet { width: 100%; max-width: 520px; max-height: 88vh; overflow: auto; background: var(--bg); border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+.modal .sheet .top { margin-bottom: 10px; }
+@media (min-width: 640px) { .modal { align-items: center; } .modal .sheet { border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.35); } }
+.modal.pal { align-items: flex-start; padding-top: 12vh; }
+.modal.pal .sheet { padding: 10px; max-width: 600px; border-radius: 16px; }
+.pal input { font-size: 17px; margin-bottom: 8px; }
+.pal-list { max-height: 50vh; overflow: auto; }
+.pal-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; cursor: pointer; }
+.pal-row.on { background: var(--card); }
+.pal-row svg { flex: none; width: 20px; height: 20px; color: var(--mint); }
+.pal-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 笔记双栏 */
+@media (min-width: 900px) { .main.wide { max-width: 1180px; } }
+.notes-split { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+.notes-list { min-width: 0; }
+.notes-split .notes-list { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; padding-right: 4px; }
+.notes-split .notes-list .top { flex-wrap: wrap; }
+.notes-split .notes-list .top > div { flex-wrap: wrap; }
+.notes-edit { min-width: 0; }
+.notes-edit .note-body { min-height: 62vh; }
+.item.go.active { background: color-mix(in srgb, var(--mint) 16%, var(--card)); }
+
+/* 拖文件导入 */
+[data-drop] { position: relative; }
+[data-drop].dropping::after { content: attr(data-drop); position: fixed; inset: 12px; z-index: 30; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--mint); border-radius: 18px; background: color-mix(in srgb, var(--bg) 88%, var(--mint)); color: var(--mint); font-size: 20px; font-weight: 700; pointer-events: none; }
+a.btn { text-decoration: none; }
+.card .btn.ghost, .item .btn.ghost { background: var(--bg); border: 1px solid var(--line); }
+.modal .sheet .acts { margin: 10px 0; }
+.item .line .t1 { min-width: 0; overflow-wrap: anywhere; }

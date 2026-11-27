@@ -273,7 +273,7 @@ const ICONS = {
   todos: ST('<path d="M4 6l2 2 3-3M4 15l2 2 3-3M12 7h8M12 16h8"/>'),
   remind: ST('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
 };
-const TABS = [["home", "首页"], ["assistant", "助手"], ["notes", "笔记"], ["reminders", "提醒"], ["me", "我的"]];
+const tabs = () => [["home", "首页"], ["assistant", "助手"], ["notes", "笔记"], ...(aiOn() ? [["auto", "自动化"]] : []), ["reminders", "提醒"], ["me", "我的"]];
 
 function svg(name) {
   const w = document.createElement("span");
@@ -286,25 +286,30 @@ let content;
 const addc = (...k) => content.append(...k.flat(Infinity).filter((x) => x != null && x !== false));
 function render() {
   if (S.abort) S.abort.abort(); // 离开助手页就停掉生成，已生成的部分会保存
+  if (S.flush) { const f = S.flush; S.flush = null; f(); } // 离开笔记页前先存好还没落盘的修改
   const nav = h("nav", { class: "nav" },
     h("div", { class: "logo" }, h("img", { src: "/icon-192.png", alt: "" }), "OSVIA"),
-    ...TABS.map(([id, label]) => h("button", { class: S.tab === id ? "on" : "", "aria-current": S.tab === id ? "page" : null, onclick: () => go(id) }, svg(id), h("span", {}, t(label)))));
-  content = h("main", { class: "main" });
+    ...tabs().map(([id, label]) => h("button", { class: S.tab === id ? "on" : "", "data-tab": id, "aria-current": S.tab === id ? "page" : null, onclick: () => go(id) }, svg(id), h("span", {}, t(label)))));
+  content = h("main", { class: "main" + (S.tab === "notes" && !S.sub ? " wide" : "") });
   mount(h("div", { class: "shell" }, nav, content));
   window.scrollTo(0, 0);
-  const view = S.sub === "tools" ? viewTools : S.sub === "backups" ? viewBackups
-    : { home: viewHome, assistant: viewAssistant, notes: viewNotes, reminders: viewReminders, me: viewAccount }[S.tab];
+  const view = S.sub === "tools" ? viewTools : S.sub === "backups" ? viewBackups : S.sub === "webtools" ? viewWebTools : S.sub === "clip" ? viewClip
+    : { home: viewHome, assistant: viewAssistant, notes: viewNotes, auto: viewAuto, reminders: viewReminders, me: viewAccount }[S.tab];
   view();
+  paintBadge();
 }
 function go(tab, sub = null, extra = {}) { Object.assign(S, extra, { tab, sub }); render(); }
 
 async function start() {
+  stashClip(); // 书签 / 系统分享带来的网页内容，登录后再处理
   try { S.cfg = await api("/api/config"); } catch { /* 保持默认 */ }
   if (!S.token) return renderAuth();
   try {
     const r = await api("/api/me");
     S.user = r.user; S.counts = r.counts;
+    takeClip();
     render();
+    refreshUnread();
   } catch { renderAuth(); }
 }
 
@@ -386,86 +391,7 @@ async function viewReminders() {
   load();
 }
 
-// ---------- 笔记 ----------
-async function viewNotes() {
-  let notes = [], cur = null, q = "", timer = null;
-  const box = h("div", {});
-  addc(box);
-  async function load() { try { notes = (await api("/api/notes")).items; } catch (e) { toast(e.message || ""); } list(); }
-  function list() {
-    cur = null;
-    const search = h("input", { placeholder: t("搜索笔记"), value: q, oninput: (e) => { q = e.target.value; draw(); } });
-    const out = h("div", {});
-    function draw() {
-      const s = q.trim().toLowerCase();
-      const shown = notes.filter((n) => !s || (n.title + " " + n.body).toLowerCase().includes(s));
-      out.replaceChildren(...(shown.length ? shown.map((n) => h("div", { class: "item", onclick: () => edit(n) },
-        h("div", { class: "t" }, h("b", {}, n.title || t("无标题")), h("span", { class: "sub small" }, (n.body || "").replace(/\s+/g, " ").slice(0, 80))),
-        h("span", { class: "sub small" }, fmtTime(n.updated)))) : [h("div", { class: "empty" }, t("还没有笔记"))]));
-    }
-    box.replaceChildren(h("div", { class: "top" }, h("h2", {}, t("笔记")), h("button", { class: "btn sm", onclick: async () => {
-      const r = await api("/api/notes", { method: "POST", body: { title: "", body: "" } });
-      const n = { id: r.id, title: "", body: "", updated: Math.floor(Date.now() / 1000) };
-      notes.unshift(n); edit(n);
-    } }, "+ " + t("新建"))), h("div", { class: "card" }, search), out);
-    draw();
-  }
-  function edit(n) {
-    cur = n;
-    const status = h("span", { class: "sub small" });
-    const ti = h("input", { class: "note-title", placeholder: t("标题"), value: n.title, maxlength: "200" });
-    const bo = h("textarea", { class: "note-body", placeholder: t("写点什么…") });
-    bo.value = n.body;
-    const save = () => {
-      n.title = ti.value; n.body = bo.value;
-      clearTimeout(timer);
-      timer = setTimeout(async () => {
-        try { const r = await api("/api/notes/" + n.id, { method: "PUT", body: { title: n.title, body: n.body } }); n.updated = r.updated; status.textContent = t("已保存"); }
-        catch (e) { status.textContent = e.message || ""; }
-      }, 700);
-    };
-    ti.addEventListener("input", save); bo.addEventListener("input", save);
-    const aiBox = h("div", {});
-    const nlang = h("select", { class: "sm-sel", "aria-label": t("译成"), onchange: (e) => { S.tlang = e.target.value; } }, LANGS.map(([v, l]) => h("option", { value: v }, l)));
-    nlang.value = S.tlang || (LANG === "zh" ? "en" : "zh");
-    async function runAi(tool) {
-      const s0 = bo.selectionStart, e0 = bo.selectionEnd;
-      const sel = s0 !== e0 ? bo.value.slice(s0, e0) : "";
-      const orig = (tool === "titleize" ? bo.value : sel || bo.value).trim();
-      if (!orig) return toast(t("先写点内容"));
-      aiBox.replaceChildren(h("div", { class: "card thinking" }, t("AI 处理中…"), dots()));
-      try {
-        const r = await api("/api/ai/tool", { method: "POST", body: { tool, text: orig.slice(0, 12000), lang: nlang.value } });
-        bump();
-        const out = String(r.text).trim();
-        const put = (v) => { bo.value = v; bo.dispatchEvent(new Event("input")); aiBox.replaceChildren(); };
-        const tail = () => bo.value.replace(/\s*$/, "") + "\n\n" + out;
-        const replace = () => {
-          if (orig.length > 12000) return tail(); // 超长时只处理了前半部分，不能整篇覆盖
-          if (sel) return bo.value.slice(s0, e0) === sel ? bo.value.slice(0, s0) + out + bo.value.slice(e0) : tail();
-          return bo.value.trim() === orig ? out : tail();
-        };
-        const md = h("div", { class: "md" }); md.innerHTML = renderMd(out);
-        aiBox.replaceChildren(h("div", { class: "card result" }, md, h("div", { class: "acts" },
-          tool === "titleize"
-            ? h("button", { class: "btn sm", onclick: () => { ti.value = out.replace(/^["“「『]+|["”」』。.]+$/g, "").slice(0, 60); ti.dispatchEvent(new Event("input")); aiBox.replaceChildren(); } }, t("用作标题"))
-            : [tool === "polish" || tool === "translate" ? h("button", { class: "btn sm", onclick: () => put(replace()) }, t("替换原文")) : null,
-              h("button", { class: "btn ghost sm", onclick: () => put(tail()) }, t("插入末尾"))],
-          h("button", { class: "btn ghost sm", onclick: () => copyText(out) }, t("复制")),
-          h("button", { class: "btn ghost sm", onclick: () => aiBox.replaceChildren() }, t("关闭")))));
-      } catch (er) { aiBox.replaceChildren(h("div", { class: "card err" }, er.message || t("出错了"))); }
-    }
-    const tb = aiOn() ? h("div", { class: "chips ai" }, [["summarize", "总结"], ["polish", "润色"], ["translate", "翻译"], ["continue", "续写"], ["todos", "提取待办"], ["titleize", "起标题"]]
-      .map(([k, l]) => [h("button", { class: "chip", onclick: () => runAi(k) }, "✦ " + t(l)), k === "translate" ? nlang : null])) : null;
-    box.replaceChildren(
-      h("div", { class: "top" }, h("button", { class: "btn ghost sm", onclick: () => { clearTimeout(timer); load(); } }, "‹ " + t("返回")),
-        h("div", {}, status, h("button", { class: "btn ghost sm", onclick: async () => {
-          if (!confirm(t("删除") + "?")) return;
-          clearTimeout(timer); await api("/api/notes/" + n.id, { method: "DELETE" }); load();
-        } }, t("删除")))), ti, tb, aiBox, bo);
-  }
-  load();
-}
+// 笔记（桌面双栏）见 web.js
 
 // ---------- 云备份 ----------
 async function viewBackups() {
@@ -580,6 +506,7 @@ async function viewHome() {
       h("div", { class: "tiles" },
         ...Object.keys(TOOL_NAMES).map((k) => tile(k, TOOL_NAMES[k], () => go("home", "tools", { tool: k }))),
         tile("remind", "一句话提醒", () => go("reminders", null, { focusNl: true })))] : null,
+    homeExtras(),
     h("h3", {}, t("即将提醒")), rem,
     h("h3", {}, t("最近笔记")), notes);
 
@@ -650,6 +577,7 @@ function viewTools() {
       md,
       h("div", { class: "acts" },
         h("button", { class: "btn ghost sm", onclick: () => copyText(text) }, t("复制")),
+        h("button", { class: "btn ghost sm", onclick: () => pushPhone(title || t("AI 工具"), text, link) }, t("发到手机")),
         h("button", { class: "btn sm", onclick: () => saveAsNote(title || text.split("\n")[0], (link ? link + "\n\n" : "") + text) }, t("存为笔记")))));
   }
 
@@ -657,6 +585,7 @@ function viewTools() {
     h("div", { class: "top" }, h("button", { class: "btn ghost sm", onclick: () => go("home") }, "‹ " + t("首页")), h("h2", {}, t("AI 工具")), h("span", { class: "sub small" }, quotaText())),
     chips, form, result);
   draw();
+  enableDrop(content, (fs) => { if (tool === "web") tool = "summarize"; src.text = fs.map((f) => f.text).join("\n\n").slice(0, 12000); result.replaceChildren(); draw(); });
   loadQuota().then(() => { const el = content.querySelector(".top .sub"); if (el) el.textContent = quotaText(); });
 }
 
@@ -709,6 +638,7 @@ function viewAssistant() {
       el.append(h("div", { class: "mact" },
         h("button", { onclick: () => copyText(m.content) }, t("复制")),
         h("button", { onclick: () => saveAsNote(m.content.split("\n")[0], m.content) }, t("存为笔记")),
+        h("button", { onclick: () => pushPhone("OSVIA", m.content) }, t("发到手机")),
         i === list.length - 1 ? h("button", { onclick: regen }, t("重新生成")) : null));
     }
     return el;
@@ -838,11 +768,13 @@ function viewAssistant() {
 
   addc(
     h("div", { class: "top" }, h("h2", {}, t("助手")), h("div", {},
+      h("button", { class: "btn ghost sm", onclick: () => (S.chat.id ? shareDialog("chat", S.chat.id, S.chat.msgs[0]?.content.replace(/\s+/g, " ").slice(0, 40) || "OSVIA") : toast(t("先聊几句再分享"))) }, t("分享")),
       h("button", { class: "btn ghost sm", onclick: showHistory }, t("历史")),
       h("button", { class: "btn ghost sm", onclick: () => { S.chat = { id: null, msgs: [] }; render(); } }, t("新对话")))),
     h("div", { class: "qline" }, qline),
     settings, main, histBox);
   applyMode(); draw(); setBtn();
+  enableDrop(content, (fs) => { input.value = ((input.value ? input.value + "\n\n" : "") + fs.map((f) => `${f.name}:\n${f.text}`).join("\n\n")).slice(0, 12000); autosize(); input.focus(); });
   if (aiOn()) loadQuota().then(() => { if (document.body.contains(qline)) applyMode(); });
   if (S.pendingAsk) { const q = S.pendingAsk; S.pendingAsk = ""; send(q); }
 }
@@ -876,6 +808,7 @@ async function viewAccount() {
   addc(h("h2", {}, t("我的")),
     link("backups", t("云备份"), fmtSize(counts.backupBytes || 0), () => go("me", "backups")),
     aiOn() && S.quota ? link("assistant", t("内置 AI"), `${t("今日已用")} ${S.quota.used}/${S.quota.max}`) : null,
+    link("toolbox", t("网页工具箱"), t("剪藏书签 · 分享链接 · 快捷键"), () => go("me", "webtools")),
     h("h3", {}, t("账号信息")),
     h("div", { class: "card" },
       h("p", {}, h("b", {}, S.user.email), " ", h("span", { class: "tag" }, S.user.verified ? t("已验证") : t("未验证"))),
@@ -932,4 +865,5 @@ async function viewAccount() {
 }
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
-start();
+// web.js 在 app.js 之后加载，等两个脚本都就绪（DOMContentLoaded 在 defer 脚本之后触发）再启动
+document.addEventListener("DOMContentLoaded", start);

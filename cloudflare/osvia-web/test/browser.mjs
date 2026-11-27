@@ -32,13 +32,25 @@ try {
     const text = (await p.textContent(".main")).replace(/\s+/g, " ").trim();
     ok("tab " + tabs[i] + " has content", text.length > 10, text);
   }
-  // 真实内置 AI：助手发一句话，等回复
+  // 网页独有：命令面板、自动化（服务器真实抓取 example.com 建立基线）
+  await p.keyboard.press("Control+k");
+  ok("palette opens", !!(await p.waitForSelector(".modal.pal input", { timeout: 5000 }).catch(() => null)));
+  await p.keyboard.press("Escape");
   const cfg = await (await fetch(B + "/api/config")).json();
   if (cfg.ai) {
-    await p.click(".nav button:nth-of-type(2)");
+    await p.click(".nav button[data-tab=auto]");
+    await p.waitForSelector("input[type=url]");
+    await p.fill(".main input[type=url]", "https://example.com");
+    await p.click(".main button:has-text('添加')");
+    ok("live watch created (real fetch)", !!(await p.waitForSelector(".card.auto", { timeout: 30000 }).catch(() => null)));
+    ok("live watch start event", (await p.textContent(".main")).includes("开始监控"));
+  }
+  // 真实内置 AI：助手发一句话，等回复
+  if (cfg.ai) {
+    await p.click(".nav button[data-tab=assistant]");
     await p.fill(".composer textarea", "用一句话介绍你自己");
     await p.click(".composer .btn");
-    await p.waitForFunction(() => { const m = document.querySelector(".msg.ai"); return m && !m.querySelector(".dots") && m.textContent.trim().length > 0; }, null, { timeout: 90000 });
+    await p.waitForFunction(() => { const m = document.querySelector(".msg.ai"); return m && m.querySelector(".mact"); }, null, { timeout: 90000 });
     const reply = (await p.textContent(".msg.ai")).trim();
     console.log("AI reply:", reply.slice(0, 160));
     ok("real AI chat replied", reply.length > 3 && !(await p.$(".msg.ai .errline")), reply);

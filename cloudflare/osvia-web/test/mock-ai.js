@@ -25,6 +25,11 @@ export default {
         "[DONE]",
       ]);
     }
+    if (/网页变化监控助手/.test(sys)) {
+      if (/噪音/.test(last)) return { response: '{"changed":false,"summary":""}' };
+      return { response: '{"changed":true,"summary":"价格从 100 降到 90"}' };
+    }
+    if (/每日简报助手/.test(sys)) return { response: "【简报】今天有安排：" + (last.includes("开会") ? "开会" : "无") };
     if (/只输出一行 JSON/.test(sys)) {
       const m = sys.match(/现在是 (\d{4})-(\d{2})-(\d{2})/);
       const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + 1));

@@ -48,6 +48,7 @@ jobs:
           if [ -f cloudflare/osvia-web/test/smoke.mjs ]; then
             sleep 8
             node cloudflare/osvia-web/test/smoke.mjs https://osvia.tstzrm.workers.dev
+            node cloudflare/osvia-web/test/smoke2.mjs https://osvia.tstzrm.workers.dev
           fi
       - name: Browser check
         if: ${{ inputs.browser_check == true }}
