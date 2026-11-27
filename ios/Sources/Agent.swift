@@ -11,6 +11,7 @@ struct Msg: Identifiable {
     var steps: [Step] = []
     var sources: [Source] = []
     var dur = 0.0
+    var row: Int64 = 0   // 数据库里的行号；没保存历史时为 0
 }
 
 // 需要用户确认的操作（比如调用会改变外部状态的 MCP 工具）
@@ -40,6 +41,9 @@ final class Agent: ObservableObject {
     @Published var busy = false
     @Published var attachments: [Attach] = []
     @Published var convId = 0
+    @Published var title = ""
+    @Published var pinned = false
+    private var gen = 0   // 每切换一次对话加一，旧任务的结果不再写进新对话
     @Published var confirm: ConfirmRequest?
     var lastFile: URL?
     private var task: Task<Void, Never>?
@@ -61,27 +65,45 @@ final class Agent: ObservableObject {
         if let r = DB.shared.rows("SELECT id FROM conv ORDER BY ts DESC LIMIT 1").first { open(r.i("id")) } else { newChat() }
     }
 
-    func newChat() {
+    // 离开当前对话：停掉任务，没写完的回答就地存进原对话
+    private func leave() {
+        gen += 1
         task?.cancel()
         answerConfirm(false)
-        convId = 0
-        msgs = []
-        attachments = []
+        if busy {
+            for m in msgs where m.streaming && !m.text.isEmpty {
+                var steps = m.steps
+                for k in steps.indices where steps[k].state == 0 { steps[k].state = 2 }
+                persist("assistant", m.text, Out.take(), meta: MsgMeta(steps: steps, sources: m.sources, dur: 0))
+            }
+            Live.thinking(false)
+        }
+        pend = nil
         busy = false
+        attachments = []
+    }
+
+    func newChat() {
+        leave()
+        convId = 0
+        title = ""
+        pinned = false
+        msgs = []
     }
 
     func open(_ id: Int) {
-        task?.cancel()
-        answerConfirm(false)
-        busy = false
+        leave()
         convId = id
-        attachments = []
-        msgs = DB.shared.rows("SELECT role,text,files,meta FROM msg WHERE conv=? ORDER BY id", [id]).map { r in
+        let c = DB.shared.rows("SELECT title,pin FROM conv WHERE id=?", [id]).first
+        title = c?.s("title") ?? ""
+        pinned = c?.i("pin") == 1
+        msgs = DB.shared.rows("SELECT id,role,text,files,meta FROM msg WHERE conv=? ORDER BY id", [id]).map { r in
             var urls: [URL] = []
             if let d = r.s("files").data(using: .utf8), let list = try? JSONDecoder().decode([String].self, from: d) {
                 urls = list.map { Store.abs($0) }.filter { FileManager.default.fileExists(atPath: $0.path) }
             }
             var m = Msg(role: r.s("role"), text: r.s("text"), files: urls)
+            m.row = r["id"] as? Int64 ?? 0
             if let d = r.s("meta").data(using: .utf8), let meta = try? JSONDecoder().decode(MsgMeta.self, from: d) {
                 m.steps = meta.steps
                 m.sources = meta.sources
@@ -91,44 +113,85 @@ final class Agent: ObservableObject {
         }
     }
 
-    func convs() -> [Row] { DB.shared.rows("SELECT id,title,ts FROM conv ORDER BY ts DESC") }
+    func convs() -> [Row] { DB.shared.rows("SELECT id,title,ts,pin FROM conv ORDER BY pin DESC, ts DESC") }
+
+    func togglePin(_ id: Int) {
+        DB.shared.run("UPDATE conv SET pin=1-IFNULL(pin,0) WHERE id=?", [id])
+        if id == convId { pinned.toggle() }
+    }
+
+    // 全文搜索聊天内容：对话 id → 命中位置附近的片段
+    func search(_ k: String) -> [Int: String] {
+        let esc = k.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "%", with: "\\%").replacingOccurrences(of: "_", with: "\\_")
+        var out: [Int: String] = [:]
+        for r in DB.shared.rows("SELECT conv,text FROM msg WHERE text LIKE ? ESCAPE '\\' ORDER BY id DESC LIMIT 300", ["%\(esc)%"]) {
+            let c = r.i("conv")
+            if out[c] != nil { continue }
+            let t = r.s("text").replacingOccurrences(of: "\n", with: " ")
+            if let hit = t.range(of: k, options: .caseInsensitive) {
+                let from = t.index(hit.lowerBound, offsetBy: -12, limitedBy: t.startIndex) ?? t.startIndex
+                out[c] = (from > t.startIndex ? "…" : "") + String(t[from...].prefix(44))
+            } else {
+                out[c] = String(t.prefix(44))
+            }
+        }
+        return out
+    }
 
     func deleteConv(_ id: Int) {
+        if id == convId { newChat() }   // 先离开再删，避免把没写完的回答又写回去
         DB.shared.run("DELETE FROM msg WHERE conv=?", [id])
         DB.shared.run("DELETE FROM conv WHERE id=?", [id])
-        if id == convId { newChat() }
     }
 
     func rename(_ id: Int, _ title: String) {
         let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
         DB.shared.run("UPDATE conv SET title=? WHERE id=?", [t, id])
+        if id == convId { self.title = t }
     }
 
     func clearAll() {
+        newChat()
         DB.shared.run("DELETE FROM msg")
         DB.shared.run("DELETE FROM conv")
-        newChat()
     }
 
-    // 只写数据库
-    private func persist(_ role: String, _ text: String, _ files: [URL], meta: MsgMeta? = nil) {
-        guard saving else { return }
+    // 只写数据库，返回行号
+    @discardableResult
+    func persist(_ role: String, _ text: String, _ files: [URL], meta: MsgMeta? = nil) -> Int64 {
+        guard saving else { return 0 }
         if convId == 0 {
-            let title = role == "user" ? String(text.prefix(16)) : "新对话"
-            convId = Int(DB.shared.run("INSERT INTO conv(title,ts) VALUES(?,?)", [title.isEmpty ? "文件" : title, Date().timeIntervalSince1970]))
+            let head = role == "user" ? String(text.prefix(16)) : "新对话"
+            title = head.isEmpty ? "文件" : head
+            convId = Int(DB.shared.run("INSERT INTO conv(title,ts) VALUES(?,?)", [title, Date().timeIntervalSince1970]))
         }
         let json = (try? JSONEncoder().encode(files.map { Store.rel($0) })).flatMap { String(data: $0, encoding: .utf8) } ?? ""
         var metaJSON = ""
         if let meta, !meta.isEmpty, let d = try? JSONEncoder().encode(meta) { metaJSON = String(decoding: d, as: UTF8.self) }
-        DB.shared.run("INSERT INTO msg(role,text,ts,conv,files,meta) VALUES(?,?,?,?,?,?)", [role, text, Date().timeIntervalSince1970, convId, json, metaJSON])
+        let row = DB.shared.run("INSERT INTO msg(role,text,ts,conv,files,meta) VALUES(?,?,?,?,?,?)", [role, text, Date().timeIntervalSince1970, convId, json, metaJSON])
         DB.shared.run("UPDATE conv SET ts=? WHERE id=?", [Date().timeIntervalSince1970, convId])
+        return max(row, 0)
     }
 
     private func store(_ role: String, _ text: String, _ files: [URL]) {
-        msgs.append(Msg(role: role, text: text, files: files))
-        persist(role, text, files)
+        var m = Msg(role: role, text: text, files: files)
+        m.row = persist(role, text, files)
+        msgs.append(m)
     }
+
+    // 编辑重发：删掉这条消息以及之后的全部内容
+    func rewind(_ mid: UUID) {
+        guard !busy, let i = msgs.firstIndex(where: { $0.id == mid }) else { return }
+        if convId != 0, let row = msgs[i...].map({ $0.row }).first(where: { $0 > 0 }) {
+            DB.shared.run("DELETE FROM msg WHERE conv=? AND id>=?", [convId, row])
+        }
+        msgs.removeSubrange(i...)
+        recaps[convId] = nil
+    }
+
+    // 当前对话编号（任务开始时记下，结束时核对是否已经切走）
+    var generation: Int { gen }
 
     // MARK: 发送、停止、重新生成
     func start(_ text: String) {
@@ -172,31 +235,41 @@ final class Agent: ObservableObject {
 
     func regenerate() {
         guard !busy, let lastUser = msgs.last(where: { $0.role == "user" }) else { return }
-        if msgs.last?.role == "assistant" {
+        if let last = msgs.last, last.role == "assistant" {
             msgs.removeLast()
-            DB.shared.run("DELETE FROM msg WHERE id=(SELECT MAX(id) FROM msg WHERE conv=? AND role='assistant')", [convId])
+            if last.row > 0 { DB.shared.run("DELETE FROM msg WHERE id=?", [last.row]) }
         }
         let t = lastUser.text
         let files = lastUser.files
         busy = true
+        let g = gen
         task = Task {
             Live.thinking(true)
             await self.respond(t, files: files)
+            guard g == self.gen else { return }
             Live.thinking(false)
             self.busy = false
         }
     }
 
-    func send(_ text: String) async {
+    // 回答下面的「更详细 / 更简洁」等追问：不带走输入框里待发的附件
+    func followUp(_ text: String) {
+        guard !busy else { return }
+        task = Task { await self.send(text, keepAttachments: true) }
+    }
+
+    func send(_ text: String, keepAttachments: Bool = false) async {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let files = attachments.map { $0.url }
+        let files = keepAttachments ? [] : attachments.map { $0.url }
         guard !t.isEmpty || !files.isEmpty, !busy else { return }
         busy = true
+        let g = gen
         Live.thinking(true, query: t)
-        attachments = []
+        if !keepAttachments { attachments = [] }
         store("user", t, files)
         if let f = files.last { lastFile = f }
         await respond(t, files: files)
+        guard g == gen else { return }
         Live.thinking(false)
         busy = false
     }
@@ -277,6 +350,8 @@ final class Agent: ObservableObject {
     private func partial(_ mid: UUID) -> String { msgs.first(where: { $0.id == mid })?.text ?? "" }
 
     private func finish(_ mid: UUID, _ text: String, translate: Bool = false, started: Date = Date()) {
+        // 对话已经切走：内容在 leave() 里存过了
+        guard msgs.contains(where: { $0.id == mid }) else { return }
         let files = Out.take()
         pend = nil
         let body = text.isEmpty ? L10n.tr("已停止。") : (translate ? L10n.tr(text) : text)
@@ -290,9 +365,31 @@ final class Agent: ObservableObject {
             msgs[i].dur = Date().timeIntervalSince(started)
             meta = MsgMeta(steps: msgs[i].steps, sources: msgs[i].sources, dur: msgs[i].dur)
         }
-        persist("assistant", body, files, meta: meta)
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        let row = persist("assistant", body, files, meta: meta)
+        if let i = msgs.firstIndex(where: { $0.id == mid }) { msgs[i].row = row }
+        if !Task.isCancelled { UINotificationFeedbackGenerator().notificationOccurred(.success) }
         refreshRecap()
+        autoTitle()
+    }
+
+    // 第一轮回答完，用云端模型起一个简短标题（只在本来就用云端回答时）；用户改过名的不覆盖
+    private func autoTitle() {
+        guard ModelPref.effective == .cloud, convId != 0,
+              msgs.filter({ $0.role == "assistant" }).count == 1,
+              let q = msgs.first(where: { $0.role == "user" })?.text, !q.isEmpty,
+              title == String(q.prefix(16)) else { return }
+        let cid = convId
+        let old = title
+        let answer = String((msgs.last?.text ?? "").prefix(300))
+        let ins = "给下面这段对话起一个标题，不超过 12 个字，只输出标题本身，不要引号和标点。" + L10n.replyDirective
+        let prompt = "用户：" + String(q.prefix(300)) + "\n助理：" + answer
+        Task { [weak self] in
+            guard let r = await AI.oneShot(ins, prompt, maxTokens: 40, local: false), let self else { return }
+            let t = r.trimmingCharacters(in: CharacterSet(charactersIn: " \n\"'“”《》「」。.#*"))
+            guard !t.isEmpty, t.count <= 30, !t.contains("\n"), !t.contains("<") else { return }
+            DB.shared.run("UPDATE conv SET title=? WHERE id=? AND title=?", [t, cid, old])
+            if self.convId == cid, self.title == old { self.title = t }
+        }
     }
 
     // 长对话：滑出最近窗口的早期内容，滚动压缩成一段摘要，下次提问时交给云端大脑，不丢上下文。
@@ -301,7 +398,7 @@ final class Agent: ObservableObject {
     private var recaps: [Int: (covered: Int, text: String)] = [:]
 
     private func refreshRecap() {
-        guard CloudLLM.ready, !recapBusy else { return }
+        guard ModelPref.effective == .cloud, !recapBusy else { return }
         let cid = convId
         let upto = msgs.count - 8
         let have = min(recaps[cid]?.covered ?? 0, max(upto, 0))

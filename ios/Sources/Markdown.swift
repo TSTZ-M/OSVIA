@@ -197,6 +197,10 @@ struct MDBlockView: View, Equatable {
                         UIPasteboard.general.string = src
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         copied = true
+                        Task {
+                            try? await Task.sleep(nanoseconds: 1_500_000_000)
+                            copied = false
+                        }
                     } label: {
                         Label(copied ? "已复制" : "复制", systemImage: copied ? "checkmark" : "doc.on.doc").font(.caption)
                     }
@@ -205,7 +209,7 @@ struct MDBlockView: View, Equatable {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    Text(src).fontSz(14, design: .monospaced).foregroundStyle(Brand.ink).padding(12)
+                    Text(verbatim: src).fontSz(14, design: .monospaced).foregroundStyle(Brand.ink).padding(12)
                 }
             }
             .background(Brand.codeBg)

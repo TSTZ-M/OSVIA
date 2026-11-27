@@ -73,6 +73,8 @@ struct MessageView: View {
     let isLast: Bool
     @Binding var preview: URL?
     var onRegenerate: () -> Void
+    var onEdit: () -> Void = {}
+    var onAsk: (String) -> Void = { _ in }
     @ObservedObject private var speaker = Speaker.shared
     @State private var copied = false
 
@@ -84,7 +86,7 @@ struct MessageView: View {
         VStack(alignment: .trailing, spacing: 8) {
             ForEach(m.files, id: \.self) { FileCard(url: $0, preview: $preview) }
             if !m.text.isEmpty {
-                Text(m.text)
+                Text(verbatim: m.text)
                     .fontSz(17)
                     .foregroundStyle(Brand.ink)
                     .padding(.horizontal, 16)
@@ -93,6 +95,7 @@ struct MessageView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     .contextMenu {
                         Button { UIPasteboard.general.string = m.text } label: { Label("复制", systemImage: "doc.on.doc") }
+                        Button { onEdit() } label: { Label("编辑后重发", systemImage: "pencil") }
                     }
             }
         }
@@ -135,8 +138,14 @@ struct MessageView: View {
             ExportMenu(text: m.text)
                 .frame(minWidth: 40, minHeight: 36)
             if isLast {
-                Button { onRegenerate() } label: { Image(systemName: "arrow.clockwise").frame(minWidth: 40, minHeight: 36).contentShape(Rectangle()) }
-                    .accessibilityLabel("重新生成")
+                Menu {
+                    Button { onRegenerate() } label: { Label("重新生成", systemImage: "arrow.clockwise") }
+                    Button { onAsk("把上一条回答讲得更详细一些") } label: { Label("更详细", systemImage: "text.append") }
+                    Button { onAsk("把上一条回答说得更简短") } label: { Label("更简洁", systemImage: "text.badge.minus") }
+                    Button { onAsk("把上一条回答整理成要点列表") } label: { Label("列成要点", systemImage: "list.bullet") }
+                    Button { onAsk("用更通俗的话把上一条回答再说一遍") } label: { Label("说得通俗点", systemImage: "face.smiling") }
+                } label: { Image(systemName: "arrow.clockwise").frame(minWidth: 40, minHeight: 36).contentShape(Rectangle()) }
+                    .accessibilityLabel("重新生成与改写")
             }
         }
         .fontSz(15)
