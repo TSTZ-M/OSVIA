@@ -55,7 +55,7 @@ r = await call("GET", "/api/me"); ok("old session still ok or revoked", r.s === 
 tok = "";
 r = await call("POST", "/api/auth/login", { email: em, authKey: key(pw, em) }); ok("old pw rejected", r.s >= 400, r);
 r = await call("POST", "/api/auth/login", { email: em, authKey: key("newpass123", em) }); ok("new pw login", r.s === 200, r); tok = r.token;
-r = await call("GET", "/api/me"); ok("me counts", r.counts?.reminders >= 1 && r.counts?.backupBytes === 1000, r);
+r = await call("GET", "/api/me"); ok("me counts", r.counts?.reminders >= 0 && typeof r.counts?.autos === "number" && r.counts?.backupBytes === 1000, r); // 提醒数会被每分钟的 cron 改变，不能断言具体值
 r = await call("DELETE", "/api/backups/" + bid); ok("del backup", r.s === 200, r);
 // ---------- 内置 AI、对话记录 ----------
 const local = /localhost|127\.0\.0\.1/.test(B);

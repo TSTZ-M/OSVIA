@@ -13,9 +13,13 @@ export const SITE_DAILY = 500; // 全站每天（免费额度每天约 1 万 neu
 const dec = new TextDecoder();
 const enc = new TextEncoder();
 
+// 最近超时过的模型先放到最后（同一个实例内记 5 分钟），避免每个请求都白等一轮
+const slowUntil = new Map();
 function modelList(env) {
   const first = (env.AI_MODEL || "").trim();
-  return first ? [first, ...MODELS.filter((m) => m !== first)] : MODELS;
+  const all = first ? [first, ...MODELS.filter((m) => m !== first)] : MODELS;
+  const t = Date.now();
+  return [...all.filter((m) => (slowUntil.get(m) || 0) <= t), ...all.filter((m) => (slowUntil.get(m) || 0) > t)];
 }
 
 // 去掉模型可能输出的 <think>…</think>
@@ -47,6 +51,7 @@ async function runModel(env, payload) {
       return { model, ms: Date.now() - t0, out };
     } catch (e) {
       last = e;
+      if (e && e.message === "timeout") slowUntil.set(model, Date.now() + 5 * 60000);
       const f = friendlyError(e);
       if (f.error === "ai_quota") break;
     }
