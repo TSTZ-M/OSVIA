@@ -36,12 +36,14 @@
     <li>你创建的提醒与笔记；开启「云端提醒中转」后，App 同步来的待推送提醒；</li>
     <li>云备份：必须在你的设备上用你设置的口令加密后才能上传，我们无法读取内容，口令丢失后无法恢复；</li>
     <li>Bark 设备密钥与加密密钥（加密后保存，仅用于替你发送推送）；</li>
+    <li>你在网页版「自动化」里创建的任务：要监控的网址与关注点、每日简报的指令、上次抓取内容的指纹（不保存网页全文），以及最近 100 条动态（变化提示与简报正文）；服务器会按你设定的频率代你访问这些公开网页，并把结果推送到你的 Bark；</li>
+    <li>你主动创建的分享链接：生成时把所选笔记或对话复制成一份公开快照，持有链接的任何人都能查看，页面不被搜索引擎收录；你可以随时撤回，或设置 7/30 天后自动失效，并看到查看次数（不记录访客身份）；</li>
     <li>用于防滥用的请求频率计数（与 IP 地址关联，数分钟到一小时后自动清除）。</li>
   </ul>
   <p>使用网页版「内置 AI」（对话、网页摘要、翻译、润色、笔记 AI 工具、一句话提醒）时，你的提问与所选内容（包括摘要时抓取的公开网页正文）会交给 Cloudflare Workers AI 生成回答，适用 Cloudflare 的数据政策；我们自己不会用这些内容训练模型，也不会把它们交给其他第三方。每个账号有每日使用次数上限。若改用自己的模型接口，请求只在转发时经过服务器，API 密钥只保存在你浏览器的本地存储里，不会上传。</p>
 
   <h2>4. 保留与删除</h2>
-  <p>你可以随时在 App（设置 → 隐私与数据 → OSVIA 账号 → 删除账号）或网页版（我的 → 删除账号）中删除账号，提醒、笔记、对话记录、云备份、Bark 密钥和会话会立即永久清除。已发送的提醒与已删除的笔记最多保留 30 天后自动清理。</p>
+  <p>你可以随时在 App（设置 → 隐私与数据 → OSVIA 账号 → 删除账号）或网页版（我的 → 删除账号）中删除账号，提醒、笔记、对话记录、自动化与动态、分享链接、云备份、Bark 密钥和会话会立即永久清除。已发送的提醒与已删除的笔记最多保留 30 天后自动清理。</p>
 
   <h2>5. 儿童</h2>
   <p>OSVIA 不面向 13 岁以下儿童，我们不会有意收集儿童的个人信息。</p>
@@ -74,12 +76,14 @@
     <li>Reminders and notes you create, plus pending reminders synced by the app when "cloud reminder relay" is on;</li>
     <li>Cloud backups, which must be encrypted on your device with your passphrase before upload. We cannot read them, and a lost passphrase cannot be recovered;</li>
     <li>Bark device and encryption keys (stored encrypted, used only to send pushes for you);</li>
+    <li>Web "Automations" you create: the URLs to watch and what to look for, daily-brief instructions, a fingerprint of the last fetched page (not the full page), and your latest 100 activity items (change notices and brief text). The server visits those public pages on your schedule and pushes results to your Bark;</li>
+    <li>Share links you create on purpose: a public snapshot of the chosen note or chat that anyone with the link can read; the page is not indexed by search engines; you can revoke it anytime or set it to expire after 7/30 days, and see a view count (visitors are not identified);</li>
     <li>Short-lived request counters tied to IP address for abuse prevention (cleared within minutes to an hour).</li>
   </ul>
   <p>When you use the web "built-in AI" (chat, page summaries, translation, polishing, note AI tools, one-sentence reminders), your prompts and the content you select (including the public web page text fetched for a summary) are sent to Cloudflare Workers AI to generate the answer and are subject to Cloudflare's data policies; we do not use them to train models and do not pass them to other third parties. Each account has a daily usage limit. If you use your own model endpoint instead, requests pass through the server only in transit, and the API key stays in your browser's local storage and is never uploaded.</p>
 
   <h2>4. Retention and deletion</h2>
-  <p>You can delete your account at any time in the app (Settings → Privacy &amp; Data → OSVIA Account → Delete account) or on the web (Me → Delete account). Reminders, notes, chat history, cloud backups, Bark keys and sessions are permanently erased immediately. Sent reminders and deleted notes are purged automatically within 30 days.</p>
+  <p>You can delete your account at any time in the app (Settings → Privacy &amp; Data → OSVIA Account → Delete account) or on the web (Me → Delete account). Reminders, notes, chat history, automations and activity, share links, cloud backups, Bark keys and sessions are permanently erased immediately. Sent reminders and deleted notes are purged automatically within 30 days.</p>
 
   <h2>5. Children</h2>
   <p>OSVIA is not directed to children under 13 and we do not knowingly collect their personal information.</p>

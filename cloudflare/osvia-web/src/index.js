@@ -6,9 +6,11 @@
 //  - 邮箱验证码为可选能力：配置了发信渠道（见 wrangler.toml）才启用
 
 import * as AI from "./ai.js";
+import * as AUTO from "./auto.js";
+import { renderMd } from "./md.js";
 
 const enc = new TextEncoder();
-const VERSION = "1.1.0";
+const VERSION = "1.2.0";
 
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS users(
@@ -39,6 +41,20 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS chats(
     id TEXT PRIMARY KEY, uid TEXT NOT NULL, title TEXT DEFAULT '', msgs TEXT DEFAULT '[]', updated INTEGER NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS idx_chats_uid ON chats(uid, updated)`,
+  `CREATE TABLE IF NOT EXISTS autos(
+    id TEXT PRIMARY KEY, uid TEXT NOT NULL, kind TEXT NOT NULL, title TEXT DEFAULT '', cfg TEXT DEFAULT '{}',
+    period INTEGER DEFAULT 1440, next INTEGER NOT NULL, last INTEGER DEFAULT 0, state TEXT DEFAULT '{}',
+    enabled INTEGER DEFAULT 1, runs INTEGER DEFAULT 0, created INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS idx_autos_next ON autos(enabled, next)`,
+  `CREATE INDEX IF NOT EXISTS idx_autos_uid ON autos(uid)`,
+  `CREATE TABLE IF NOT EXISTS autoevents(
+    id TEXT PRIMARY KEY, uid TEXT NOT NULL, aid TEXT DEFAULT '', title TEXT DEFAULT '', body TEXT DEFAULT '',
+    url TEXT DEFAULT '', created INTEGER NOT NULL, seen INTEGER DEFAULT 0)`,
+  `CREATE INDEX IF NOT EXISTS idx_ev_uid ON autoevents(uid, created)`,
+  `CREATE TABLE IF NOT EXISTS shares(
+    id TEXT PRIMARY KEY, uid TEXT NOT NULL, kind TEXT NOT NULL, ref TEXT DEFAULT '', title TEXT DEFAULT '',
+    content TEXT DEFAULT '', created INTEGER NOT NULL, exp INTEGER DEFAULT 0, views INTEGER DEFAULT 0)`,
+  `CREATE INDEX IF NOT EXISTS idx_shares_uid ON shares(uid, created)`,
 ];
 
 let ready = null;
@@ -284,7 +300,7 @@ function cleanMsgs(list, maxCount, maxChars) {
 }
 
 // ---------- Bark ----------
-async function barkSend(env, u, title, text, level = "timeSensitive") {
+async function barkSend(env, u, title, text, level = "timeSensitive", link = "") {
   const keys = (await open(env, u.bark_key)).split(/[\s,]+/).filter(Boolean);
   if (!keys.length) return "no_key";
   const base = publicHttps(u.bark_server || "https://api.day.app");
@@ -293,6 +309,7 @@ async function barkSend(env, u, title, text, level = "timeSensitive") {
   let errors = 0;
   for (const k of keys) {
     const payload = { title: clip(title, 80), body: clip(text, 400), group: "OSVIA", level, icon: "" };
+    if (link) payload.url = link;
     let data;
     if (encKey) {
       const kb = enc.encode(encKey);
@@ -346,6 +363,10 @@ async function runDue(env) {
   }
 }
 
+const DEPS = { now, uuid, publicHttps, aiGate, barkSend };
+// 用户输入的网址 → 公开 https 地址（没写协议就补 https）
+const webUrl = (u) => publicHttps(/^https?:\/\//i.test(String(u || "")) ? String(u).replace(/^http:/i, "https:") : "https://" + String(u || ""));
+
 async function cleanup(env) {
   const t = now();
   await env.DB.batch([
@@ -354,6 +375,8 @@ async function cleanup(env) {
     env.DB.prepare("DELETE FROM otps WHERE exp<?").bind(t),
     env.DB.prepare("DELETE FROM reminders WHERE sent=1 AND due<?").bind(t - 30 * 86400),
     env.DB.prepare("DELETE FROM notes WHERE deleted=1 AND updated<?").bind(t - 30 * 86400),
+    env.DB.prepare("DELETE FROM shares WHERE exp>0 AND exp<?").bind(t),
+    env.DB.prepare("DELETE FROM autoevents WHERE created<?").bind(t - 60 * 86400),
   ]);
 }
 
@@ -455,13 +478,14 @@ async function handle(req, env) {
   }
 
   if (path === "/api/me" && method === "GET") {
-    const [r, n, b, ch] = await Promise.all([
+    const [r, n, b, ch, au] = await Promise.all([
       env.DB.prepare("SELECT COUNT(*) c FROM reminders WHERE uid=? AND sent=0").bind(uid).first(),
       env.DB.prepare("SELECT COUNT(*) c FROM notes WHERE uid=? AND deleted=0").bind(uid).first(),
       env.DB.prepare("SELECT COUNT(*) c, COALESCE(SUM(size),0) s FROM backups WHERE uid=?").bind(uid).first(),
       env.DB.prepare("SELECT COUNT(*) c FROM chats WHERE uid=?").bind(uid).first(),
+      env.DB.prepare("SELECT COUNT(*) c FROM autos WHERE uid=?").bind(uid).first(),
     ]);
-    return json({ user: publicUser(me), counts: { reminders: r.c, notes: n.c, backups: b.c, backupBytes: b.s, chats: ch.c } });
+    return json({ user: publicUser(me), counts: { reminders: r.c, notes: n.c, backups: b.c, backupBytes: b.s, chats: ch.c, autos: au.c } });
   }
 
   if (path === "/api/me" && method === "PATCH") {
@@ -497,6 +521,9 @@ async function handle(req, env) {
       env.DB.prepare("DELETE FROM reminders WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM notes WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM chats WHERE uid=?").bind(uid),
+      env.DB.prepare("DELETE FROM autos WHERE uid=?").bind(uid),
+      env.DB.prepare("DELETE FROM autoevents WHERE uid=?").bind(uid),
+      env.DB.prepare("DELETE FROM shares WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM backups WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM sessions WHERE uid=?").bind(uid),
       env.DB.prepare("DELETE FROM otps WHERE email=?").bind(me.email),
@@ -765,7 +792,7 @@ async function handle(req, env) {
 
   if (path === "/api/ai/web" && method === "POST") {
     const b = await body(req);
-    const target = publicHttps(/^https?:\/\//i.test(String(b.url || "")) ? String(b.url).replace(/^http:/i, "https:") : "https://" + String(b.url || ""));
+    const target = webUrl(b.url);
     if (!target) return fail(400, "bad_url", "请输入公开的网页地址，例如 https://example.com/article");
     const gate = await aiGate(env, uid);
     if (gate) return gate;
@@ -828,6 +855,175 @@ async function handle(req, env) {
     return json({ ok: true });
   }
 
+  // ----- 自动化：服务器 24 小时替你做的事 -----
+  const pubAuto = (a) => {
+    const cfg = JSON.parse(a.cfg || "{}"), st = JSON.parse(a.state || "{}");
+    return { id: a.id, kind: a.kind, title: a.title, url: cfg.url || "", goal: cfg.goal || "", prompt: cfg.prompt || "", hm: cfg.hm || "", period: a.period,
+      next: a.next, last: a.last, enabled: !!a.enabled, runs: a.runs, fails: st.fails || 0, err: st.err || "", baseline: !!st.h };
+  };
+  if (path === "/api/autos" && method === "GET") {
+    const { results } = await env.DB.prepare("SELECT * FROM autos WHERE uid=? ORDER BY created").bind(uid).all();
+    return json({ items: results.map(pubAuto), max: AUTO.MAX_AUTOS });
+  }
+  if (path === "/api/autos" && method === "POST") {
+    const b = await body(req);
+    const c = await env.DB.prepare("SELECT COUNT(*) c FROM autos WHERE uid=?").bind(uid).first();
+    if (c.c >= AUTO.MAX_AUTOS) return fail(400, "limit", `最多同时开 ${AUTO.MAX_AUTOS} 个自动化，先删掉一个`);
+    const t = now(), id = uuid();
+    const ins = (kind, title, cfg, period, next) =>
+      env.DB.prepare("INSERT INTO autos(id,uid,kind,title,cfg,period,next,last,state,enabled,runs,created) VALUES(?,?,?,?,?,?,?,0,'{}',1,0,?)")
+        .bind(id, uid, kind, title, JSON.stringify(cfg), period, next, t).run();
+    if (b.kind === "watch") {
+      const target = webUrl(b.url);
+      if (!target || target.hostname === new URL(req.url).hostname) return fail(400, "bad_url", "请输入公开的网页地址，例如 https://example.com/news");
+      const period = AUTO.WATCH_EVERY.includes(Number(b.period)) ? Number(b.period) : 1440;
+      const cfg = { url: target.href, goal: clip(b.goal, 200).trim() };
+      const title = clip(b.title, 40).trim() || target.hostname;
+      await ins("watch", title, cfg, period, t + period * 60);
+      // 先抓一次：确认能打开，并把当前内容记作对照
+      const r = await AUTO.runAuto(env, { id, uid, kind: "watch", title, cfg: JSON.stringify(cfg), state: "{}", enabled: 1, period }, DEPS, { push: false });
+      if (r.error) {
+        await env.DB.batch([env.DB.prepare("DELETE FROM autos WHERE id=?").bind(id), env.DB.prepare("DELETE FROM autoevents WHERE aid=?").bind(id)]);
+        return fail(502, "fetch_failed", r.error);
+      }
+      return json({ id });
+    }
+    if (b.kind === "brief") {
+      const prompt = clip(b.prompt, 500).trim();
+      if (!prompt) return fail(400, "bad_request", "请写下你想每天收到什么，例如「总结我今天的安排，并给一条学习建议」");
+      const hm = AUTO.validHm(b.hm) ? b.hm : "08:00";
+      const tz = Number.isFinite(+b.tz) ? Math.max(-840, Math.min(840, Math.trunc(+b.tz))) : 0;
+      await ins("brief", clip(b.title, 40).trim() || "每日简报", { prompt, hm, tz }, 1440, AUTO.nextDaily(hm, tz, t));
+      return json({ id });
+    }
+    return fail(400, "bad_request", "类型不正确");
+  }
+  const ma = /^\/api\/autos\/([\w-]{8,64})(\/run)?$/.exec(path);
+  if (ma && !ma[2] && method === "PUT") {
+    const a = await env.DB.prepare("SELECT * FROM autos WHERE id=? AND uid=?").bind(ma[1], uid).first();
+    if (!a) return fail(404, "not_found", "不存在");
+    const b = await body(req);
+    const cfg = JSON.parse(a.cfg || "{}"), st = JSON.parse(a.state || "{}");
+    let title = a.title, period = a.period, enabled = a.enabled, next = a.next, resched = false;
+    if (typeof b.title === "string" && b.title.trim()) title = clip(b.title, 40).trim();
+    if (a.kind === "watch") {
+      if (typeof b.goal === "string") cfg.goal = clip(b.goal, 200).trim();
+      if (AUTO.WATCH_EVERY.includes(Number(b.period))) { period = Number(b.period); resched = true; }
+    } else {
+      if (typeof b.prompt === "string" && b.prompt.trim()) cfg.prompt = clip(b.prompt, 500).trim();
+      if (AUTO.validHm(b.hm)) { cfg.hm = b.hm; resched = true; }
+      if (Number.isFinite(+b.tz)) { cfg.tz = Math.max(-840, Math.min(840, Math.trunc(+b.tz))); resched = true; }
+    }
+    if (typeof b.enabled === "boolean") {
+      enabled = b.enabled ? 1 : 0;
+      if (b.enabled && !a.enabled) { st.fails = 0; delete st.err; resched = true; }
+    }
+    if (resched) next = AUTO.nextRun({ kind: a.kind, period }, cfg, now());
+    await env.DB.prepare("UPDATE autos SET title=?, cfg=?, period=?, enabled=?, next=?, state=? WHERE id=? AND uid=?")
+      .bind(title, JSON.stringify(cfg), period, enabled, next, JSON.stringify(st), a.id, uid).run();
+    return json({ ok: true });
+  }
+  if (ma && !ma[2] && method === "DELETE") {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM autos WHERE id=? AND uid=?").bind(ma[1], uid),
+      env.DB.prepare("DELETE FROM autoevents WHERE aid=? AND uid=?").bind(ma[1], uid),
+    ]);
+    return json({ ok: true });
+  }
+  if (ma && ma[2] && method === "POST") {
+    if (!(await limit(env, `ar:${uid}`, 10, 3600))) return fail(429, "rate_limited", "手动运行太频繁，请稍后再试");
+    const a = await env.DB.prepare("SELECT a.*, u.bark_server, u.bark_key, u.bark_enc FROM autos a JOIN users u ON u.id=a.uid WHERE a.id=? AND a.uid=?").bind(ma[1], uid).first();
+    if (!a) return fail(404, "not_found", "不存在");
+    const r = await AUTO.runAuto(env, a, DEPS, { push: false });
+    if (r.gate) return r.gate;
+    if (r.skipped) return fail(503, "ai_busy", r.error || "内置 AI 现在比较忙，请稍后再试");
+    if (r.error) return fail(502, "run_failed", r.error);
+    return json({ event: r.ev ? { title: r.ev.title, body: r.ev.body, url: r.ev.url } : null });
+  }
+
+  // ----- 动态（自动化的结果） -----
+  if (path === "/api/feed" && method === "GET") {
+    const [l, u] = await Promise.all([
+      env.DB.prepare("SELECT id,aid,title,body,url,created,seen FROM autoevents WHERE uid=? ORDER BY created DESC LIMIT 50").bind(uid).all(),
+      env.DB.prepare("SELECT COUNT(*) c FROM autoevents WHERE uid=? AND seen=0").bind(uid).first(),
+    ]);
+    return json({ items: l.results, unread: u.c });
+  }
+  if (path === "/api/feed/seen" && method === "POST") {
+    await env.DB.prepare("UPDATE autoevents SET seen=1 WHERE uid=? AND seen=0").bind(uid).run();
+    return json({ ok: true });
+  }
+  if (path === "/api/feed" && method === "DELETE") {
+    await env.DB.prepare("DELETE FROM autoevents WHERE uid=?").bind(uid).run();
+    return json({ ok: true });
+  }
+  const mf = /^\/api\/feed\/([\w-]{8,64})$/.exec(path);
+  if (mf && method === "DELETE") {
+    await env.DB.prepare("DELETE FROM autoevents WHERE id=? AND uid=?").bind(mf[1], uid).run();
+    return json({ ok: true });
+  }
+
+  // ----- 分享链接：把笔记或对话发布成公开只读页（快照；随时可撤回；可设有效期） -----
+  if (path === "/api/shares" && method === "GET") {
+    const { results } = await env.DB.prepare("SELECT id,kind,ref,title,created,exp,views FROM shares WHERE uid=? ORDER BY created DESC LIMIT 100").bind(uid).all();
+    return json({ items: results });
+  }
+  if (path === "/api/shares" && method === "POST") {
+    const b = await body(req);
+    const kind = b.kind === "chat" ? "chat" : b.kind === "note" ? "note" : "";
+    const ref = clip(b.ref, 64);
+    if (!kind || !/^[\w-]{8,64}$/.test(ref)) return fail(400, "bad_request", "请求不完整");
+    let title, content;
+    if (kind === "note") {
+      const r = await env.DB.prepare("SELECT title, body FROM notes WHERE id=? AND uid=? AND deleted=0").bind(ref, uid).first();
+      if (!r) return fail(404, "not_found", "笔记不存在");
+      title = r.title || "无标题";
+      content = clip(r.body, 100000);
+    } else {
+      const r = await env.DB.prepare("SELECT title, msgs FROM chats WHERE id=? AND uid=?").bind(ref, uid).first();
+      if (!r) return fail(404, "not_found", "对话不存在");
+      let msgs = [];
+      try { msgs = JSON.parse(r.msgs); } catch { /* 空 */ }
+      title = r.title || "对话";
+      content = JSON.stringify(cleanMsgs(msgs, 100, 300000));
+    }
+    const days = [7, 30].includes(Number(b.days)) ? Number(b.days) : 0;
+    const exp = days ? now() + days * 86400 : 0;
+    const old = await env.DB.prepare("SELECT id FROM shares WHERE uid=? AND kind=? AND ref=?").bind(uid, kind, ref).first();
+    if (old) {
+      await env.DB.prepare("UPDATE shares SET title=?, content=?, exp=? WHERE id=?").bind(clip(title, 80), content, exp, old.id).run();
+      return json({ id: old.id, updated: true });
+    }
+    const c = await env.DB.prepare("SELECT COUNT(*) c FROM shares WHERE uid=?").bind(uid).first();
+    if (c.c >= 50) return fail(400, "limit", "分享链接太多了，先撤回一些");
+    const id = b64u(rand(9));
+    await env.DB.prepare("INSERT INTO shares(id,uid,kind,ref,title,content,created,exp,views) VALUES(?,?,?,?,?,?,?,?,0)")
+      .bind(id, uid, kind, ref, clip(title, 80), content, now(), exp).run();
+    return json({ id });
+  }
+  const msh = /^\/api\/shares\/([\w-]{8,24})$/.exec(path);
+  if (msh && method === "DELETE") {
+    await env.DB.prepare("DELETE FROM shares WHERE id=? AND uid=?").bind(msh[1], uid).run();
+    return json({ ok: true });
+  }
+
+  // ----- 发到手机：网页上的任何文字/链接，一键用 Bark 推到 iPhone -----
+  if (path === "/api/push" && method === "POST") {
+    if (!(await limit(env, `push:${uid}`, 30, 3600))) return fail(429, "rate_limited", "发送太频繁，请稍后再试");
+    const b = await body(req);
+    const text = clip(b.body, 400).trim();
+    if (!text) return fail(400, "bad_request", "没有要发送的内容");
+    let link = "";
+    if (b.url) {
+      const u = publicHttps(clip(b.url, 500));
+      if (!u) return fail(400, "bad_url", "链接需要是公开的 https 地址");
+      link = u.href;
+    }
+    if (!me.bark_key) return fail(400, "no_bark", "还没有设置 Bark，请先在「我的」里填写设备密钥");
+    const e = await barkSend(env, me, clip(b.title, 80).trim() || "OSVIA", text, "active", link);
+    return e ? fail(400, e, "推送失败：请检查 Bark 的设备密钥、服务器地址和加密密钥") : json({ ok: true });
+  }
+
   // ----- 网页助手：转发到用户自己配置的模型接口（密钥只在这一次请求里经过，不保存） -----
   if (path === "/api/llm" && method === "POST") {
     if (!(await limit(env, `llm:${uid}`, 60, 600))) return fail(429, "rate_limited", "请求太频繁，请稍后再试");
@@ -859,9 +1055,60 @@ async function handle(req, env) {
   return fail(404, "not_found", "接口不存在");
 }
 
+// ---------- 公开分享页（服务端渲染，无脚本；严格 CSP；不让搜索引擎收录） ----------
+const escHtml = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function htmlPage(status, title, desc, inner) {
+  const doc = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escHtml(title)} · OSVIA</title><meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="light dark">
+<meta name="description" content="${escHtml(desc)}"><meta property="og:title" content="${escHtml(title)}"><meta property="og:description" content="${escHtml(desc)}"><meta property="og:type" content="article">
+<link rel="icon" href="/icon-192.png"><link rel="stylesheet" href="/share.css"></head><body><main class="doc share">${inner}
+<footer><a href="/">OSVIA</a> · 内容由作者分享，OSVIA 不对其负责</footer></main></body></html>`;
+  return new Response(doc, {
+    status,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "content-security-policy": "default-src 'none'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+      "x-robots-tag": "noindex, nofollow",
+    },
+  });
+}
+async function sharePage(req, env, ctx, id) {
+  if (!(await limit(env, `sv:${ip(req)}`, 120, 600))) return new Response("请求太频繁，请稍后再试", { status: 429 });
+  const r = await env.DB.prepare("SELECT * FROM shares WHERE id=?").bind(id).first();
+  if (!r || (r.exp && r.exp < now())) return htmlPage(404, "链接已失效", "这个分享链接已失效", `<h1>链接已失效</h1><p class="sub">这个分享链接不存在、已过期，或已被作者撤回。</p>`);
+  const bump = env.DB.prepare("UPDATE shares SET views=views+1 WHERE id=?").bind(id).run();
+  if (ctx && ctx.waitUntil) ctx.waitUntil(bump);
+  let inner, desc;
+  if (r.kind === "chat") {
+    let msgs = [];
+    try { msgs = JSON.parse(r.content); } catch { /* 空 */ }
+    inner = `<h1>${escHtml(r.title)}</h1>` + msgs.map((m) => m.role === "user"
+      ? `<div class="turn u"><b>提问</b><div>${escHtml(m.content).replace(/\n/g, "<br>")}</div></div>`
+      : `<div class="turn a"><b>AI</b><div class="md">${renderMd(m.content)}</div></div>`).join("");
+    desc = (msgs.find((m) => m.role === "assistant") || msgs[0] || { content: "" }).content;
+  } else {
+    inner = `<h1>${escHtml(r.title)}</h1><article class="md">${renderMd(r.content)}</article>`;
+    desc = r.content;
+  }
+  return htmlPage(200, r.title, desc.replace(/\s+/g, " ").slice(0, 120), inner);
+}
+
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
+    const ms = /^\/s\/([\w-]{8,24})\/?$/.exec(url.pathname);
+    if (ms && req.method === "GET") {
+      try {
+        await ensure(env);
+        return await sharePage(req, env, ctx, ms[1]);
+      } catch (e) {
+        console.error("share page", e && e.stack ? e.stack : e);
+        return new Response("服务器出错了", { status: 500 });
+      }
+    }
     if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(req);
     try {
       await ensure(env);
@@ -875,6 +1122,7 @@ export default {
   async scheduled(event, env, ctx) {
     await ensure(env);
     await runDue(env);
+    try { await AUTO.runAutos(env, DEPS); } catch (e) { console.error("runAutos", e && e.message ? e.message : e); }
     const d = new Date(event.scheduledTime);
     if (d.getUTCHours() === 3 && d.getUTCMinutes() === 0) await cleanup(env);
   },

@@ -250,4 +250,44 @@ export async function fetchPageText(startUrl, publicHttps, selfHost) {
   return { title: title.replace(/\s+/g, " ").trim(), text: body, url: url.href };
 }
 
+// ---------- 自动化：网页变化判断 / 每日简报 ----------
+export function compareMessages(goal, oldText, newText) {
+  const care = goal ? `用户特别关注：${goal}。` : "";
+  return [
+    {
+      role: "system",
+      content:
+        `你是网页变化监控助手。下面是同一个网页「旧版本」和「新版本」的正文摘录。${care}` +
+        `判断是否出现了用户会在意的实质变化（新增内容、价格/数量/状态变化、公告等）；忽略时间戳、浏览量、广告、推荐位、导航、页脚这类噪音。` +
+        `只输出一行 JSON：{"changed":true或false,"summary":"一两句话说明具体变了什么，用中文；没有实质变化就留空"}`,
+    },
+    { role: "user", content: `【旧版本】\n${oldText}\n\n【新版本】\n${newText}` },
+  ];
+}
+// 容错解析：优先 JSON；模型不听话时用关键词兜底
+export function parseJudge(raw) {
+  const m = String(raw || "").match(/\{[\s\S]*\}/);
+  if (m) {
+    try {
+      const j = JSON.parse(m[0]);
+      return { changed: j.changed === true || j.changed === "true", summary: String(j.summary || "").trim().slice(0, 300) };
+    } catch { /* 走兜底 */ }
+  }
+  const t = String(raw || "").trim();
+  if (!t || /没有(实质|明显)?变化|无(实质)?变化|未发现|没有更新/.test(t)) return { changed: false, summary: "" };
+  return { changed: true, summary: t.slice(0, 300) };
+}
+export function briefMessages(prompt, reminders, stamp) {
+  const list = reminders.length ? reminders.map((r) => `- ${r}`).join("\n") : "（没有）";
+  return [
+    {
+      role: "system",
+      content:
+        `你是 OSVIA 的每日简报助手，现在是 ${stamp}。按用户的要求写一份简报：用中文，简洁，分点列出，总长度不超过 400 字。` +
+        `不要编造你不知道的实时信息（天气、新闻、股价等）；如果要求需要实时信息，请直说无法获取，并给出替代建议。`,
+    },
+    { role: "user", content: `用户的要求：${prompt}\n\n用户接下来 24 小时内的提醒：\n${list}` },
+  ];
+}
+
 export { friendlyError };

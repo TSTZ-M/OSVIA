@@ -1,0 +1,21 @@
+:root { --mint: #008c66; --bg: #fff; --card: #f2f2f7; --ink: #111; --sub: #6b6b73; --line: #dcdce0; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root { --mint: #2eebb3; --bg: #000; --card: #1c1c1e; --ink: #f2f2f7; --sub: #9a9aa2; --line: #38383a; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Segoe UI", Roboto, "Noto Sans SC", sans-serif; }
+.share { max-width: 720px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 28px) 18px 64px; overflow-wrap: anywhere; }
+.share h1 { font-size: 26px; line-height: 1.3; margin: 0 0 18px; }
+.share h3 { font-size: 19px; margin: 22px 0 6px; } .share h4 { font-size: 16px; margin: 18px 0 4px; }
+.share p { margin: 0 0 12px; } .share .sub { color: var(--sub); }
+.share a { color: var(--mint); }
+.share ul, .share ol { padding-left: 22px; margin: 6px 0 12px; }
+.share blockquote { margin: 8px 0; padding: 2px 14px; border-left: 3px solid var(--line); color: var(--sub); }
+.share hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+.share pre { background: var(--card); border-radius: 10px; padding: 12px; overflow-x: auto; font-size: 13.5px; }
+.share code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .92em; background: var(--card); padding: 1px 5px; border-radius: 5px; }
+.share pre code { background: none; padding: 0; }
+.turn { margin: 14px 0; padding: 12px 14px; border-radius: 14px; background: var(--card); }
+.turn.u { background: color-mix(in srgb, var(--mint) 14%, var(--bg)); }
+.turn > b { display: block; font-size: 12px; color: var(--sub); margin-bottom: 4px; font-weight: 600; letter-spacing: .04em; }
+.turn .md > :last-child { margin-bottom: 0; }
+.share footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--sub); }
+@media print { .share footer { display: none; } .turn { background: none; border: 1px solid #ccc; } }
