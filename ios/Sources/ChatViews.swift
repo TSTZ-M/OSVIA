@@ -22,6 +22,13 @@ struct ChatView: View {
     @State private var preview: URL?
     @State private var memCount = 0
     @State private var mcpCount = 0
+    @State private var editing: UUID?
+    @State private var pos = ScrollPosition(edge: .bottom)
+    @State private var follow = true      // 是否跟着新内容往下滚；用户往上翻看时不打扰
+    @State private var atBottom = true
+    @State private var showRename = false
+    @State private var renameText = ""
+    @State private var confirmDelete = false
     @FocusState private var focus: Bool
 
     private let ideas: [(String, String)] = [
@@ -48,17 +55,46 @@ struct ChatView: View {
     }
 
     private var title: String {
+        if agent.msgs.isEmpty { return Brand.name }
+        if !agent.title.isEmpty, agent.title != "新对话" { return agent.title }
         if let t = agent.msgs.first(where: { $0.role == "user" })?.text, !t.isEmpty { return String(t.prefix(14)) }
         return Brand.name
     }
 
+    private var titleText: some View {
+        Text(verbatim: title).fontSz(17, weight: .semibold, design: .serif).foregroundStyle(Brand.ink).lineLimit(1)
+    }
+
+    // 点标题：重命名、置顶、删除当前对话
+    @ViewBuilder private var titleMenu: some View {
+        if agent.msgs.isEmpty || agent.convId == 0 {
+            titleText
+        } else {
+            Menu {
+                Button {
+                    renameText = title
+                    showRename = true
+                } label: { Label("重命名", systemImage: "pencil") }
+                Button { agent.togglePin(agent.convId) } label: {
+                    Label(agent.pinned ? "取消置顶" : "置顶", systemImage: agent.pinned ? "pin.slash" : "pin")
+                }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("删除", systemImage: "trash") }
+            } label: {
+                HStack(spacing: 4) {
+                    titleText
+                    Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Brand.sub)
+                }
+                .frame(maxWidth: 210)
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            messageList
+            conversation
                 .background(Brand.bg)
-                .safeAreaInset(edge: .bottom, spacing: 0) { inputBar }
+                .safeAreaBar(edge: .bottom, spacing: 0) { inputBar }
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbarBackground(Brand.bg, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
@@ -67,9 +103,7 @@ struct ChatView: View {
                         } label: { Image(systemName: "line.3.horizontal").foregroundStyle(Brand.ink) }
                         .accessibilityLabel("菜单")
                     }
-                    ToolbarItem(placement: .principal) {
-                        Text(title).fontSz(17, weight: .semibold, design: .serif).foregroundStyle(Brand.ink).lineLimit(1)
-                    }
+                    ToolbarItem(placement: .principal) { titleMenu }
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         Button { showShare = true } label: { Image(systemName: "square.and.arrow.up").foregroundStyle(Brand.ink) }
                             .disabled(agent.msgs.isEmpty)
@@ -130,34 +164,132 @@ struct ChatView: View {
                 .onChange(of: focus) { _, f in if f { showTray = false } }
                 .onChange(of: state.page) { _, p in if p == nil { refreshCounts() } }
                 .onChange(of: state.voiceTick) { _, _ in voice.start() }
+                .onChange(of: input) { _, v in UserDefaults.standard.set(v, forKey: "chat.draft") }
+                .onChange(of: agent.convId) { _, _ in
+                    editing = nil
+                    follow = true
+                    pos.scrollTo(edge: .bottom)
+                }
                 .onAppear {
                     refreshCounts()
                     conns = Connectors.all()
+                    if input.isEmpty { input = UserDefaults.standard.string(forKey: "chat.draft") ?? "" }
                     voice.onText = { input = $0 }
                     voice.onFinished = { t in if autoSend && !t.isEmpty { send() } }
                 }
         }
     }
 
-    // MARK: 消息列表
-    var messageList: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                if agent.msgs.isEmpty { emptyState }
-                LazyVStack(alignment: .leading, spacing: 24) {
-                    ForEach(agent.msgs) { m in
-                        MessageView(m: m, isLast: m.id == agent.msgs.last?.id, preview: $preview, onRegenerate: { agent.regenerate() })
-                    }
-                    Color.clear.frame(height: 1).id("end")
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+    // 消息区 + 当前对话的重命名、删除弹窗（单独拆出来，避免 body 过大拖慢类型检查）
+    private var conversation: some View {
+        messageList
+            .alert("重命名对话", isPresented: $showRename) {
+                TextField("标题", text: $renameText)
+                Button("保存") { agent.rename(agent.convId, renameText) }
+                Button("取消", role: .cancel) {}
             }
-            .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(TapGesture().onEnded { if showTray { showTray = false } })
-            .onChange(of: agent.msgs.count) { _, _ in proxy.scrollTo("end", anchor: .bottom) }
-            .onChange(of: agent.msgs.last?.text) { _, _ in proxy.scrollTo("end", anchor: .bottom) }
+            .confirmationDialog("删除这段对话？此操作无法撤销", isPresented: $confirmDelete, titleVisibility: .visible) {
+                Button("删除", role: .destructive) { agent.deleteConv(agent.convId) }
+            }
+    }
+
+    // MARK: 消息列表
+    @ViewBuilder var messageList: some View {
+        if agent.msgs.isEmpty {
+            ScrollView { emptyState.padding(.bottom, 12) }
+                .scrollDismissesKeyboard(.interactively)
+                .simultaneousGesture(TapGesture().onEnded { if showTray { showTray = false } })
+        } else {
+            chatList
+        }
+    }
+
+    var chatList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 24) {
+                ForEach(agent.msgs) { m in
+                    MessageView(m: m, isLast: m.id == agent.msgs.last?.id, preview: $preview,
+                                onRegenerate: { agent.regenerate() },
+                                onEdit: { beginEdit(m) },
+                                onAsk: { agent.followUp(L10n.tr($0)) })
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+        }
+        .scrollPosition($pos)
+        .defaultScrollAnchor(.bottom, for: .initialOffset)
+        .scrollDismissesKeyboard(.interactively)
+        .simultaneousGesture(TapGesture().onEnded { if showTray { showTray = false } })
+        .onScrollGeometryChange(for: Bool.self) { g in
+            g.visibleRect.maxY >= g.contentSize.height - 40
+        } action: { _, v in atBottom = v }
+        .onScrollPhaseChange { old, new, ctx in
+            if new == .interacting {
+                follow = false
+            } else if new == .idle && (old == .interacting || old == .decelerating) {
+                follow = ctx.geometry.visibleRect.maxY >= ctx.geometry.contentSize.height - 40
+            }
+        }
+        .onChange(of: agent.msgs.count) { _, _ in
+            follow = true
+            pos.scrollTo(edge: .bottom)
+        }
+        .onChange(of: agent.msgs.last?.text) { _, _ in stick() }
+        .onChange(of: agent.msgs.last?.steps) { _, _ in stick() }
+        .onChange(of: agent.msgs.last?.streaming) { _, _ in stick() }
+        .onChange(of: focus) { _, f in
+            guard f, follow else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                stick()
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if !follow && !atBottom {
+                Button {
+                    follow = true
+                    withAnimation(.snappy) { pos.scrollTo(edge: .bottom) }
+                } label: {
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Brand.ink)
+                        .frame(width: 40, height: 40)
+                        .contentShape(Circle())
+                }
+                .glassEffect(.regular.interactive(), in: Circle())
+                .padding(.bottom, 8)
+                .accessibilityLabel("回到底部")
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: follow)
+    }
+
+    private func stick() {
+        if follow { pos.scrollTo(edge: .bottom) }
+    }
+
+    private func beginEdit(_ m: Msg) {
+        guard !agent.busy else { return }
+        editing = m.id
+        input = m.text
+        agent.attachments = m.files.map { Attach(url: $0) }
+        focus = true
+    }
+
+    var editChip: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "pencil").foregroundStyle(Brand.mint)
+            Text("正在编辑：发送后替换这条及之后的内容").font(.footnote).foregroundStyle(Brand.sub)
+            Spacer(minLength: 4)
+            Button {
+                editing = nil
+                input = ""
+                agent.attachments = []
+            } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Brand.sub).frame(minWidth: 32, minHeight: 32) }
+                .accessibilityLabel("取消编辑")
         }
     }
 
@@ -181,7 +313,7 @@ struct ChatView: View {
             VStack(spacing: 8) {
                 ForEach(ideas, id: \.1) { idea in
                     Button {
-                        input = idea.1
+                        input = L10n.tr(idea.1)
                         focus = true
                     } label: {
                         HStack(spacing: 12) {
@@ -240,7 +372,7 @@ struct ChatView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .background(Brand.bg)
+        .background(showTray ? Brand.bg : Color.clear)
         .animation(.spring(response: 0.3, dampingFraction: 0.88), value: showTray)
     }
 
@@ -253,6 +385,7 @@ struct ChatView: View {
         VStack(alignment: .leading, spacing: 10) {
             if !voice.error.isEmpty { Text(voice.error).font(.footnote).foregroundStyle(.red) }
             if !notice.isEmpty { Text(notice).font(.footnote).foregroundStyle(.red) }
+            if editing != nil { editChip }
             if !activeConn.isEmpty { connChip }
             if !agent.attachments.isEmpty { attachmentRow }
             if voice.listening {
@@ -272,14 +405,10 @@ struct ChatView: View {
             }
         }
         .padding(14)
-        .background(Brand.card)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(Brand.line, lineWidth: 1))
-        .shadow(color: .black.opacity(0.06), radius: 10, y: 2)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .padding(.horizontal, 12)
         .padding(.top, 6)
         .padding(.bottom, 8)
-        .background(Brand.bg)
     }
 
     // 当前选中的连接器：之后发送的内容都会交给它，点 × 退出
@@ -493,6 +622,10 @@ struct ChatView: View {
         showTray = false
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         if voice.listening { voice.stop() }
+        if let e = editing {
+            editing = nil
+            agent.rewind(e)
+        }
         if t.trimmingCharacters(in: .whitespaces) == "识别文字", !files.isEmpty, files.allSatisfy({ Files.isImage($0) }) {
             Task { await agent.recognize(files) }
             return
