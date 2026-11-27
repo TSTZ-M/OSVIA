@@ -30,7 +30,7 @@ function friendlyError(e) {
   return { status: 502, error: "ai_error", message: "内置 AI 暂时不可用，请稍后再试。" };
 }
 
-const TRY_MS = { stream: 20000, once: 40000 }; // 单个模型等多久：免费额度繁忙时会排队很久，超时就换下一个
+const TRY_MS = { stream: 12000, once: 40000 }; // 单个模型等多久：免费额度繁忙时会排队很久，超时就换下一个
 function withTimeout(p, ms) {
   let timer;
   return Promise.race([p, new Promise((_, rej) => { timer = setTimeout(() => rej(new Error("timeout")), ms); })]).finally(() => clearTimeout(timer));

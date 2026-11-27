@@ -50,7 +50,7 @@ try {
     await p.click(".nav button[data-tab=assistant]");
     await p.fill(".composer textarea", "用一句话介绍你自己");
     await p.click(".composer .btn");
-    await p.waitForFunction(() => { const m = document.querySelector(".msg.ai"); return m && !m.querySelector(".dots") && m.textContent.trim().length > 0; }, null, { timeout: 90000 });
+    await p.waitForFunction(() => { const m = document.querySelector(".msg.ai"); return m && m.querySelector(".mact"); }, null, { timeout: 90000 });
     const reply = (await p.textContent(".msg.ai")).trim();
     console.log("AI reply:", reply.slice(0, 160));
     ok("real AI chat replied", reply.length > 3 && !(await p.$(".msg.ai .errline")), reply);
