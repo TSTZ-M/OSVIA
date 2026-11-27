@@ -1100,6 +1100,26 @@ async function sharePage(req, env, ctx, id) {
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
+    if (env.BENCH_TOKEN && url.pathname === "/api/__bench" && req.headers.get("authorization") === "Bearer " + env.BENCH_TOKEN) {
+      const { model } = await req.json();
+      const msgs = [{ role: "system", content: "你是翻译助手，只输出译文。" }, { role: "user", content: "把这句话译成英文：明天下午三点在会议室讨论新版本的发布计划。" }];
+      const rs = [];
+      for (let i = 0; i < 3; i++) {
+        const t0 = Date.now();
+        try {
+          const o = await env.AI.run(model, { messages: msgs, max_tokens: 200, chat_template_kwargs: { enable_thinking: false } });
+          rs.push(`${Date.now() - t0}ms ${String(o.response ?? o.choices?.[0]?.message?.content ?? "").replace(/\s+/g, " ").slice(0, 70)}`);
+        } catch (e) { rs.push(`${Date.now() - t0}ms ERR ${String(e.message).slice(0, 80)}`); }
+      }
+      const t1 = Date.now();
+      try {
+        const st = await env.AI.run(model, { messages: msgs, max_tokens: 200, stream: true, chat_template_kwargs: { enable_thinking: false } });
+        const t2 = Date.now();
+        const rd = st.getReader(); await rd.read(); const t3 = Date.now();
+        rs.push(`stream: run=${t2 - t1}ms firstchunk=${t3 - t1}ms`);
+      } catch (e) { rs.push(`stream ERR ${Date.now() - t1}ms ${String(e.message).slice(0, 80)}`); }
+      return Response.json({ model, rs });
+    }
     const ms = /^\/s\/([\w-]{8,24})\/?$/.exec(url.pathname);
     if (ms && req.method === "GET") {
       try {
