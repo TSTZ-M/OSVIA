@@ -6,8 +6,8 @@ enum AI {
     @MainActor
     // local：是否允许用本地大模型（MLX）。后台自动做的事（邮件分拣、更新画像）传 false：
     // 加载几个 GB 的模型会和界面抢内存，容易被系统杀掉；这类任务走云端或系统自带模型，都没有就不做。
-    static func oneShot(_ ins: String, _ prompt: String, maxTokens: Int = 900, local: Bool = true) async -> String? {
-        if CloudLLM.ready {
+    static func oneShot(_ ins: String, _ prompt: String, maxTokens: Int = 900, local: Bool = true, cloud: Bool = true) async -> String? {
+        if cloud && CloudLLM.ready {
             let msgs: [[String: String]] = [["role": "system", "content": ins], ["role": "user", "content": prompt]]
             if let r = try? await CloudLLM.stream(msgs, maxTokens: maxTokens, temperature: 0.2, onText: { _ in }), !r.isEmpty { return r }
         }

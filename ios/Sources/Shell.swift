@@ -67,6 +67,9 @@ struct RootView: View {
         .onAppear {
             l10n.ensureTranslation()
             StorageInfo.cleanTempAsync()
+            #if targetEnvironment(simulator)
+            ShotHooks.apply()
+            #endif
         }
         .sheet(item: $state.page) { PageSheet(page: $0).id(l10n.version) }
         .sheet(item: $state.tool) { ToolSheet(req: $0).id(l10n.version) }

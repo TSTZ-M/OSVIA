@@ -1,0 +1,102 @@
+# 模拟器启动自检 + 界面截图：抓启动闪退，截图推到 ci-shots 分支供目测检查
+name: OSVIA-shots
+on:
+  push:
+    branches-ignore: [main, ipa, ci-shots]
+    paths:
+      - 'ios/Sources/**'
+      - 'ios/project.yml'
+      - '.github/workflows/OSVIA-shots.yml'
+  workflow_dispatch:
+concurrency:
+  group: OSVIA-shots-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  shots:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest Xcode
+        run: |
+          NEW=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$NEW" ]; then sudo xcode-select -s "$NEW/Contents/Developer"; fi
+          xcodebuild -version
+      - name: Generate project
+        run: |
+          swift tools/make_icon.swift Sources/Assets.xcassets/AppIcon.appiconset/icon.png
+          brew install xcodegen
+          xcodegen generate
+      - name: Pick and boot simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys,re
+          best=None
+          for rt,devs in json.load(sys.stdin)["devices"].items():
+              m=re.search(r"iOS-(\d+)-(\d+)",rt)
+              if not m: continue
+              for d in devs:
+                  n=re.fullmatch(r"iPhone (\d+)( Pro)?",d["name"])
+                  if not n: continue
+                  k=(int(m[1]),int(m[2]),int(n[1]),0 if n[2] else 1)
+                  if best is None or k>best[0]: best=(k,d["udid"],d["name"],rt)
+          print(best[1]); print(best[2],best[3],file=sys.stderr)')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project OSVIA.xcodeproj -scheme OSVIA -configuration Debug -destination "platform=iOS Simulator,id=$UDID" CODE_SIGNING_ALLOWED=NO OSVIA_ID_SUFFIX= -derivedDataPath simData build > sim-build.log 2>&1 || { grep -E "error:" sim-build.log | sort -u | head -40; tail -n 30 sim-build.log; exit 1; }
+      - name: Launch every screen and screenshot
+        run: |
+          APP=simData/Build/Products/Debug-iphonesimulator/OSVIA.app
+          BID=com.Hao-Yi-Miao.TSTZ-Agent
+          mkdir -p shots
+          FAIL=0
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 || true
+          shot() { # name screen appearance textsize
+            xcrun simctl uninstall "$UDID" $BID 2>/dev/null || true
+            xcrun simctl install "$UDID" "$APP"
+            xcrun simctl ui "$UDID" appearance "$3"
+            xcrun simctl ui "$UDID" content_size "$4"
+            SIMCTL_CHILD_OSVIA_SHOT="$2" xcrun simctl launch "$UDID" $BID -AppleLanguages "(zh-Hans-CN)" -AppleLocale zh_CN
+            sleep 9
+            if ! xcrun simctl spawn "$UDID" launchctl list | grep -q "UIKitApplication:$BID"; then echo "CRASH on $1"; FAIL=1; fi
+            xcrun simctl io "$UDID" screenshot "shots/$1.png"
+            sips -Z 1300 "shots/$1.png" >/dev/null
+          }
+          shot 01-empty empty light large
+          shot 02-chat chat light large
+          shot 03-chat-dark chat dark large
+          shot 04-drawer drawer light large
+          shot 05-drawer-dark drawer dark large
+          shot 06-settings settings light large
+          shot 07-tools tools light large
+          shot 08-mail mail light large
+          shot 09-memory memory light large
+          shot 10-mcp mcp light large
+          shot 11-chat-bigtext chat light accessibility-large
+          shot 12-drawer-bigtext drawer light accessibility-large
+          cp ~/Library/Logs/DiagnosticReports/OSVIA*.ips shots/ 2>/dev/null || true
+          echo "FAIL=$FAIL" > shots/result.txt
+          echo "$GITHUB_SHA" >> shots/result.txt
+          echo "FAIL=$FAIL" >> "$GITHUB_ENV"
+      - name: Publish screenshots to ci-shots branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -d shots ] || exit 0
+          W=$(mktemp -d); cp shots/* "$W/"; cd "$W"
+          git init -q -b ci-shots
+          git config user.name "ci-bot"; git config user.email "ci-bot@users.noreply.github.com"
+          git add -A; git commit -q -m "screenshots $GITHUB_SHA"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-shots
+      - name: Fail on crash
+        run: test "$FAIL" = "0"

@@ -105,8 +105,37 @@ enum CloudLLM {
     }
 
     static var key: String { SecretStore.get("cloudKey") }
-    static var ready: Bool { enabled && !key.isEmpty && !base.isEmpty && !model.isEmpty }
-    static var summary: String { ready ? preset.name.components(separatedBy: "（")[0] : "未设置" }
+    static var configured: Bool { enabled && !key.isEmpty && !base.isEmpty && !model.isEmpty }
+    // 只有「设置好了 + 用户明确同意把内容发给这家服务商」才会真正走云端
+    static var ready: Bool { configured && consented }
+    static var summary: String { ready ? providerName : (configured ? "待授权" : "未设置") }
+
+    // MARK: 第三方 AI 授权（App Store 审核指南 5.1.2(i)）。按服务商记录，换了服务商要重新同意
+    static var consentID: String { presetID == "custom" ? base : presetID }
+    static var providerName: String {
+        presetID == "custom" ? (URL(string: base)?.host ?? base) : preset.name.components(separatedBy: "（")[0]
+    }
+    private static func idList(_ k: String) -> [String] {
+        (UserDefaults.standard.string(forKey: k) ?? "").split(separator: "\n").map(String.init)
+    }
+    static var consented: Bool { idList("cloudConsent").contains(consentID) }
+    // 设置好了但还没表过态：发消息前要问一次
+    static var needsConsent: Bool { configured && !consented && !idList("cloudDeclined").contains(consentID) }
+    static var mailAllowed: Bool { UserDefaults.standard.object(forKey: "cloudMail") as? Bool ?? true }
+
+    static func setConsent(_ yes: Bool) {
+        let id = consentID
+        let granted = idList("cloudConsent").filter { $0 != id } + (yes ? [id] : [])
+        let declined = idList("cloudDeclined").filter { $0 != id } + (yes ? [] : [id])
+        UserDefaults.standard.set(granted.joined(separator: "\n"), forKey: "cloudConsent")
+        UserDefaults.standard.set(declined.joined(separator: "\n"), forKey: "cloudDeclined")
+    }
+
+    // 用户在模型菜单里重新点了「云端」：下次发消息时再问一次
+    static func askAgain() {
+        let id = consentID
+        UserDefaults.standard.set(idList("cloudDeclined").filter { $0 != id }.joined(separator: "\n"), forKey: "cloudDeclined")
+    }
 
     // 向服务商查询当前账号能用的模型（OpenAI 兼容 GET /models）。服务商换了模型名也不用等应用更新。
     static func listModels() async -> (ids: [String], error: String) {

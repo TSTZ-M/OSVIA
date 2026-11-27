@@ -77,6 +77,7 @@ struct ModelPill: View {
     @ObservedObject private var state = AppState.shared
     @AppStorage("modelMode") private var modeRaw = "auto"
     @AppStorage("cloudOn") private var cloudOn = true
+    @AppStorage("cloudConsent") private var cloudConsent = ""   // 授权变化时刷新按钮
 
     private var mode: ModelMode { ModelMode(rawValue: modeRaw) ?? .auto }
 
@@ -84,7 +85,7 @@ struct ModelPill: View {
         Menu {
             Section("回答使用的模型") {
                 row(.auto, "自动（云端优先）", ok: true)
-                row(.cloud, CloudLLM.ready ? "云端 · " + ModelPref.cloudName : "云端大脑（未设置）", ok: CloudLLM.ready)
+                row(.cloud, CloudLLM.configured ? "云端 · " + ModelPref.cloudName : "云端大脑（未设置）", ok: CloudLLM.configured)
                 row(.local, local.canUse ? "本地 · " + ModelPref.localName : "本地大模型（未启用）", ok: local.canUse)
                 row(.system, "系统自带模型", ok: ModelPref.systemOK)
             }
@@ -121,6 +122,7 @@ struct ModelPill: View {
     private func row(_ m: ModelMode, _ title: String, ok: Bool) -> some View {
         Button {
             modeRaw = m.rawValue
+            if m == .cloud { CloudLLM.askAgain() }
             UISelectionFeedbackGenerator().selectionChanged()
         } label: {
             Label(title, systemImage: mode == m ? "checkmark" : m.icon)

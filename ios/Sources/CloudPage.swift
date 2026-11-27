@@ -12,6 +12,8 @@ struct CloudPage: View {
     @State private var models: [String] = []
     @State private var loadingModels = false
     @State private var modelsError = ""
+    @AppStorage("cloudConsent") private var consentList = ""
+    @AppStorage("cloudMail") private var mailOK = true
 
     private var current: CloudPreset { CloudLLM.presets.first { $0.id == preset } ?? CloudLLM.presets[0] }
 
@@ -72,6 +74,7 @@ struct CloudPage: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
+            if !key.isEmpty { consentSection }
             Section {
                 Button { runTest() } label: {
                     HStack(spacing: 8) {
@@ -94,6 +97,22 @@ struct CloudPage: View {
             models = []
             modelsError = ""
             result = ""
+        }
+    }
+
+    private var consentSection: some View {
+        let granted = consentList.split(separator: "\n").map(String.init).contains(CloudLLM.consentID)
+        return Section {
+            Toggle(L10n.f("允许把内容发给 {}", CloudLLM.providerName),
+                   isOn: Binding(get: { granted }, set: { CloudLLM.setConsent($0) }))
+                .tint(.green)
+            if granted {
+                Toggle("邮件分拣、摘要、代写也用云端", isOn: $mailOK).tint(.green)
+            }
+        } header: {
+            Text("数据授权")
+        } footer: {
+            Text("开启后，你的提问、对话历史、相关记忆、附件文字和联网结果会直接从手机发给该服务商用于生成回答，记忆整理和对话标题也会用到。不开启则只用本机模型。")
         }
     }
 

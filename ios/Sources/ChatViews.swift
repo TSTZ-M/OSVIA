@@ -29,6 +29,7 @@ struct ChatView: View {
     @State private var showRename = false
     @State private var renameText = ""
     @State private var confirmDelete = false
+    @State private var askConsent = false
     @FocusState private var focus: Bool
 
     private let ideas: [(String, String)] = [
@@ -190,6 +191,20 @@ struct ChatView: View {
             }
             .confirmationDialog("删除这段对话？此操作无法撤销", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("删除", role: .destructive) { agent.deleteConv(agent.convId) }
+            }
+            // 第一次要把内容发给第三方 AI 之前，明确征求同意
+            .alert(L10n.f("把内容发给 {}？", CloudLLM.providerName), isPresented: $askConsent) {
+                Button("同意并发送") {
+                    CloudLLM.setConsent(true)
+                    send()
+                }
+                Button("只用本机回答") {
+                    CloudLLM.setConsent(false)
+                    send()
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("你的提问、对话历史、相关记忆和附件文字会直接从手机发给该服务商用于生成回答。可随时在 设置 → 云端大脑 里关闭。")
             }
     }
 
@@ -615,6 +630,11 @@ struct ChatView: View {
 
     // MARK: 发送：识别文字 → 当前连接器 → 「用 XX 查 YY」→ 普通对话
     func send() {
+        if CloudLLM.needsConsent && (ModelPref.mode == .auto || ModelPref.mode == .cloud) {
+            focus = false
+            askConsent = true
+            return
+        }
         let t = input
         let files = agent.attachments.map { $0.url }
         input = ""

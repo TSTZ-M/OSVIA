@@ -7,7 +7,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 SRC = os.path.join(ROOT, 'Sources')
 OUT = os.path.join(SRC, 'L10nCatalog.swift')
 CJK = re.compile(r'[一-鿿㐀-䶿]')
-SKIP_FILES = {'AICatalog.swift', 'AIIcon.swift', 'Nlp.swift', 'L10nCatalog.swift', 'L10nTable.swift', 'L10nExtra.swift', 'L10nExtra2.swift', 'L10nUI.swift', 'L10n.swift'}
+SKIP_FILES = {'AICatalog.swift', 'AIIcon.swift', 'Nlp.swift', 'L10nCatalog.swift', 'L10nTable.swift', 'L10nExtra.swift', 'L10nExtra2.swift', 'L10nUI.swift', 'L10n.swift', 'ShotHooks.swift'}
 # 语言本名、品牌名之类不翻译
 KEEP = {'简体中文', '繁體中文', '日本語', '한국어'}
 # 这些行里的字符串是用来「匹配」的关键词，或是发给大模型的内容，不会显示给用户

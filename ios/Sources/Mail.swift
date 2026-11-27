@@ -256,7 +256,7 @@ enum Mail {
                 let f = MailMIME.address(items[i].p.h("from"))
                 return "[\(j)] 发件人：\(f.name.isEmpty ? f.addr : f.name + " <" + f.addr + ">") | 主题：\(oneLine(items[i].p.h("subject"), 80)) | 正文：\(oneLine(items[i].p.text, 300))"
             }.joined(separator: "\n")
-            guard let out = await AI.oneShot(ins, payload, maxTokens: 900, local: false),
+            guard let out = await AI.oneShot(ins, payload, maxTokens: 900, local: false, cloud: CloudLLM.mailAllowed),
                   let a = out.firstIndex(of: "["), let b = out.lastIndex(of: "]"), a < b,
                   let arr = (try? JSONSerialization.jsonObject(with: Data(out[a...b].utf8))) as? [[String: Any]] else { continue }
             for o in arr {
@@ -687,7 +687,7 @@ enum Mail {
     static func draftNew(intent: String, subject: String) async -> String? {
         let ins = "你是用户的邮件助理，替用户起草邮件正文。语气得体、简洁；只写正文，不要主题、不要解释；不要编造时间、金额、承诺、链接；信息不足的地方写成【待补充】。用用户描述所用的语言。"
         let p = (subject.isEmpty ? "" : "主题：\(subject)\n") + "用户想写的内容：" + intent
-        return await AI.oneShot(ins, p, maxTokens: 700)
+        return await AI.oneShot(ins, p, maxTokens: 700, cloud: CloudLLM.mailAllowed)
     }
 
     static func cleanName(_ s: String) -> String {
@@ -730,7 +730,7 @@ enum Mail {
         """
         let who = r.s("from_name").isEmpty ? r.s("from_addr") : r.s("from_name")
         let p = "原邮件（来自 \(who)，主题：\(r.s("subject"))）：\n\(String(original.prefix(3000)))\n\n用户想怎么回复：\(intent.isEmpty ? "礼貌地确认收到，并简要回应对方的问题" : intent)"
-        return await AI.oneShot(ins, p, maxTokens: 700)
+        return await AI.oneShot(ins, p, maxTokens: 700, cloud: CloudLLM.mailAllowed)
     }
 
     // MARK: 给助理用的工具
@@ -854,6 +854,9 @@ enum Mail {
         func str(_ k: String) -> String { (a[k] as? String) ?? (a[k].map { "\($0)" } ?? "") }
         guard c.name.hasPrefix("mail_") else { return nil }
         guard !accounts().isEmpty else { return ToolResult(text: "还没有连接邮箱。请告诉用户到侧栏的「邮箱」里添加。", ok: false) }
+        if cloud && !CloudLLM.mailAllowed {
+            return ToolResult(text: "用户设置了邮件内容不发给云端模型。请告诉用户：可以在「邮箱」页里查看，或到 设置 → 云端大脑 打开邮件授权。", ok: false)
+        }
 
         switch c.name {
         case "mail_list":
