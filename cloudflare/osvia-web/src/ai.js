@@ -30,13 +30,21 @@ function friendlyError(e) {
   return { status: 502, error: "ai_error", message: "内置 AI 暂时不可用，请稍后再试。" };
 }
 
-// 依次尝试模型：模型不存在、没权限这类错误换下一个，额度类错误直接抛出
+const TRY_MS = { stream: 20000, once: 40000 }; // 单个模型等多久：免费额度繁忙时会排队很久，超时就换下一个
+function withTimeout(p, ms) {
+  let timer;
+  return Promise.race([p, new Promise((_, rej) => { timer = setTimeout(() => rej(new Error("timeout")), ms); })]).finally(() => clearTimeout(timer));
+}
+
+// 依次尝试模型：模型不存在、没权限、排队超时这类错误换下一个，额度类错误直接抛出
 async function runModel(env, payload) {
   if (!env.AI) throw Object.assign(new Error("no ai"), { friendly: { status: 501, error: "ai_off", message: "内置 AI 还没有开启。" } });
   let last;
   for (const model of modelList(env)) {
+    const t0 = Date.now();
     try {
-      return { model, out: await env.AI.run(model, payload) };
+      const out = await withTimeout(env.AI.run(model, payload), payload.stream ? TRY_MS.stream : TRY_MS.once);
+      return { model, ms: Date.now() - t0, out };
     } catch (e) {
       last = e;
       const f = friendlyError(e);
@@ -59,8 +67,9 @@ function pickText(out) {
 const BASE = { chat_template_kwargs: { enable_thinking: false } };
 
 // 一次性生成，返回文本
-export async function complete(env, messages, maxTokens = 900) {
-  const { out } = await runModel(env, { ...BASE, messages, max_tokens: maxTokens, temperature: 0.4 });
+export async function complete(env, messages, maxTokens = 900, info) {
+  const { out, model, ms } = await runModel(env, { ...BASE, messages, max_tokens: maxTokens, temperature: 0.4 });
+  if (info) Object.assign(info, { model, ms }); // 仅供排查：哪个模型、用了多久
   return stripThink(pickText(out));
 }
 

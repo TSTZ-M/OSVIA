@@ -75,10 +75,13 @@ const cfg = await (await fetch(B + "/api/config")).json();
 ok("config has ai flag", typeof cfg.ai === "boolean", cfg);
 if (cfg.ai) {
   r = await call("GET", "/api/ai/quota"); ok("ai quota", r.s === 200 && r.on === true && r.max > 0, r);
+  const t0 = Date.now();
   let c = await sse("/api/ai/chat", { messages: [{ role: "user", content: "请只回答一个字：好" }] });
+  if (!local) console.log("ai chat stream ms:", Date.now() - t0);
   ok("ai chat stream", c.status === 200 && c.t.length > 0 && c.done && !c.e && !c.t.includes("<think>"), c);
   r = await call("POST", "/api/ai/chat", { messages: [{ role: "assistant", content: "hi" }] }); ok("ai chat needs user msg", r.s === 400, r);
   r = await call("POST", "/api/ai/tool", { tool: "translate", text: "你好，世界", lang: "en" }); ok("ai tool translate", r.s === 200 && r.text?.length > 0 && !r.text.includes("<think>"), r);
+  if (!local) console.log("ai tool model/ms:", r.model, r.ms);
   r = await call("POST", "/api/ai/tool", { tool: "nope", text: "x" }); ok("ai tool unknown rejected", r.s === 400, r);
   r = await call("POST", "/api/ai/reminder", { text: "明天下午3点提醒我开会", tz: -480 });
   ok("ai reminder parse", (r.s === 200 && r.reminder?.title && r.reminder.due > Date.now() / 1000) || r.s === 422, r);

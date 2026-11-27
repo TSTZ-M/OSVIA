@@ -763,9 +763,10 @@ async function handle(req, env) {
     const gate = await aiGate(env, uid);
     if (gate) return gate;
     try {
-      const out = await AI.complete(env, AI.toolMessages(tool, text, String(b.lang || "")), 1400);
+      const info = {};
+      const out = await AI.complete(env, AI.toolMessages(tool, text, String(b.lang || "")), 1400, info);
       if (!out) return fail(502, "ai_error", "没有生成内容，请再试一次");
-      return json({ text: out });
+      return json({ text: out, model: info.model, ms: info.ms });
     } catch (e) {
       const f = e.friendly || AI.friendlyError(e);
       console.error("ai tool", e && e.message);
